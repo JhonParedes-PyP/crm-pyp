@@ -2,6 +2,8 @@ import pandas as pd
 import openpyxl
 import urllib.parse
 import csv
+import hashlib
+import base64
 from decimal import Decimal
 from datetime import timedelta
 from django.shortcuts import render, get_object_or_404, redirect
@@ -20,6 +22,23 @@ from django.urls import reverse
 # --- FUNCIÓN PARA VERIFICAR SI ES GERENTE ---
 def es_gerente(user):
     return user.groups.filter(name='GERENTE').exists() or user.is_superuser
+
+# --- FUNCIÓN AUXILIAR PARA ENCRIPTAR (Asterisk - Formato Kubo) ---
+def encode_md5_base64(valor):
+    """
+    Encripta un valor en formato MD5 truncado a 9 bytes + Base64 con padding
+    Kubo usa el formato: jOGLf4Fl0Tc= (12 caracteres con = al final)
+    """
+    # Generar hash MD5 completo (16 bytes)
+    md5_full = hashlib.md5(valor.encode()).digest()
+    # Tomar solo los primeros 9 bytes
+    md5_truncado = md5_full[:9]
+    # Codificar a Base64
+    codigo = base64.b64encode(md5_truncado).decode()
+    # Tomar los primeros 11 caracteres y agregar '='
+    # Esto asegura que siempre termine con '=' y tenga 12 caracteres
+    codigo = codigo[:11] + '='
+    return codigo
 
 # --- SEGURIDAD ---
 @require_http_methods(["GET", "POST"])
@@ -70,7 +89,7 @@ def subir_excel(request):
     return render(request, 'cobranza/subir_excel.html', {'mensajes': mensajes})
 
 # --- FUNCIÓN AUXILIAR PARA OBTENER LISTA DE DEUDORES CON FILTROS Y ASIGNACIÓN ---
-def obtener_lista_deudores_filtrados(request, usuario=None):
+def obtener_lista_deudores_filtrados(request, usuario=None, ids_seleccionados=None):
     q = request.GET.get('q', '') 
     cartera_filtro = request.GET.get('cartera', '')
     agencia_filtro = request.GET.get('agencia', '')
@@ -170,7 +189,12 @@ def obtener_lista_deudores_filtrados(request, usuario=None):
             return orden_color.get(item['color'], 4)
         lista_deudores.sort(key=prioridad)
     
-    return [item['id'] for item in lista_deudores]
+    ids = [item['id'] for item in lista_deudores]
+    
+    if ids_seleccionados:
+        ids = [id for id in ids if id in ids_seleccionados]
+    
+    return ids
 
 # --- BANDEJA DE TRABAJO ---
 @login_required
@@ -346,7 +370,330 @@ def bandeja_gestor(request):
         'es_gerente': es_gerente_flag,
     })
 
-# --- NUEVA VISTA: ASIGNACIÓN DE CARTERAS Y AGENCIAS (SOLO GERENTES) ---
+# --- RECIBIR LLAMADA DESDE KUBO Y REDIRIGIR A FICHA DEL CLIENTE ---
+@login_required
+def datos_cliente_kubo(request, telefono, campana, cod_cliente):
+    """
+    Endpoint que recibe la URL de Kubo y redirige a la ficha del cliente
+    URL: /datos-cliente/<telefono>/<campana>/<cod_cliente>/
+    
+    Ejemplo: https://micrm.com/datos-cliente/999888777/85182/77777
+    """
+    # Buscar cliente por teléfono
+    try:
+        deudor = Deudor.objects.get(telefono_principal=telefono)
+    except Deudor.DoesNotExist:
+        # Buscar en teléfonos adicionales
+        try:
+            telefono_extra = TelefonoExtra.objects.get(numero=telefono)
+            deudor = telefono_extra.deudor
+        except TelefonoExtra.DoesNotExist:
+            return HttpResponse("Cliente no encontrado", status=404)
+    
+    # Redirigir a la ficha de gestión del cliente
+    return redirect('registrar_gestion', deudor_id=deudor.id)
+
+# --- GENERAR CAMPAÑA ASTERISK CON FILTROS (GERENTES) ---
+@login_required
+def generar_campana_asterisk(request):
+    if not es_gerente(request.user):
+        return HttpResponse("Acceso Denegado. Solo la Gerencia puede generar campañas.", status=403)
+    
+    CAMPANA_ID = '85200'
+    
+    if request.method == 'POST':
+        # Obtener filtros del formulario
+        cartera_filtro = request.POST.get('cartera', '')
+        agencia_filtro = request.POST.get('agencia', '')
+        mora_desde = request.POST.get('mora_desde', '')
+        monto_minimo = request.POST.get('monto_minimo', '')
+        dias_sin_gestion = request.POST.get('dias_sin_gestion', '')
+        
+        # Construir consulta
+        deudores = Deudor.objects.filter(saldo_deuda__gt=0)
+        
+        if cartera_filtro:
+            deudores = deudores.filter(cartera=cartera_filtro)
+        
+        if agencia_filtro:
+            deudores = deudores.filter(agencia=agencia_filtro)
+        
+        if mora_desde and mora_desde.isdigit():
+            mora_num = int(mora_desde)
+            deudores = deudores.filter(rango_dias_mora__gte=mora_num)
+        
+        if monto_minimo and monto_minimo.replace('.', '').isdigit():
+            deudores = deudores.filter(saldo_deuda__gte=Decimal(monto_minimo))
+        
+        if dias_sin_gestion and dias_sin_gestion.isdigit():
+            fecha_limite = timezone.now() - timedelta(days=int(dias_sin_gestion))
+            deudores = deudores.annotate(ultima_gestion=Max('gestion__fecha'))
+            deudores = deudores.filter(Q(ultima_gestion__isnull=True) | Q(ultima_gestion__lte=fecha_limite))
+        
+        # Excluir clientes sin teléfono válido
+        deudores = deudores.exclude(telefono_principal='').exclude(telefono_principal='Sin número')
+        
+        if not deudores.exists():
+            return HttpResponse("No hay clientes que cumplan con los filtros seleccionados.", status=400)
+        
+        # Generar CSV
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="campana_asterisk.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['TELEFONO', 'CAMPANA', 'COD_CLIENTE', 'COD_TELEFONO'])
+        
+        for d in deudores:
+            telefono = d.telefono_principal
+            if telefono and len(telefono) >= 9:
+                cod_cliente = encode_md5_base64(d.documento)
+                cod_telefono = encode_md5_base64(f"{d.id}{telefono}")
+                writer.writerow([telefono, CAMPANA_ID, cod_cliente, cod_telefono])
+        
+        return response
+    
+    else:
+        # GET: mostrar formulario con listas de carteras y agencias
+        lista_carteras = Deudor.objects.values_list('cartera', flat=True).distinct()
+        lista_carteras = sorted([c for c in lista_carteras if c and str(c).strip() != ''])
+        
+        lista_agencias = Deudor.objects.values_list('agencia', flat=True).distinct()
+        lista_agencias = sorted([a for a in lista_agencias if a and str(a).strip() != ''])
+        
+        return render(request, 'cobranza/campana_asterisk_gerente.html', {
+            'lista_carteras': lista_carteras,
+            'lista_agencias': lista_agencias,
+        })
+
+# --- EXPORTAR TODOS LOS CLIENTES ---
+@login_required
+def exportar_todos_asterisk(request):
+    if not es_gerente(request.user):
+        return HttpResponse("Acceso Denegado.", status=403)
+    
+    CAMPANA_ID = '85200'
+    
+    deudores = Deudor.objects.filter(saldo_deuda__gt=0).exclude(telefono_principal='').exclude(telefono_principal='Sin número')
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="todos_clientes.csv"'
+    writer = csv.writer(response)
+    writer.writerow(['TELEFONO', 'CAMPANA', 'COD_CLIENTE', 'COD_TELEFONO'])
+    
+    for d in deudores:
+        telefono = d.telefono_principal
+        if telefono and len(telefono) >= 9:
+            cod_cliente = encode_md5_base64(d.documento)
+            cod_telefono = encode_md5_base64(f"{d.id}{telefono}")
+            writer.writerow([telefono, CAMPANA_ID, cod_cliente, cod_telefono])
+    
+    return response
+
+# --- EXPORTAR MOROSOS 30+ DÍAS ---
+@login_required
+def exportar_morosos_30(request):
+    if not es_gerente(request.user):
+        return HttpResponse("Acceso Denegado.", status=403)
+    
+    CAMPANA_ID = '85200'
+    
+    deudores = Deudor.objects.filter(
+        saldo_deuda__gt=0,
+        rango_dias_mora__gte=30
+    ).exclude(telefono_principal='').exclude(telefono_principal='Sin número')
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="morosos_30_dias.csv"'
+    writer = csv.writer(response)
+    writer.writerow(['TELEFONO', 'CAMPANA', 'COD_CLIENTE', 'COD_TELEFONO'])
+    
+    for d in deudores:
+        telefono = d.telefono_principal
+        if telefono and len(telefono) >= 9:
+            cod_cliente = encode_md5_base64(d.documento)
+            cod_telefono = encode_md5_base64(f"{d.id}{telefono}")
+            writer.writerow([telefono, CAMPANA_ID, cod_cliente, cod_telefono])
+    
+    return response
+
+# --- EXPORTAR MOROSOS 90+ DÍAS ---
+@login_required
+def exportar_morosos_90(request):
+    if not es_gerente(request.user):
+        return HttpResponse("Acceso Denegado.", status=403)
+    
+    CAMPANA_ID = '85200'
+    
+    deudores = Deudor.objects.filter(
+        saldo_deuda__gt=0,
+        rango_dias_mora__gte=90
+    ).exclude(telefono_principal='').exclude(telefono_principal='Sin número')
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="morosos_90_dias.csv"'
+    writer = csv.writer(response)
+    writer.writerow(['TELEFONO', 'CAMPANA', 'COD_CLIENTE', 'COD_TELEFONO'])
+    
+    for d in deudores:
+        telefono = d.telefono_principal
+        if telefono and len(telefono) >= 9:
+            cod_cliente = encode_md5_base64(d.documento)
+            cod_telefono = encode_md5_base64(f"{d.id}{telefono}")
+            writer.writerow([telefono, CAMPANA_ID, cod_cliente, cod_telefono])
+    
+    return response
+
+# --- EXPORTAR PROMESAS VENCIDAS ---
+@login_required
+def exportar_promesas_vencidas(request):
+    if not es_gerente(request.user):
+        return HttpResponse("Acceso Denegado.", status=403)
+    
+    CAMPANA_ID = '85200'
+    hoy = timezone.now().date()
+    
+    # Buscar clientes con promesas vencidas sin pago posterior
+    deudores_ids = Gestion.objects.filter(
+        resultado__icontains='PROMESA',
+        fecha_promesa__lt=hoy
+    ).exclude(
+        deudor__gestion__resultado__icontains='PAGO',
+        deudor__gestion__fecha__gt=models.F('fecha')
+    ).values_list('deudor_id', flat=True).distinct()
+    
+    deudores = Deudor.objects.filter(id__in=deudores_ids).exclude(telefono_principal='').exclude(telefono_principal='Sin número')
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="promesas_vencidas.csv"'
+    writer = csv.writer(response)
+    writer.writerow(['TELEFONO', 'CAMPANA', 'COD_CLIENTE', 'COD_TELEFONO'])
+    
+    for d in deudores:
+        telefono = d.telefono_principal
+        if telefono and len(telefono) >= 9:
+            cod_cliente = encode_md5_base64(d.documento)
+            cod_telefono = encode_md5_base64(f"{d.id}{telefono}")
+            writer.writerow([telefono, CAMPANA_ID, cod_cliente, cod_telefono])
+    
+    return response
+
+# --- SUBIR LISTA DE LLAMADAS ---
+@login_required
+def subir_lista_llamadas(request):
+    if not es_gerente(request.user):
+        return HttpResponse("Acceso Denegado. Solo la Gerencia puede generar campañas.", status=403)
+    
+    CAMPANA_ID = '85200'
+    resultados = []
+    
+    if request.method == 'POST' and request.FILES.get('archivo_excel'):
+        try:
+            archivo = request.FILES['archivo_excel']
+            df = pd.read_excel(archivo, dtype=str).fillna('')
+            
+            if 'DNI' not in df.columns or 'TELEFONO' not in df.columns:
+                return render(request, 'cobranza/subir_lista_llamadas.html', {
+                    'error': "El archivo debe tener las columnas 'DNI' y 'TELEFONO'",
+                    'resultados': []
+                })
+            
+            for index, row in df.iterrows():
+                dni = str(row.get('DNI', '')).strip()
+                telefono = str(row.get('TELEFONO', '')).strip()
+                
+                telefono_limpio = ''.join(filter(str.isdigit, telefono))
+                
+                if len(telefono_limpio) != 9:
+                    resultados.append({
+                        'dni': dni,
+                        'nombre': '',
+                        'telefono': telefono,
+                        'cod_cliente': '',
+                        'cod_telefono': '',
+                        'estado': '❌ ERROR',
+                        'motivo': 'Teléfono no tiene 9 dígitos'
+                    })
+                    continue
+                
+                try:
+                    deudor = Deudor.objects.get(documento=dni)
+                except Deudor.DoesNotExist:
+                    resultados.append({
+                        'dni': dni,
+                        'nombre': '',
+                        'telefono': telefono_limpio,
+                        'cod_cliente': '',
+                        'cod_telefono': '',
+                        'estado': '❌ ERROR',
+                        'motivo': 'DNI no encontrado en la base'
+                    })
+                    continue
+                
+                cod_cliente = encode_md5_base64(deudor.documento)
+                cod_telefono = encode_md5_base64(f"{deudor.id}{telefono_limpio}")
+                
+                resultados.append({
+                    'dni': dni,
+                    'nombre': deudor.nombre_completo,
+                    'telefono': telefono_limpio,
+                    'cod_cliente': cod_cliente,
+                    'cod_telefono': cod_telefono,
+                    'estado': '✅ OK',
+                    'motivo': ''
+                })
+            
+            request.session['campana_resultados'] = resultados
+            
+            exitosos = len([r for r in resultados if r['estado'] == '✅ OK'])
+            fallidos = len([r for r in resultados if r['estado'] == '❌ ERROR'])
+            
+            return render(request, 'cobranza/subir_lista_llamadas.html', {
+                'resultados': resultados,
+                'exitosos': exitosos,
+                'fallidos': fallidos,
+                'total': len(resultados),
+                'campana_id': CAMPANA_ID,
+                'mensaje_exito': f"Procesado: {exitosos} exitosos, {fallidos} fallidos"
+            })
+            
+        except Exception as e:
+            return render(request, 'cobranza/subir_lista_llamadas.html', {
+                'error': f"Error al procesar el archivo: {e}",
+                'resultados': []
+            })
+    
+    return render(request, 'cobranza/subir_lista_llamadas.html', {
+        'resultados': []
+    })
+
+# --- EXPORTAR CSV DESDE LISTA SUBIDA ---
+@login_required
+def exportar_csv_desde_lista(request):
+    if not es_gerente(request.user):
+        return HttpResponse("Acceso Denegado.", status=403)
+    
+    CAMPANA_ID = '85200'
+    resultados = request.session.get('campana_resultados', [])
+    
+    if not resultados:
+        return HttpResponse("No hay datos para exportar", status=400)
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="campana_asterisk.csv"'
+    writer = csv.writer(response)
+    writer.writerow(['TELEFONO', 'CAMPANA', 'COD_CLIENTE', 'COD_TELEFONO'])
+    
+    for r in resultados:
+        if r['estado'] == '✅ OK':
+            writer.writerow([
+                r['telefono'],
+                CAMPANA_ID,
+                r['cod_cliente'],
+                r['cod_telefono']
+            ])
+    
+    return response
+
+# --- ASIGNACIÓN DE CARTERAS Y AGENCIAS ---
 @login_required
 @user_passes_test(es_gerente)
 def asignar_carteras(request):
@@ -401,83 +748,6 @@ def asignar_carteras(request):
         'todas_agencias': todas_agencias,
         'carteras_por_gestor': carteras_por_gestor,
         'agencias_por_gestor': agencias_por_gestor,
-    })
-
-# --- NUEVA VISTA: CARGA MASIVA DE TELÉFONOS (SOLO GERENTES) ---
-@login_required
-@user_passes_test(es_gerente)
-def cargar_telefonos(request):
-    mensajes = []
-    errores = []
-    exitosos = 0
-    fallidos = 0
-    
-    if request.method == 'POST' and request.FILES.get('archivo_excel'):
-        try:
-            archivo = request.FILES['archivo_excel']
-            df = pd.read_excel(archivo, dtype=str).fillna('')
-            
-            columnas_requeridas = ['DNI', 'TELEFONO']
-            for col in columnas_requeridas:
-                if col not in df.columns:
-                    return render(request, 'cobranza/cargar_telefonos.html', {
-                        'mensajes': f"Error: El archivo debe tener la columna '{col}'",
-                        'exitosos': 0,
-                        'fallidos': 0,
-                        'errores': []
-                    })
-            
-            for index, row in df.iterrows():
-                dni = str(row.get('DNI', '')).strip()
-                telefono = str(row.get('TELEFONO', '')).strip()
-                descripcion = str(row.get('DESCRIPCION', 'ADICIONAL')).strip()
-                
-                if not dni:
-                    errores.append(f"Fila {index+2}: DNI vacío")
-                    fallidos += 1
-                    continue
-                
-                try:
-                    deudor = Deudor.objects.get(documento=dni)
-                except Deudor.DoesNotExist:
-                    errores.append(f"Fila {index+2}: DNI {dni} no encontrado en la base de datos")
-                    fallidos += 1
-                    continue
-                
-                telefono_limpio = ''.join(filter(str.isdigit, telefono))
-                if len(telefono_limpio) != 9:
-                    errores.append(f"Fila {index+2}: Teléfono {telefono} no es válido (debe tener 9 dígitos)")
-                    fallidos += 1
-                    continue
-                
-                telefono_existente = TelefonoExtra.objects.filter(deudor=deudor, numero=telefono_limpio).exists()
-                if telefono_existente:
-                    errores.append(f"Fila {index+2}: Teléfono {telefono_limpio} ya existe para {deudor.nombre_completo}")
-                    fallidos += 1
-                    continue
-                
-                if deudor.telefono_principal == telefono_limpio:
-                    errores.append(f"Fila {index+2}: Teléfono {telefono_limpio} es el teléfono principal de {deudor.nombre_completo}")
-                    fallidos += 1
-                    continue
-                
-                TelefonoExtra.objects.create(
-                    deudor=deudor,
-                    numero=telefono_limpio,
-                    descripcion=descripcion[:50]
-                )
-                exitosos += 1
-            
-            mensajes = f"Proceso completado: {exitosos} teléfonos cargados correctamente, {fallidos} fallidos."
-            
-        except Exception as e:
-            mensajes = f"Error al procesar el archivo: {e}"
-    
-    return render(request, 'cobranza/cargar_telefonos.html', {
-        'mensajes': mensajes,
-        'exitosos': exitosos,
-        'fallidos': fallidos,
-        'errores': errores[:20]
     })
 
 # --- FICHA DE GESTIÓN CON NAVEGACIÓN ---
@@ -690,23 +960,35 @@ def dashboard_gerente(request):
         'gestores_montos': gestores_montos,
     })
 
+# --- EXPORTAR CSV ASTERISK (TODOS LOS CLIENTES - MANTENIDO) ---
 @login_required
 def exportar_csv_asterisk(request):
     if not es_gerente(request.user): 
         return HttpResponse("No", status=403)
+    
+    CAMPANA_ID = '85200'
+    
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="Asterisk_PP.csv"'
     writer = csv.writer(response)
     writer.writerow(['TELEFONO', 'CAMPANA', 'COD_CLIENTE', 'COD_TELEFONO'])
+    
     for d in Deudor.objects.filter(saldo_deuda__gt=0):
-        writer.writerow([d.telefono_principal, '85182', d.documento, d.id])
+        telefono = d.telefono_principal
+        if telefono and telefono != 'Sin número' and len(telefono) >= 9:
+            cod_cliente = encode_md5_base64(d.documento)
+            cod_telefono = encode_md5_base64(f"{d.id}{telefono}")
+            writer.writerow([telefono, CAMPANA_ID, cod_cliente, cod_telefono])
+    
     return response
 
+# --- BUSCAR POR DNI ---
 @login_required
 def buscar_por_dni(request, dni):
     deudor = get_object_or_404(Deudor, documento=dni)
     return redirect('registrar_gestion', deudor_id=deudor.id)
 
+# --- EXPORTAR GESTIONES A EXCEL ---
 @login_required
 def exportar_gestiones_excel(request):
     gestiones = Gestion.objects.all().order_by('-fecha')
@@ -719,3 +1001,80 @@ def exportar_gestiones_excel(request):
     response['Content-Disposition'] = 'attachment; filename=Reporte_PP.xlsx'
     wb.save(response)
     return response
+
+# --- CARGA MASIVA DE TELÉFONOS ---
+@login_required
+@user_passes_test(es_gerente)
+def cargar_telefonos(request):
+    mensajes = []
+    errores = []
+    exitosos = 0
+    fallidos = 0
+    
+    if request.method == 'POST' and request.FILES.get('archivo_excel'):
+        try:
+            archivo = request.FILES['archivo_excel']
+            df = pd.read_excel(archivo, dtype=str).fillna('')
+            
+            columnas_requeridas = ['DNI', 'TELEFONO']
+            for col in columnas_requeridas:
+                if col not in df.columns:
+                    return render(request, 'cobranza/cargar_telefonos.html', {
+                        'mensajes': f"Error: El archivo debe tener la columna '{col}'",
+                        'exitosos': 0,
+                        'fallidos': 0,
+                        'errores': []
+                    })
+            
+            for index, row in df.iterrows():
+                dni = str(row.get('DNI', '')).strip()
+                telefono = str(row.get('TELEFONO', '')).strip()
+                descripcion = str(row.get('DESCRIPCION', 'ADICIONAL')).strip()
+                
+                if not dni:
+                    errores.append(f"Fila {index+2}: DNI vacío")
+                    fallidos += 1
+                    continue
+                
+                try:
+                    deudor = Deudor.objects.get(documento=dni)
+                except Deudor.DoesNotExist:
+                    errores.append(f"Fila {index+2}: DNI {dni} no encontrado en la base de datos")
+                    fallidos += 1
+                    continue
+                
+                telefono_limpio = ''.join(filter(str.isdigit, telefono))
+                if len(telefono_limpio) != 9:
+                    errores.append(f"Fila {index+2}: Teléfono {telefono} no es válido (debe tener 9 dígitos)")
+                    fallidos += 1
+                    continue
+                
+                telefono_existente = TelefonoExtra.objects.filter(deudor=deudor, numero=telefono_limpio).exists()
+                if telefono_existente:
+                    errores.append(f"Fila {index+2}: Teléfono {telefono_limpio} ya existe para {deudor.nombre_completo}")
+                    fallidos += 1
+                    continue
+                
+                if deudor.telefono_principal == telefono_limpio:
+                    errores.append(f"Fila {index+2}: Teléfono {telefono_limpio} es el teléfono principal de {deudor.nombre_completo}")
+                    fallidos += 1
+                    continue
+                
+                TelefonoExtra.objects.create(
+                    deudor=deudor,
+                    numero=telefono_limpio,
+                    descripcion=descripcion[:50]
+                )
+                exitosos += 1
+            
+            mensajes = f"Proceso completado: {exitosos} teléfonos cargados correctamente, {fallidos} fallidos."
+            
+        except Exception as e:
+            mensajes = f"Error al procesar el archivo: {e}"
+    
+    return render(request, 'cobranza/cargar_telefonos.html', {
+        'mensajes': mensajes,
+        'exitosos': exitosos,
+        'fallidos': fallidos,
+        'errores': errores[:20]
+    })

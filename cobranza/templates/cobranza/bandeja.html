@@ -2,29 +2,31 @@
 {% load humanize %}
 
 {% block content %}
-<div style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-    <h2 style="color: #003366; margin-top: 0;">📞 Bandeja de Gestión Estratégica</h2>
 
-    <form method="GET" style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 25px; display: grid; grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr auto; gap: 15px; align-items: end; border-left: 5px solid #007bff;">
+<div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+    <h2 style="color: #003366; margin-top: 0; font-size: 18px; margin-bottom: 15px;">📞 Bandeja de Gestión</h2>
+
+    <!-- FILTROS COMPACTOS -->
+    <form method="GET" style="background: #f8f9fa; padding: 12px 15px; border-radius: 8px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; border-left: 3px solid #007bff;">
         
-        <div>
-            <label style="font-size: 12px; font-weight: bold; color: #555; display: block; margin-bottom: 5px;">🔍 Buscar DNI / Nombre:</label>
-            <input type="text" name="q" value="{{ q }}" placeholder="Ej: 43077490..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px;">
+        <div style="min-width: 180px; flex: 1;">
+            <label style="font-size: 11px; font-weight: bold; color: #555; display: block; margin-bottom: 3px;">🔍 Buscar</label>
+            <input type="text" name="q" value="{{ q }}" placeholder="DNI o Nombre..." style="width: 100%; padding: 6px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px;">
         </div>
 
-        <div>
-            <label style="font-size: 12px; font-weight: bold; color: #003366; display: block; margin-bottom: 5px;">💼 Filtrar por Cartera:</label>
-            <select name="cartera" style="width: 100%; padding: 10px; border-radius: 8px; border: 2px solid #007bff; font-size: 14px; background-color: #f0f7ff;">
-                <option value="">-- Todas las Carteras --</option>
+        <div style="min-width: 140px;">
+            <label style="font-size: 11px; font-weight: bold; color: #555; display: block; margin-bottom: 3px;">💼 Cartera</label>
+            <select name="cartera" style="width: 100%; padding: 6px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px;">
+                <option value="">-- Todas --</option>
                 {% for c in lista_carteras %}
                     <option value="{{ c }}" {% if c == cartera_filtro %}selected{% endif %}>{{ c }}</option>
                 {% endfor %}
             </select>
         </div>
         
-        <div>
-            <label style="font-size: 12px; font-weight: bold; color: #555; display: block; margin-bottom: 5px;">🏢 Agencia:</label>
-            <select name="agencia" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px;">
+        <div style="min-width: 140px;">
+            <label style="font-size: 11px; font-weight: bold; color: #555; display: block; margin-bottom: 3px;">🏢 Agencia</label>
+            <select name="agencia" style="width: 100%; padding: 6px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px;">
                 <option value="">-- Todas --</option>
                 {% for ag in lista_agencias %}
                     <option value="{{ ag }}" {% if ag == agencia_filtro %}selected{% endif %}>{{ ag }}</option>
@@ -32,118 +34,214 @@
             </select>
         </div>
         
-        <div>
-            <label style="font-size: 12px; font-weight: bold; color: #555; display: block; margin-bottom: 5px;">⏱️ Rango de Mora:</label>
-            <select name="rango_dias_mora" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px;">
+        <div style="min-width: 120px;">
+            <label style="font-size: 11px; font-weight: bold; color: #555; display: block; margin-bottom: 3px;">⏱️ Mora</label>
+            <select name="rango_dias_mora" style="width: 100%; padding: 6px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px;">
                 <option value="">-- Todos --</option>
                 {% for mora in lista_moras %}
-                    <option value="{{ mora }}" {% if mora == mora_filtro %}selected{% endif %}>{{ mora }} días</option>
+                    <option value="{{ mora }}" {% if mora == mora_filtro %}selected{% endif %}>{{ mora }}</option>
                 {% endfor %}
             </select>
         </div>
         
-        <div style="display: flex; gap: 10px;">
-            <button type="submit" style="background: #003366; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer;">FILTRAR</button>
-            <a href="{% url 'bandeja_gestor' %}" style="background: #dc3545; color: white; padding: 10px 15px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; text-align: center; display: flex; align-items: center;">LIMPIAR</a>
+        <div>
+            <button type="submit" style="background: #003366; color: white; padding: 6px 15px; border: none; border-radius: 5px; font-weight: bold; font-size: 12px; cursor: pointer;">FILTRAR</button>
+            <a href="{% url 'bandeja_gestor' %}" style="background: #dc3545; color: white; padding: 6px 15px; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 12px; display: inline-block;">LIMPIAR</a>
         </div>
     </form>
 
-    <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 900px;">
-            <thead>
-                <tr style="background: #003366; color: white; text-align: left;">
-                    <th style="padding: 12px; border-radius: 8px 0 0 0; text-align: center;">Estado</th>
-                    <th style="padding: 12px;">Alerta</th>
-                    <th style="padding: 12px;">Cartera</th>
-                    <th style="padding: 12px;">DNI</th>
-                    <th style="padding: 12px;">
-                        <a href="?orden={% if orden_actual == 'nombre' %}-nombre{% else %}nombre{% endif %}{% if q %}&q={{ q }}{% endif %}{% if cartera_filtro %}&cartera={{ cartera_filtro }}{% endif %}{% if agencia_filtro %}&agencia={{ agencia_filtro }}{% endif %}{% if mora_filtro %}&rango_dias_mora={{ mora_filtro }}{% endif %}" style="color: white; text-decoration: none;">
-                            Nombre del Cliente {% if orden_actual == 'nombre' %}▲{% elif orden_actual == '-nombre' %}▼{% else %}↕{% endif %}
-                        </a>
-                    </th>
-                    <th style="padding: 12px;">
-                        <a href="?orden={% if orden_actual == 'agencia' %}-agencia{% else %}agencia{% endif %}{% if q %}&q={{ q }}{% endif %}{% if cartera_filtro %}&cartera={{ cartera_filtro }}{% endif %}{% if agencia_filtro %}&agencia={{ agencia_filtro }}{% endif %}{% if mora_filtro %}&rango_dias_mora={{ mora_filtro }}{% endif %}" style="color: white; text-decoration: none;">
-                            Agencia {% if orden_actual == 'agencia' %}▲{% elif orden_actual == '-agencia' %}▼{% else %}↕{% endif %}
-                        </a>
-                    </th>
-                    <th style="padding: 12px;">
-                        <a href="?orden={% if orden_actual == 'mora' %}-mora{% else %}mora{% endif %}{% if q %}&q={{ q }}{% endif %}{% if cartera_filtro %}&cartera={{ cartera_filtro }}{% endif %}{% if agencia_filtro %}&agencia={{ agencia_filtro }}{% endif %}{% if mora_filtro %}&rango_dias_mora={{ mora_filtro }}{% endif %}" style="color: white; text-decoration: none;">
-                            Mora {% if orden_actual == 'mora' %}▲{% elif orden_actual == '-mora' %}▼{% else %}↕{% endif %}
-                        </a>
-                    </th>
-                    <th style="padding: 12px;">
-                        <a href="?orden={% if orden_actual == 'deuda_total' %}-deuda_total{% else %}deuda_total{% endif %}{% if q %}&q={{ q }}{% endif %}{% if cartera_filtro %}&cartera={{ cartera_filtro }}{% endif %}{% if agencia_filtro %}&agencia={{ agencia_filtro }}{% endif %}{% if mora_filtro %}&rango_dias_mora={{ mora_filtro }}{% endif %}" style="color: white; text-decoration: none;">
-                            Deuda Total {% if orden_actual == 'deuda_total' %}▲{% elif orden_actual == '-deuda_total' %}▼{% else %}↕{% endif %}
-                        </a>
-                    </th>
-                    <th style="padding: 12px; border-radius: 0 8px 0 0; text-align: center;">Acción</th>
-                 </tr>
-            </thead>
-            <tbody>
-                {% for d in deudores %}
-                <tr style="border-bottom: 1px solid #eee; transition: background 0.2s; {% if d.alerta_promesa %}background: #fff3cd; border-left: 4px solid #ffc107;{% endif %}" onmouseover="this.style.background='#f1f8ff'" onmouseout="this.style.background='{% if d.alerta_promesa %}#fff3cd{% else %}white{% endif %}'">
-                    <td style="padding: 12px; text-align: center; font-size: 16px;">
-                        {% if d.color == 'rojo' %}🔴{% elif d.color == 'amarillo' %}🟡{% else %}🟢{% endif %}
-                    </td>
-                    <td style="padding: 12px; text-align: center;">
-                        {% if d.alerta_promesa %}
-                            <span style="background: #ffc107; color: #856404; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; white-space: nowrap;">
-                                ⚠️ PROMESA VENCIDA
-                            </span>
-                            {% if d.proxima_promesa %}
-                                <span style="display: block; font-size: 10px; color: #856404; margin-top: 4px;">
-                                    Vencía: {{ d.proxima_promesa|date:"d/m/Y" }}
-                                </span>
-                            {% endif %}
-                        {% else %}
-                            <span style="color: #999; font-size: 11px;">---</span>
-                        {% endif %}
-                    </td>
-                    <td style="padding: 12px; font-weight: bold; color: #007bff; font-size: 12px;">{{ d.cartera }}</td>
-                    <td style="padding: 12px; font-weight: bold; color: #555;">{{ d.documento }}</td>
-                    <td style="padding: 12px; font-weight: bold; color: #003366;">{{ d.nombre_completo }}</td>
-                    <td style="padding: 12px; color: #666; font-size: 12px;">{{ d.agencia }}</td>
-                    <td style="padding: 12px; color: #d9534f; font-weight: bold;">{{ d.rango_dias_mora|default:"-" }}</td>
-                    <td style="padding: 12px; font-weight: bold; color: #333;">S/ {{ d.saldo_deuda|floatformat:2|intcomma }}</td>
-                    <td style="padding: 12px; text-align: center;">
-                        <a href="{% url 'registrar_gestion' d.id %}" style="background: #28a745; color: white; padding: 8px 15px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 12px; display: inline-block; box-shadow: 0 2px 4px rgba(40,167,69,0.2);">GESTIONAR ➔</a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="9" style="padding: 30px; text-align: center; color: #999; font-size: 16px;">
-                        No se encontraron clientes con estos filtros.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- BARRA DE SELECCIÓN MASIVA -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 8px 12px; background: #e9ecef; border-radius: 6px;">
+        <div>
+            <span style="font-size: 12px; color: #555;">Total clientes en filtro: <strong>{{ deudores.paginator.count }}</strong></span>
+        </div>
+        <div>
+            <button type="button" id="btnSeleccionarTodosFiltro" style="background: #17a2b8; color: white; padding: 4px 12px; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; margin-right: 8px;">
+                📌 SELECCIONAR TODOS ({{ deudores.paginator.count }})
+            </button>
+            <button type="button" id="btnDeseleccionarTodos" style="background: #6c757d; color: white; padding: 4px 12px; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">
+                ❌ DESELECCIONAR TODOS
+            </button>
+        </div>
     </div>
 
+    <!-- TABLA CON CHECKBOXES -->
+    <form method="post" action="/exportar-seleccionados/" id="formExportar">
+        {% csrf_token %}
+        
+        <!-- Campo oculto para indicar que se seleccionaron todos -->
+        <input type="hidden" name="seleccionar_todos" id="seleccionarTodosInput" value="">
+        
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                <thead>
+                    <tr style="background: #003366; color: white;">
+                        <th style="padding: 8px; text-align: center; width: 30px;">
+                            <input type="checkbox" id="checkSeleccionarTodosPagina" style="transform: scale(1); cursor: pointer;">
+                        </th>
+                        <th style="padding: 8px; text-align: center;">Estado</th>
+                        <th style="padding: 8px;">Alerta</th>
+                        <th style="padding: 8px;">Cartera</th>
+                        <th style="padding: 8px;">DNI</th>
+                        <th style="padding: 8px;">Cliente</th>
+                        <th style="padding: 8px;">Agencia</th>
+                        <th style="padding: 8px;">Mora</th>
+                        <th style="padding: 8px;">Deuda</th>
+                        <th style="padding: 8px; text-align: center;">Acción</th>
+                       </tr>
+                </thead>
+                <tbody>
+                    {% for d in deudores %}
+                    <tr style="border-bottom: 1px solid #eee; {% if d.alerta_promesa %}background: #fff3cd;{% endif %}" onmouseover="this.style.background='#f1f8ff'" onmouseout="this.style.background='{% if d.alerta_promesa %}#fff3cd{% else %}white{% endif %}'">
+                        <td style="padding: 8px; text-align: center;">
+                            <input type="checkbox" name="seleccionados" value="{{ d.id }}" class="checkboxCliente" style="transform: scale(0.9);">
+                        </td>
+                        <td style="padding: 8px; text-align: center; font-size: 14px;">
+                            {% if d.color == 'rojo' %}🔴{% elif d.color == 'amarillo' %}🟡{% else %}🟢{% endif %}
+                        </td>
+                        <td style="padding: 8px;">
+                            {% if d.alerta_promesa %}
+                                <span style="background: #ffc107; color: #856404; padding: 2px 6px; border-radius: 10px; font-size: 10px; font-weight: bold;">⚠️ PROMESA VENCIDA</span>
+                            {% else %}
+                                <span style="color: #ccc;">—</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 8px; font-weight: bold; color: #007bff;">{{ d.cartera }}</td>
+                        <td style="padding: 8px;">{{ d.documento }}</td>
+                        <td style="padding: 8px; font-weight: bold; color: #003366;">{{ d.nombre_completo }}</td>
+                        <td style="padding: 8px; color: #666;">{{ d.agencia }}</td>
+                        <td style="padding: 8px; color: #d9534f;">{{ d.rango_dias_mora|default:"-" }}</td>
+                        <td style="padding: 8px; font-weight: bold;">S/ {{ d.saldo_deuda|floatformat:2|intcomma }}</td>
+                        <td style="padding: 8px; text-align: center;">
+                            <a href="{% url 'registrar_gestion' d.id %}" style="background: #28a745; color: white; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 11px;">GESTIONAR</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" style="padding: 30px; text-align: center; color: #999;">
+                            No se encontraron clientes con estos filtros.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- BARRA DE ACCIONES -->
+        <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid #eee;">
+            <div>
+                <button type="submit" id="btnExportar" style="background: #fd7e14; color: white; padding: 6px 15px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 12px;">
+                    📞 EXPORTAR SELECCIONADOS
+                </button>
+            </div>
+            <div style="font-size: 11px; color: #666;">
+                <span id="contadorSeleccionados">0</span> seleccionados
+            </div>
+        </div>
+    </form>
+
+    <!-- PAGINACIÓN -->
     {% if deudores.has_other_pages %}
-    <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 30px; padding: 15px 0; border-top: 1px solid #eee;">
+    <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee;">
         {% if deudores.has_previous %}
-            <a href="?page={{ deudores.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if cartera_filtro %}&cartera={{ cartera_filtro }}{% endif %}{% if agencia_filtro %}&agencia={{ agencia_filtro }}{% endif %}{% if mora_filtro %}&rango_dias_mora={{ mora_filtro }}{% endif %}{% if orden_actual %}&orden={{ orden_actual }}{% endif %}" 
-               style="background: #003366; color: white; padding: 8px 15px; border-radius: 6px; text-decoration: none; font-weight: bold;">&laquo; Anterior</a>
+            <a href="?page={{ deudores.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if cartera_filtro %}&cartera={{ cartera_filtro }}{% endif %}{% if agencia_filtro %}&agencia={{ agencia_filtro }}{% endif %}{% if mora_filtro %}&rango_dias_mora={{ mora_filtro }}{% endif %}" 
+               style="background: #003366; color: white; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 11px;">◀ Anterior</a>
         {% else %}
-            <span style="background: #ccc; color: #666; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: not-allowed;">&laquo; Anterior</span>
+            <span style="background: #ccc; color: #666; padding: 4px 10px; border-radius: 4px; font-size: 11px;">◀ Anterior</span>
         {% endif %}
 
-        <span style="font-size: 14px; color: #555;">
-            Página {{ deudores.number }} de {{ deudores.paginator.num_pages }}
+        <span style="font-size: 11px; color: #555;">
+            Pág. {{ deudores.number }} de {{ deudores.paginator.num_pages }}
         </span>
 
         {% if deudores.has_next %}
-            <a href="?page={{ deudores.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if cartera_filtro %}&cartera={{ cartera_filtro }}{% endif %}{% if agencia_filtro %}&agencia={{ agencia_filtro }}{% endif %}{% if mora_filtro %}&rango_dias_mora={{ mora_filtro }}{% endif %}{% if orden_actual %}&orden={{ orden_actual }}{% endif %}" 
-               style="background: #003366; color: white; padding: 8px 15px; border-radius: 6px; text-decoration: none; font-weight: bold;">Siguiente &raquo;</a>
+            <a href="?page={{ deudores.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if cartera_filtro %}&cartera={{ cartera_filtro }}{% endif %}{% if agencia_filtro %}&agencia={{ agencia_filtro }}{% endif %}{% if mora_filtro %}&rango_dias_mora={{ mora_filtro }}{% endif %}" 
+               style="background: #003366; color: white; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 11px;">Siguiente ▶</a>
         {% else %}
-            <span style="background: #ccc; color: #666; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: not-allowed;">Siguiente &raquo;</span>
+            <span style="background: #ccc; color: #666; padding: 4px 10px; border-radius: 4px; font-size: 11px;">Siguiente ▶</span>
         {% endif %}
     </div>
-    
-    <div style="text-align: center; margin-top: 10px; font-size: 12px; color: #666;">
+    <div style="text-align: center; margin-top: 6px; font-size: 10px; color: #999;">
         Mostrando {{ deudores|length }} de {{ deudores.paginator.count }} clientes
     </div>
     {% endif %}
 </div>
+
+<script>
+    // Función para actualizar el contador
+    function actualizarContador() {
+        var checkboxes = document.querySelectorAll('.checkboxCliente');
+        var seleccionados = 0;
+        for (var i = 0; i < checkboxes.length; i++) {
+            if (checkboxes[i].checked) seleccionados++;
+        }
+        var contador = document.getElementById('contadorSeleccionados');
+        if (contador) contador.innerText = seleccionados;
+        
+        // Actualizar checkbox "seleccionar todos de la página"
+        var checkTodosPagina = document.getElementById('checkSeleccionarTodosPagina');
+        if (checkTodosPagina) {
+            checkTodosPagina.checked = (seleccionados === checkboxes.length && checkboxes.length > 0);
+        }
+    }
+    
+    // Evento: Seleccionar todos de la página
+    var checkTodosPagina = document.getElementById('checkSeleccionarTodosPagina');
+    if (checkTodosPagina) {
+        checkTodosPagina.addEventListener('change', function() {
+            var checkboxes = document.querySelectorAll('.checkboxCliente');
+            for (var i = 0; i < checkboxes.length; i++) {
+                checkboxes[i].checked = this.checked;
+            }
+            actualizarContador();
+        });
+    }
+    
+    // Evento: Seleccionar TODOS los del filtro
+    var btnSeleccionarTodosFiltro = document.getElementById('btnSeleccionarTodosFiltro');
+    if (btnSeleccionarTodosFiltro) {
+        btnSeleccionarTodosFiltro.addEventListener('click', function() {
+            var total = {{ deudores.paginator.count }};
+            if (total > 0) {
+                if (confirm('¿Seleccionar los ' + total + ' clientes del filtro?')) {
+                    var inputTodos = document.getElementById('seleccionarTodosInput');
+                    if (inputTodos) inputTodos.value = 'todos';
+                    
+                    var checkboxes = document.querySelectorAll('.checkboxCliente');
+                    for (var i = 0; i < checkboxes.length; i++) {
+                        checkboxes[i].checked = true;
+                    }
+                    actualizarContador();
+                    alert('Se exportarán los ' + total + ' clientes.');
+                }
+            } else {
+                alert('No hay clientes para seleccionar.');
+            }
+        });
+    }
+    
+    // Evento: Deseleccionar todos
+    var btnDeseleccionarTodos = document.getElementById('btnDeseleccionarTodos');
+    if (btnDeseleccionarTodos) {
+        btnDeseleccionarTodos.addEventListener('click', function() {
+            var checkboxes = document.querySelectorAll('.checkboxCliente');
+            for (var i = 0; i < checkboxes.length; i++) {
+                checkboxes[i].checked = false;
+            }
+            var inputTodos = document.getElementById('seleccionarTodosInput');
+            if (inputTodos) inputTodos.value = '';
+            actualizarContador();
+        });
+    }
+    
+    // Inicializar: agregar eventos a los checkboxes individuales
+    document.addEventListener('DOMContentLoaded', function() {
+        var checkboxes = document.querySelectorAll('.checkboxCliente');
+        for (var i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].addEventListener('change', actualizarContador);
+        }
+        actualizarContador();
+    });
+</script>
+
 {% endblock %}

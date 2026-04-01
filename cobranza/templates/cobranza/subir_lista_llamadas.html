@@ -1,0 +1,87 @@
+{% extends 'cobranza/base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+    <h2 style="color: #003366; margin-top: 0;">📞 Crear Campaña Asterisk</h2>
+    <p style="color: #666; margin-bottom: 20px;">
+        Sube un archivo Excel con los clientes que quieres llamar.
+        El archivo debe tener las columnas: <strong>DNI</strong> y <strong>TELEFONO</strong>.
+        Se usará el teléfono que indiques en el archivo (no el teléfono principal del cliente).
+    </p>
+    
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
+        <h3 style="margin-top: 0; font-size: 14px; color: #003366;">📋 Formato del Archivo Excel</h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            <thead>
+                <tr style="background: #e9ecef;">
+                    <th style="padding: 8px; text-align: left;">DNI</th>
+                    <th style="padding: 8px; text-align: left;">TELEFONO</th>
+                  </tr>
+            </thead>
+            <tbody>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">43077490</td><td style="padding: 8px; border-bottom: 1px solid #ddd;">987654321</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">71234567</td><td style="padding: 8px; border-bottom: 1px solid #ddd;">912345678</td></tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <form method="post" enctype="multipart/form-data" style="background: #f8f9fa; padding: 20px; border-radius: 12px;">
+        {% csrf_token %}
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: bold; margin-bottom: 8px; color: #555;">📁 Seleccionar archivo Excel:</label>
+            <input type="file" name="archivo_excel" accept=".xlsx, .xls" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
+        </div>
+        <button type="submit" style="background: #28a745; color: white; padding: 12px 25px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px;">
+            📤 PROCESAR LISTA
+        </button>
+    </form>
+    
+    {% if resultados %}
+    <div style="margin-top: 25px;">
+        <div style="background: {% if exitosos > 0 %}#d4edda{% else %}#f8d7da{% endif %}; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+            <strong>📊 Resultado:</strong> {{ exitosos }} exitosos, {{ fallidos }} fallidos de {{ total }}
+        </div>
+        
+        {% if exitosos > 0 %}
+        <div style="margin-bottom: 20px;">
+            <a href="{% url 'exportar_csv_campana' %}" style="background: #17a2b8; color: white; padding: 12px 25px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
+                📥 DESCARGAR CSV PARA ASTERISK
+            </a>
+        </div>
+        {% endif %}
+        
+        <div style="max-height: 400px; overflow-y: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                <thead>
+                    <tr style="background: #003366; color: white;">
+                        <th style="padding: 8px;">DNI</th>
+                        <th style="padding: 8px;">Cliente</th>
+                        <th style="padding: 8px;">Teléfono a llamar</th>
+                        <th style="padding: 8px;">Estado</th>
+                        <th style="padding: 8px;">Motivo</th>
+                      </tr>
+                </thead>
+                <tbody>
+                    {% for r in resultados %}
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 8px;">{{ r.dni }}</td>
+                        <td style="padding: 8px;">{{ r.nombre|default:"---" }}</td>
+                        <td style="padding: 8px;">{{ r.telefono }}</td>
+                        <td style="padding: 8px;">{{ r.estado }}</td>
+                        <td style="padding: 8px; color: {% if r.estado == '✅ OK' %}#28a745{% else %}#dc3545{% endif %};">{{ r.motivo }}</td>
+                      </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if error %}
+    <div style="margin-top: 20px; padding: 15px; background: #f8d7da; border-radius: 8px; color: #721c24;">
+        {{ error }}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

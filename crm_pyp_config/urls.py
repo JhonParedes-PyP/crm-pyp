@@ -28,9 +28,23 @@ urlpatterns = [
     path('exportar-asterisk/', views.exportar_csv_asterisk, name='descargar_asterisk'),
     path('exportar-gestiones/', views.exportar_gestiones_excel, name='exportar_gestiones_excel'),
     
-    # NUEVA RUTA: Asignación de Carteras (solo gerentes)
+    # Asignación de Carteras (solo gerentes)
     path('asignar-carteras/', views.asignar_carteras, name='asignar_carteras'),
     
-    # NUEVA RUTA: Carga masiva de teléfonos (solo gerentes)
+    # Carga masiva de teléfonos (solo gerentes)
     path('cargar-telefonos/', views.cargar_telefonos, name='cargar_telefonos'),
+    
+    # Campañas Asterisk (solo gerentes)
+    path('subir-lista-llamadas/', views.subir_lista_llamadas, name='subir_lista_llamadas'),
+    path('exportar-csv-campana/', views.exportar_csv_desde_lista, name='exportar_csv_campana'),
+    
+    # Campañas Asterisk con filtros (solo gerentes)
+    path('campana-asterisk/', views.generar_campana_asterisk, name='generar_campana_asterisk'),
+    path('exportar-todos-asterisk/', views.exportar_todos_asterisk, name='exportar_todos_asterisk'),
+    path('exportar-morosos-30/', views.exportar_morosos_30, name='exportar_morosos_30'),
+    path('exportar-morosos-90/', views.exportar_morosos_90, name='exportar_morosos_90'),
+    path('exportar-promesas-vencidas/', views.exportar_promesas_vencidas, name='exportar_promesas_vencidas'),
+    
+    # NUEVA RUTA: Callback de Kubo (recibir llamada y abrir ficha del cliente)
+    path('datos-cliente/<str:telefono>/<str:campana>/<str:cod_cliente>/', views.datos_cliente_kubo, name='datos_cliente_kubo'),
 ]

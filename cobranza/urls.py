@@ -21,4 +21,11 @@ urlpatterns = [
     
     # Carga masiva de teléfonos (solo gerentes)
     path('cargar-telefonos/', views.cargar_telefonos, name='cargar_telefonos'),
+    
+    # Campañas Asterisk
+    path('subir-lista-llamadas/', views.subir_lista_llamadas, name='subir_lista_llamadas'),
+    path('exportar-csv-campana/', views.exportar_csv_desde_lista, name='exportar_csv_campana'),
+    
+    # NUEVA RUTA: Exportar seleccionados a Asterisk
+    path('exportar-seleccionados/', views.exportar_seleccionados_asterisk, name='exportar_seleccionados'),
 ]

@@ -110,7 +110,8 @@
             <a href="{% url 'subir_excel' %}">📁 Cargar Cartera</a>
             {% if es_gerente %}
             <a href="{% url 'asignar_carteras' %}" style="background: #28a745; padding: 5px 12px; border-radius: 4px;">👥 Asignar Carteras</a>
-            <a href="/cargar-telefonos/" style="background: #17a2b8; padding: 5px 12px; border-radius: 4px;">📱 Cargar Teléfonos</a>
+            <a href="{% url 'cargar_telefonos' %}" style="background: #17a2b8; padding: 5px 12px; border-radius: 4px;">📱 Cargar Teléfonos</a>
+            <a href="{% url 'generar_campana_asterisk' %}" style="background: #fd7e14; padding: 5px 12px; border-radius: 4px;">📞 Campaña Asterisk</a>
             {% endif %}
             {% if user.is_staff %}<a href="/admin/">⚙️ Configuración</a>{% endif %}
         </div>
