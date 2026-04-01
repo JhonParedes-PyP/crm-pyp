@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Ingreso - P&P Soluciones Jurídicas</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #003366 0%, #001f3f 100%); height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; }
+        .login-card { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 100%; max-width: 400px; text-align: center; }
+        .logo-text { font-size: 24px; font-weight: bold; color: #003366; margin-bottom: 10px; display: block; }
+        .subtitle { color: #666; font-size: 14px; margin-bottom: 30px; display: block; }
+        input { width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #0056b3; }
+        .error { color: #d9534f; font-size: 14px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <span class="logo-text">⚖️ P&P SOLUCIONES JURÍDICAS</span>
+    <span class="subtitle">Sistema de Gestión de Cobranzas</span>
+
+    {% if form.errors %}
+        <p class="error">Usuario o contraseña incorrectos. Intenta de nuevo.</p>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        <input type="text" name="username" placeholder="Usuario" required>
+        <input type="password" name="password" placeholder="Contraseña" required>
+        <button type="submit">INGRESAR AL SISTEMA</button>
+    </form>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,68 @@
+{% extends 'cobranza/base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+    <h2 style="color: #003366; margin-top: 0;">📱 Carga Masiva de Teléfonos</h2>
+    <p style="color: #666; margin-bottom: 20px;">
+        Sube un archivo Excel con los teléfonos de contacto adicionales. 
+        El archivo debe tener las columnas: <strong>DNI</strong>, <strong>TELEFONO</strong>, <strong>DESCRIPCION</strong> (opcional).
+        Solo se cargarán teléfonos de 9 dígitos para DNI que ya existan en la base.
+    </p>
+    
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
+        <h3 style="margin-top: 0; font-size: 14px; color: #003366;">📋 Formato del Archivo Excel</h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            <thead>
+                <tr style="background: #e9ecef;">
+                    <th style="padding: 8px; text-align: left;">DNI</th>
+                    <th style="padding: 8px; text-align: left;">TELEFONO</th>
+                    <th style="padding: 8px; text-align: left;">DESCRIPCION (opcional)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">43077490</td><td style="padding: 8px; border-bottom: 1px solid #ddd;">987654321</td><td style="padding: 8px; border-bottom: 1px solid #ddd;">TRABAJO</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">71234567</td><td style="padding: 8px; border-bottom: 1px solid #ddd;">912345678</td><td style="padding: 8px; border-bottom: 1px solid #ddd;">FAMILIAR</td></tr>
+            </tbody>
+        </table>
+        <p style="margin-top: 10px; font-size: 11px; color: #999;">* Si no se especifica DESCRIPCION, se usará "ADICIONAL" por defecto.</p>
+    </div>
+    
+    <form method="post" enctype="multipart/form-data" style="background: #f8f9fa; padding: 20px; border-radius: 12px;">
+        {% csrf_token %}
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: bold; margin-bottom: 8px; color: #555;">📁 Seleccionar archivo Excel:</label>
+            <input type="file" name="archivo_excel" accept=".xlsx, .xls" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
+        </div>
+        <button type="submit" style="background: #28a745; color: white; padding: 12px 25px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px;">
+            📤 CARGAR TELÉFONOS
+        </button>
+        <a href="{% url 'bandeja_gestor' %}" style="background: #6c757d; color: white; padding: 12px 25px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-left: 10px; display: inline-block;">
+            📋 VOLVER A BANDEJA
+        </a>
+    </form>
+    
+    {% if mensajes %}
+    <div style="margin-top: 25px; padding: 15px; border-radius: 8px; background: {% if exitosos > 0 %}#d4edda{% else %}#f8d7da{% endif %}; border: 1px solid {% if exitosos > 0 %}#c3e6cb{% else %}#f5c6cb{% endif %};">
+        <h4 style="margin: 0 0 10px 0; color: {% if exitosos > 0 %}#155724{% else %}#721c24{% endif %};">📊 Resultado del Proceso</h4>
+        <p style="margin: 5px 0;"><strong>✅ Exitosos:</strong> {{ exitosos }} teléfonos cargados</p>
+        <p style="margin: 5px 0;"><strong>❌ Fallidos:</strong> {{ fallidos }} registros</p>
+        <p style="margin: 10px 0 0 0;"><strong>📝 {{ mensajes }}</strong></p>
+        
+        {% if errores %}
+        <div style="margin-top: 15px; max-height: 300px; overflow-y: auto;">
+            <h5 style="margin: 0 0 8px 0; color: #721c24;">Detalle de errores:</h5>
+            <ul style="margin: 0; padding-left: 20px; font-size: 12px; color: #721c24;">
+                {% for error in errores %}
+                <li>{{ error }}</li>
+                {% endfor %}
+                {% if errores|length == 20 %}
+                <li><em>... y más errores. Solo se muestran los primeros 20.</em></li>
+                {% endif %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

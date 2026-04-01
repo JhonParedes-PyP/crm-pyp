@@ -1,0 +1,113 @@
+{% extends 'cobranza/base.html' %}
+{% load humanize %}
+{% load custom_filters %}
+
+{% block content %}
+<div style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+    <h2 style="color: #003366; margin-top: 0;">📋 Asignación de Carteras y Agencias por Gestor</h2>
+    <p style="color: #666; margin-bottom: 20px;">Seleccione qué carteras y/o agencias puede ver cada gestor. Los gestores verán los clientes que coincidan con ALGUNA de las asignaciones.</p>
+    
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
+        <button type="button" id="btn-carteras" class="tab-btn active" onclick="mostrarTab('carteras')" style="background: #003366; color: white; padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer;">📁 Asignar por Carteras</button>
+        <button type="button" id="btn-agencias" class="tab-btn" onclick="mostrarTab('agencias')" style="background: #6c757d; color: white; padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer;">🏢 Asignar por Agencias</button>
+    </div>
+    
+    <form method="POST" id="form-asignacion">
+        {% csrf_token %}
+        
+        <!-- SECCIÓN CARTERAS -->
+        <div id="tab-carteras" style="display: block;">
+            {% if gestores %}
+                {% for gestor in gestores %}
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #003366;">
+                    <h3 style="margin: 0 0 15px 0; color: #003366;">👤 {{ gestor.username|upper }}</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
+                        {% for cartera in todas_carteras %}
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px; border-radius: 5px; transition: background 0.2s;" onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" name="carteras_{{ gestor.id }}" value="{{ cartera }}" 
+                                   {% if cartera in carteras_por_gestor|get_item:gestor.id %}checked{% endif %}>
+                            <span style="font-size: 13px;">📁 {{ cartera }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    {% if not todas_carteras %}
+                    <p style="color: #999;">No hay carteras disponibles en el sistema.</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div style="text-align: center; padding: 40px; background: #f8f9fa; border-radius: 12px;">
+                    <p style="font-size: 16px; color: #666;">No hay gestores registrados en el sistema.</p>
+                    <p style="font-size: 14px; color: #999;">Para crear gestores, ve al panel de administración y crea usuarios (sin grupo GERENTE).</p>
+                    <a href="/admin/auth/user/add/" target="_blank" style="display: inline-block; margin-top: 15px; background: #003366; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none;">
+                        ➕ Ir a Admin para crear gestores
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- SECCIÓN AGENCIAS -->
+        <div id="tab-agencias" style="display: none;">
+            {% if gestores %}
+                {% for gestor in gestores %}
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #28a745;">
+                    <h3 style="margin: 0 0 15px 0; color: #28a745;">👤 {{ gestor.username|upper }}</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
+                        {% for agencia in todas_agencias %}
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px; border-radius: 5px; transition: background 0.2s;" onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" name="agencias_{{ gestor.id }}" value="{{ agencia }}" 
+                                   {% if agencia in agencias_por_gestor|get_item:gestor.id %}checked{% endif %}>
+                            <span style="font-size: 13px;">🏢 {{ agencia }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    {% if not todas_agencias %}
+                    <p style="color: #999;">No hay agencias disponibles en el sistema.</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div style="text-align: center; padding: 40px; background: #f8f9fa; border-radius: 12px;">
+                    <p style="font-size: 16px; color: #666;">No hay gestores registrados en el sistema.</p>
+                    <p style="font-size: 14px; color: #999;">Para crear gestores, ve al panel de administración y crea usuarios (sin grupo GERENTE).</p>
+                    <a href="/admin/auth/user/add/" target="_blank" style="display: inline-block; margin-top: 15px; background: #003366; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none;">
+                        ➕ Ir a Admin para crear gestores
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+        
+        {% if gestores %}
+        <div style="display: flex; justify-content: space-between; gap: 15px; margin-top: 20px;">
+            <button type="submit" style="background: #28a745; color: white; padding: 12px 25px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px;">
+                💾 GUARDAR ASIGNACIONES
+            </button>
+            <a href="{% url 'bandeja_gestor' %}" style="background: #6c757d; color: white; padding: 12px 25px; border-radius: 8px; text-decoration: none; font-weight: bold; text-align: center;">
+                📋 VOLVER A BANDEJA
+            </a>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+<script>
+    function mostrarTab(tab) {
+        const tabCarteras = document.getElementById('tab-carteras');
+        const tabAgencias = document.getElementById('tab-agencias');
+        const btnCarteras = document.getElementById('btn-carteras');
+        const btnAgencias = document.getElementById('btn-agencias');
+        
+        if (tab === 'carteras') {
+            tabCarteras.style.display = 'block';
+            tabAgencias.style.display = 'none';
+            btnCarteras.style.background = '#003366';
+            btnAgencias.style.background = '#6c757d';
+        } else {
+            tabCarteras.style.display = 'none';
+            tabAgencias.style.display = 'block';
+            btnCarteras.style.background = '#6c757d';
+            btnAgencias.style.background = '#28a745';
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,266 @@
+{% extends 'cobranza/base.html' %}
+{% load humanize %}
+
+{% block content %}
+
+<div style="background: white; padding: 12px 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; gap: 15px;">
+        {% if cliente_anterior_id %}
+            <a href="{% url 'registrar_gestion' cliente_anterior_id %}{% if parametros_url %}?{{ parametros_url }}{% endif %}" 
+               style="background: #003366; color: white; padding: 8px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 8px;">
+                ◀ ANTERIOR
+            </a>
+        {% else %}
+            <span style="background: #ccc; color: #666; padding: 8px 20px; border-radius: 8px; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; cursor: not-allowed;">
+                ◀ ANTERIOR
+            </span>
+        {% endif %}
+        
+        {% if cliente_siguiente_id %}
+            <a href="{% url 'registrar_gestion' cliente_siguiente_id %}{% if parametros_url %}?{{ parametros_url }}{% endif %}" 
+               style="background: #003366; color: white; padding: 8px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 8px;">
+                SIGUIENTE ▶
+            </a>
+        {% else %}
+            <span style="background: #ccc; color: #666; padding: 8px 20px; border-radius: 8px; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; cursor: not-allowed;">
+                SIGUIENTE ▶
+            </span>
+        {% endif %}
+    </div>
+    
+    <div style="font-size: 13px; color: #666;">
+        {% if posicion_actual >= 0 and total_clientes > 0 %}
+            Cliente {{ posicion_actual|add:1 }} de {{ total_clientes }}
+        {% endif %}
+    </div>
+    
+    <div>
+        <a href="{% url 'bandeja_gestor' %}{% if parametros_url %}?{{ parametros_url }}{% endif %}" 
+           style="background: #6c757d; color: white; padding: 8px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 8px;">
+            📋 VOLVER A BANDEJA
+        </a>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr 1.5fr; gap: 20px;">
+    
+    <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+        <h2 style="color: #003366; margin-top: 0; font-size: 20px;">👤 {{ deudor.nombre_completo }}</h2>
+        <div style="font-size: 28px; font-weight: bold; color: #d9534f; margin: 10px 0;">S/ {{ deudor.saldo_deuda|floatformat:2|intcomma }}</div>
+        
+        <h4 style="color: #666; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid #eee; padding-bottom: 5px;">📞 Contactar</h4>
+        <div style="max-height: 400px; overflow-y: auto; margin-top: 10px;">
+            {% for contacto in lista_contactos %}
+                <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #e9ecef; display: flex; flex-direction: column; gap: 8px;">
+                    <div>
+                        <span style="font-size: 10px; color: #007bff; font-weight: bold;">{{ contacto.tipo }}</span>
+                        <span style="font-size: 16px; font-weight: bold; color: #333; display: block;">{{ contacto.numero }}</span>
+                    </div>
+                    <div style="display: flex; gap: 5px; width: 100%;">
+                        <a href="{{ contacto.link_call }}" style="background: #007bff; color: white; padding: 6px; border-radius: 4px; text-decoration: none; font-size: 12px; text-align: center; flex: 1;">📞 Llamar</a>
+                        <a href="{{ contacto.link_wa }}" target="_blank" style="background: #25D366; color: white; padding: 6px; border-radius: 4px; text-decoration: none; font-size: 12px; text-align: center; flex: 1;">WA</a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; border-top: 4px solid #fab005; box-shadow: 0 4px 10px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <h3 style="margin-top: 0; color: #333; font-size: 16px;">📄 Detalles del Crédito</h3>
+            
+            <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee;">
+                <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Cartera:</strong> <span style="color: #007bff; font-weight: bold;">{{ deudor.cartera }}</span></p>
+                <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>DNI:</strong> {{ deudor.documento }}</p>
+                <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Cuenta:</strong> {{ deudor.cuenta }}</p>
+                <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Capital Base:</strong> S/ {{ deudor.monto_capital|floatformat:2|intcomma }}</p>
+                <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Mora:</strong> {{ deudor.rango_dias_mora }} días</p>
+            </div>
+
+            <h4 style="color: #666; font-size: 11px; text-transform: uppercase; margin-bottom: 5px;">📍 Dirección del Titular</h4>
+            <div style="background: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee; font-size: 12px; color: #444;">
+                {% if deudor.dir_casa %}{{ deudor.dir_casa }} - {{ deudor.distrito }}{% else %}No registrada{% endif %}
+            </div>
+
+            <h4 style="color: #666; font-size: 11px; text-transform: uppercase; margin-bottom: 5px;">🤝 Firmantes y Avales</h4>
+            <div style="background: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee; font-size: 12px;">
+                <p style="margin: 3px 0; color: #444;"><strong>Cónyuge Titular:</strong><br> {% if deudor.nom_conyuge %}{{ deudor.nom_conyuge }}{% else %}--{% endif %}</p>
+                <hr style="border-top: 1px dashed #ddd; margin: 8px 0;">
+                <p style="margin: 3px 0; color: #444;"><strong>Aval 1:</strong><br> {% if deudor.nom_aval %}{{ deudor.nom_aval }}{% else %}--{% endif %}</p>
+                <p style="margin: 3px 0; color: #444;"><strong>Cónyuge Aval 1:</strong><br> {% if deudor.nom_conyuge_aval %}{{ deudor.nom_conyuge_aval }}{% else %}--{% endif %}</p>
+            </div>
+            
+            {% if es_gerente %}
+            <div style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #ccc; text-align: center;">
+                <form method="POST" action="{% url 'eliminar_cliente' deudor.id %}" onsubmit="return confirm('⚠️ ¿Quiere eliminar este cliente de forma permanente? Esta acción no se puede deshacer.');" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" style="background: white; color: #dc3545; border: 2px solid #dc3545; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 12px; width: 100%; transition: all 0.2s;" onmouseover="this.style.background='#dc3545'; this.style.color='white';" onmouseout="this.style.background='white'; this.style.color='#dc3545';">
+                        🗑️ ELIMINAR CLIENTE
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+        
+        <div style="background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-left: 4px solid #17a2b8;">
+            <h3 style="margin-top: 0; color: #003366; font-size: 14px;">📱 Agregar Nuevo Teléfono</h3>
+            <form method="POST" style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 10px; align-items: end;">
+                {% csrf_token %}
+                <input type="hidden" name="guardar_nuevo_telefono" value="1">
+                <div>
+                    <label style="font-size: 10px; font-weight: bold; color: #555;">Número:</label>
+                    <input type="text" name="nuevo_telefono" placeholder="Ej: 987654321" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px;" required>
+                </div>
+                <div>
+                    <label style="font-size: 10px; font-weight: bold; color: #555;">Descripción:</label>
+                    <input type="text" name="desc_nuevo_telefono" placeholder="Ej: Trabajo" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px;" required>
+                </div>
+                <button type="submit" style="background: #17a2b8; color: white; padding: 8px 15px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; height: 33px;">Guardar</button>
+            </form>
+        </div>
+
+        <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); display: flex; flex-direction: column;">
+            <h3 style="margin-top: 0; color: #003366; font-size: 16px;">📝 Registrar Acción</h3>
+            <form method="POST" style="background: #f4f6f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #28a745;">
+                {% csrf_token %}
+                
+                <div style="margin-bottom: 10px;">
+                    <label style="font-size: 11px; font-weight: bold; color: #555;">Teléfono Contactado:</label>
+                    <select name="telefono_contactado" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px;" required>
+                        <option value="Sin especificar">-- Seleccione el número --</option>
+                        {% for num in todos_los_numeros %}
+                            <option value="{{ num }}">{{ num }}</option>
+                        {% endfor %}
+                        <option value="Otro / Presencial">Otro / Presencial</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <label style="font-size: 11px; font-weight: bold; color: #555;">Resultado:</label>
+                    <select name="resultado_principal" id="resultado_principal" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px; font-weight: bold;" required onchange="manejarMenuDinamico()">
+                        <option value="">-- Seleccione --</option>
+                        <option value="CONTACTO CON TITULAR">CONTACTO CON TITULAR</option>
+                        <option value="CONTACTO CON TERCERO">CONTACTO CON TERCERO</option>
+                        <option value="EQUIVOCADO">EQUIVOCADO</option>
+                        <option value="NO CONTESTA">NO CONTESTA</option>
+                        <option value="INUBICABLE">INUBICABLE</option>
+                        <option value="FALLECIDO">FALLECIDO</option>
+                    </select>
+                </div>
+
+                <div id="div_sub_resultado" style="display: none; margin-bottom: 10px; background: #e9ecef; padding: 10px; border-radius: 6px;">
+                    <label style="font-size: 11px; font-weight: bold; color: #0056b3;">➡ Detalle del Contacto Titular:</label>
+                    <select name="sub_resultado" id="sub_resultado" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #0056b3; font-size: 12px;" onchange="manejarMenuDinamico()">
+                        <option value="">-- Seleccione Detalle --</option>
+                        <option value="PROMESA DE PAGO">PROMESA DE PAGO</option>
+                        <option value="CLIENTE PAGÓ (TOTAL)">CLIENTE PAGÓ (TOTAL)</option>
+                        <option value="CLIENTE PAGÓ (PARCIAL)">CLIENTE PAGÓ (PARCIAL)</option>
+                        <option value="VOLVER A LLAMAR">VOLVER A LLAMAR</option>
+                        <option value="RENUENTE">RENUENTE</option>
+                    </select>
+                </div>
+
+                <div id="div_fecha_monto" style="display: none; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <div id="div_fecha" style="display: none;">
+                        <label id="label_fecha" style="font-size: 11px; font-weight: bold; color: #555;">Fecha:</label>
+                        <input type="date" name="fecha_promesa" id="fecha_promesa" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px;">
+                    </div>
+                    <div id="div_monto" style="display: none;">
+                        <label style="font-size: 11px; font-weight: bold; color: #555;">Monto (S/):</label>
+                        <input type="number" step="0.01" name="monto_pago" id="monto_pago" placeholder="0.00" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px;">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <label style="font-size: 11px; font-weight: bold; color: #555;">Observación Final:</label>
+                    <textarea name="observacion" rows="3" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px; resize: none;" required placeholder="Escriba los detalles de la negociación..."></textarea>
+                </div>
+                
+                <button type="submit" style="width: 100%; background: #28a745; color: white; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; text-transform: uppercase;">Guardar Gestión</button>
+            </form>
+
+            <h3 style="margin-top: 0; color: #003366; font-size: 16px;">🕰️ Historial de Acciones</h3>
+            <div style="flex: 1; overflow-y: auto; max-height: 250px; padding-right: 5px;">
+                {% for g in historial %}
+                    <div style="padding: 10px; border-bottom: 1px solid #eee; font-size: 12px;">
+                        <span style="font-size: 16px;">
+                            {% if 'PAGO' in g.resultado %}💰
+                            {% elif 'PROMESA' in g.resultado %}🤝
+                            {% elif 'VOLVER A LLAMAR' in g.resultado %}📅
+                            {% elif 'NUEVO TELÉFONO' in g.resultado %}📱
+                            {% elif 'RENUENTE' in g.resultado %}❌
+                            {% elif 'TERCERO' in g.resultado %}🗣️
+                            {% elif 'EQUIVOCADO' in g.resultado or 'NO CONTESTA' in g.resultado or 'INUBICABLE' in g.resultado %}📵
+                            {% elif 'FALLECIDO' in g.resultado %}⚰️
+                            {% else %}📝{% endif %}
+                        </span>
+                        <strong style="color: #007bff;">{{ g.fecha|date:"d/m/y H:i" }}</strong> - 
+                        <span style="color: {% if 'PAGO' in g.resultado %}#28a745{% elif 'PROMESA' in g.resultado %}#ffc107{% elif 'NUEVO TELÉFONO' in g.resultado %}#17a2b8{% else %}#dc3545{% endif %}; font-weight: bold;">{{ g.resultado }}</span>
+                        <p style="margin: 5px 0; color: #555;">{{ g.observacion }}</p>
+                        <small style="color: #999;">👤 Gestor: {{ g.gestor.username|upper }}</small>
+                    </div>
+                {% empty %}
+                    <div style="text-align: center; color: #999; padding: 20px;">Sin gestiones previas.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function manejarMenuDinamico() {
+    var principal = document.getElementById("resultado_principal").value;
+    var sub = document.getElementById("sub_resultado").value;
+    
+    var divSub = document.getElementById("div_sub_resultado");
+    var divFechaMonto = document.getElementById("div_fecha_monto");
+    var divFecha = document.getElementById("div_fecha");
+    var divMonto = document.getElementById("div_monto");
+    var labelFecha = document.getElementById("label_fecha");
+    
+    // 1. Ocultar todo por defecto
+    divSub.style.display = "none";
+    divFechaMonto.style.display = "none";
+    divFecha.style.display = "none";
+    divMonto.style.display = "none";
+    
+    // 2. Quitar obligaciones
+    document.getElementById("sub_resultado").required = false;
+    document.getElementById("fecha_promesa").required = false;
+    document.getElementById("monto_pago").required = false;
+
+    // 3. Lógica para Contacto con Titular
+    if (principal === "CONTACTO CON TITULAR") {
+        divSub.style.display = "block";
+        document.getElementById("sub_resultado").required = true;
+        
+        if (sub === "PROMESA DE PAGO" || sub === "CLIENTE PAGÓ (TOTAL)" || sub === "CLIENTE PAGÓ (PARCIAL)" || sub === "VOLVER A LLAMAR") {
+            divFechaMonto.style.display = "grid";
+            divFecha.style.display = "block";
+            
+            document.getElementById("fecha_promesa").required = true;
+            
+            if (sub === "VOLVER A LLAMAR") {
+                divMonto.style.display = "none";
+                document.getElementById("monto_pago").required = false;
+                labelFecha.innerText = "Agendar para el:";
+            } else {
+                divMonto.style.display = "block";
+                document.getElementById("monto_pago").required = true;
+                if (sub === "PROMESA DE PAGO") {
+                    labelFecha.innerText = "Fecha Promesa:";
+                } else {
+                    labelFecha.innerText = "Fecha de Pago:";
+                }
+            }
+        }
+    } else {
+        document.getElementById("sub_resultado").value = "";
+    }
+}
+</script>
+{% endblock %}

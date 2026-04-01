@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>CRM - P&P Soluciones Jurídicas</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #f4f7f6; 
+            margin: 0; 
+            padding: 0; 
+        }
+        nav { 
+            background-color: #003366; 
+            color: white; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+        }
+        .nav-top {
+            padding: 15px 30px;
+            text-align: left;
+        }
+        .logo {
+            font-size: 22px;
+            font-weight: bold;
+        }
+        .nav-bottom {
+            padding: 10px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+        .menu { 
+            display: flex; 
+            align-items: center; 
+            gap: 25px;
+            flex-wrap: wrap;
+        }
+        .menu a { 
+            color: white; 
+            text-decoration: none; 
+            font-weight: bold; 
+            font-size: 14px; 
+            transition: color 0.3s; 
+            white-space: nowrap;
+        }
+        .menu a:hover { 
+            color: #fab005; 
+        }
+        .user-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(255,255,255,0.15);
+            padding: 5px 18px;
+            border-radius: 30px;
+        }
+        .user-name {
+            font-size: 13px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        .btn-logout { 
+            background: #d9534f; 
+            color: white; 
+            border: none; 
+            padding: 5px 12px; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: 0.3s; 
+            white-space: nowrap;
+        }
+        .btn-logout:hover { 
+            background: #c9302c; 
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 30px auto; 
+            padding: 20px; 
+        }
+        @media (max-width: 768px) {
+            .nav-bottom {
+                flex-direction: column;
+                justify-content: center;
+            }
+            .menu {
+                justify-content: center;
+            }
+            .user-area {
+                justify-content: center;
+            }
+            .container { 
+                padding: 10px; 
+            }
+        }
+    </style>
+</head>
+<body>
+<nav>
+    <div class="nav-top">
+        <div class="logo">⚖️ P&P SOLUCIONES JURÍDICAS</div>
+    </div>
+    <div class="nav-bottom">
+        <div class="menu">
+            <a href="{% url 'dashboard_gerente' %}">📊 Dashboard</a>
+            <a href="{% url 'bandeja_gestor' %}">📞 Bandeja</a>
+            <a href="{% url 'subir_excel' %}">📁 Cargar Cartera</a>
+            {% if es_gerente %}
+            <a href="{% url 'asignar_carteras' %}" style="background: #28a745; padding: 5px 12px; border-radius: 4px;">👥 Asignar Carteras</a>
+            <a href="/cargar-telefonos/" style="background: #17a2b8; padding: 5px 12px; border-radius: 4px;">📱 Cargar Teléfonos</a>
+            {% endif %}
+            {% if user.is_staff %}<a href="/admin/">⚙️ Configuración</a>{% endif %}
+        </div>
+        {% if user.is_authenticated %}
+        <div class="user-area">
+            <span class="user-name">👤 {{ user.username|upper }}</span>
+            <form action="{% url 'salir_sistema' %}" method="post" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="btn-logout">SALIR</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</nav>
+<div class="container">
+    {% block content %}
+    {% endblock %}
+</div>
+</body>
+</html>

@@ -1,0 +1,10 @@
+<h2>Subir Cartera de Clientes - P&P Soluciones Jurídicas</h2>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="file" name="archivo_excel" accept=".xlsx, .xls">
+    <button type="submit">Cargar Clientes</button>
+</form>
+
+{% if mensajes %}
+    <p>{{ mensajes }}</p>
+{% endif %}
