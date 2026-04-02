@@ -45,6 +45,6 @@ urlpatterns = [
     path('exportar-morosos-90/', views.exportar_morosos_90, name='exportar_morosos_90'),
     path('exportar-promesas-vencidas/', views.exportar_promesas_vencidas, name='exportar_promesas_vencidas'),
     
-    # NUEVA RUTA: Callback de Kubo (recibir llamada y abrir ficha del cliente)
-    path('datos-cliente/<str:telefono>/<str:campana>/<str:cod_cliente>/', views.datos_cliente_kubo, name='datos_cliente_kubo'),
+    # Ruta para callback de Kubo (con 4 parámetros)
+    path('datos-cliente/<str:telefono>/<str:campana>/<str:cod_cliente>/<str:cod_telefono>/', views.datos_cliente_kubo, name='datos_cliente_kubo'),
 ]

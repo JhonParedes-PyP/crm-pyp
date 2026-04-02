@@ -324,7 +324,7 @@ def bandeja_gestor(request):
         
     deudores_ordenados = [item['deudor'] for item in lista_deudores]
     
-    paginator = Paginator(deudores_ordenados, 10)
+    paginator = Paginator(deudores_ordenados, 20)
     page_number = request.GET.get('page')
     deudores_paginados = paginator.get_page(page_number)
     
@@ -372,12 +372,12 @@ def bandeja_gestor(request):
 
 # --- RECIBIR LLAMADA DESDE KUBO Y REDIRIGIR A FICHA DEL CLIENTE ---
 @login_required
-def datos_cliente_kubo(request, telefono, campana, cod_cliente):
+def datos_cliente_kubo(request, telefono, campana, cod_cliente, cod_telefono):
     """
     Endpoint que recibe la URL de Kubo y redirige a la ficha del cliente
-    URL: /datos-cliente/<telefono>/<campana>/<cod_cliente>/
+    URL: /datos-cliente/<telefono>/<campana>/<cod_cliente>/<cod_telefono>/
     
-    Ejemplo: https://micrm.com/datos-cliente/999888777/85182/77777
+    Ejemplo: https://micrm.com/datos-cliente/967050203/85200/U7Hlpt2u/0w=/N6mIwgDkYQa=/
     """
     # Buscar cliente por teléfono
     try:
@@ -858,7 +858,16 @@ def registrar_gestion(request, deudor_id):
                 deudor.saldo_deuda -= monto_decimal
                 deudor.save()
             
-            url = reverse('bandeja_gestor')
+            # --- NUEVA LÓGICA DE REDIRECCIÓN AL SIGUIENTE ---
+            siguiente_id_post = request.POST.get('siguiente_id')
+
+            if siguiente_id_post:
+                # Si el HTML nos mandó un ID siguiente, saltamos a ese cliente
+                url = reverse('registrar_gestion', args=[siguiente_id_post])
+            else:
+                # Si no hay siguiente (es el último), volvemos a la bandeja
+                url = reverse('bandeja_gestor')
+
             if parametros_url:
                 url = f"{url}?{parametros_url}"
             

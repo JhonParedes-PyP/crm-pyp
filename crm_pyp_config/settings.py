@@ -76,9 +76,9 @@ import os
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'crm_pyp_db',
-        'USER': 'postgres',
-        'PASSWORD': 'Micaela12@',  # La contraseña que pusiste al instalar PostgreSQL
+        'NAME': 'pyp_db',                  # <--- Aquí confirmas el nombre
+        'USER': 'postgres',                # <--- El usuario
+        'PASSWORD': 'Moises16Micaela12pyp', # <--- Tu contraseña actual
         'HOST': 'localhost',
         'PORT': '5432',
     }
