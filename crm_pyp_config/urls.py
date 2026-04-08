@@ -6,6 +6,9 @@ from django.contrib.auth import views as auth_views
 urlpatterns = [
     # Panel de Administración de Django
     path('admin/', admin.site.urls),
+    
+    # --- API: RECIBIR GESTIÓN DESDE APP JUDICIAL ---
+    path('api/v1/gestiones-campo/', views.api_recibir_gestion_campo, name='api_recibir_gestion_campo'),
 
     # Autenticación y Seguridad
     path('login/', auth_views.LoginView.as_view(template_name='cobranza/login.html'), name='login'),

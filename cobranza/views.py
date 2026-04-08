@@ -14,7 +14,9 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import logout
-from django.http import HttpResponse
+import json
+from django.http import HttpResponse, JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator
 from django.urls import reverse
@@ -1087,3 +1089,45 @@ def cargar_telefonos(request):
         'fallidos': fallidos,
         'errores': errores[:20]
     })
+
+    # --- API: RECIBIR GESTIÓN DESDE APP JUDICIAL DE CAMPO ---
+@csrf_exempt 
+@require_http_methods(["POST"])
+def api_recibir_gestion_campo(request):
+    # 1. EL CANDADO DE SEGURIDAD
+    api_key = request.headers.get('Authorization')
+    if api_key != 'Bearer PYP-CAMPO-2026':
+        return JsonResponse({'estado': 'error', 'mensaje': 'Acceso denegado. Llave de P&P incorrecta.'}, status=401)
+
+    try:
+        # 2. ABRIR EL PAQUETE DE DATOS
+        data = json.loads(request.body)
+        
+        dni_cliente = data.get('dni')
+        resultado = data.get('resultado', 'VISITA')
+        observacion = data.get('observacion', '')
+        nombre_gestor = data.get('gestor_username')
+
+        # 3. BUSCAR EN LA BÓVEDA
+        deudor = Deudor.objects.filter(documento=dni_cliente).first()
+        if not deudor:
+            return JsonResponse({'estado': 'error', 'mensaje': f'El DNI {dni_cliente} no existe en el CRM.'}, status=404)
+
+        # Buscamos al gestor en el sistema
+        gestor_asignado = User.objects.filter(username=nombre_gestor).first()
+
+        # 4. GUARDAR LA GESTIÓN AUTOMÁTICAMENTE
+        Gestion.objects.create(
+            deudor=deudor,
+            gestor=gestor_asignado,
+            resultado=f"CAMPO - {resultado}", # Etiqueta visual para diferenciarlo
+            observacion=f"[App Judicial] {observacion}",
+            monto_pago=Decimal('0')
+        )
+
+        # 5. ENVIAR RECIBO DE ÉXITO AL APP
+        return JsonResponse({'estado': 'ok', 'mensaje': '¡Gestión sincronizada con éxito en el CRM!'}, status=200)
+
+    except Exception as e:
+        # Si hay un error, avisamos al App Judicial
+        return JsonResponse({'estado': 'error', 'mensaje': f'Error en los datos: {str(e)}'}, status=400)
