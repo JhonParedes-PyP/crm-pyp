@@ -26,6 +26,8 @@ urlpatterns = [
     
     # RUTA SECRETA: Eliminar Cliente (Solo Gerentes)
     path('eliminar-cliente/<int:deudor_id>/', views.eliminar_cliente, name='eliminar_cliente'),
+    # --- NUEVA RUTA SECRETA: ELIMINAR GESTIÓN ---
+    path('eliminar-gestion/<int:gestion_id>/', views.eliminar_gestion, name='eliminar_gestion'),
 
     # Exportaciones y Reportes
     path('exportar-asterisk/', views.exportar_csv_asterisk, name='descargar_asterisk'),
@@ -37,17 +39,19 @@ urlpatterns = [
     # Carga masiva de teléfonos (solo gerentes)
     path('cargar-telefonos/', views.cargar_telefonos, name='cargar_telefonos'),
     
-    # Campañas Asterisk (solo gerentes)
+    # Campañas Asterisk Antiguas (solo gerentes)
     path('subir-lista-llamadas/', views.subir_lista_llamadas, name='subir_lista_llamadas'),
     path('exportar-csv-campana/', views.exportar_csv_desde_lista, name='exportar_csv_campana'),
-    
-    # Campañas Asterisk con filtros (solo gerentes)
     path('campana-asterisk/', views.generar_campana_asterisk, name='generar_campana_asterisk'),
     path('exportar-todos-asterisk/', views.exportar_todos_asterisk, name='exportar_todos_asterisk'),
     path('exportar-morosos-30/', views.exportar_morosos_30, name='exportar_morosos_30'),
     path('exportar-morosos-90/', views.exportar_morosos_90, name='exportar_morosos_90'),
     path('exportar-promesas-vencidas/', views.exportar_promesas_vencidas, name='exportar_promesas_vencidas'),
     
+    # --- NUEVO MÓDULO ASTERISK P&P (EL QUE CREAMOS HOY) ---
+    path('campanas-asterisk/', views.panel_campanas_asterisk, name='panel_campanas'),
+    path('campanas-asterisk/descargar/<int:campana_id>/', views.descargar_csv_campana, name='descargar_csv_campana'),
+
     # Ruta para callback de Kubo (con 4 parámetros)
     path('datos-cliente/<str:telefono>/<str:campana>/<str:cod_cliente>/<str:cod_telefono>/', views.datos_cliente_kubo, name='datos_cliente_kubo'),
 ]

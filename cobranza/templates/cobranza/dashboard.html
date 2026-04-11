@@ -7,7 +7,6 @@
     <h1 style="color: #003366; margin: 0;">📊 Panel Gerencial</h1>
     {% if es_gerente %}
     <div style="display: flex; gap: 10px;">
-        <a href="{% url 'descargar_asterisk' %}" style="background: #6f42c1; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 13px;">📞 Campaña Asterisk (CSV)</a>
         <a href="{% url 'exportar_gestiones_excel' %}" style="background: #28a745; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 13px;">📥 Reporte Pagos</a>
     </div>
     {% endif %}

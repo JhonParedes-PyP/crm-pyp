@@ -205,7 +205,19 @@
                         <strong style="color: #007bff;">{{ g.fecha|date:"d/m/y H:i" }}</strong> - 
                         <span style="color: {% if 'PAGO' in g.resultado %}#28a745{% elif 'PROMESA' in g.resultado %}#ffc107{% elif 'NUEVO TELÉFONO' in g.resultado %}#17a2b8{% else %}#dc3545{% endif %}; font-weight: bold;">{{ g.resultado }}</span>
                         <p style="margin: 5px 0; color: #555;">{{ g.observacion }}</p>
-                        <small style="color: #999;">👤 Gestor: {{ g.gestor.username|upper }}</small>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                            <small style="color: #999;">👤 Gestor: {{ g.gestor.username|upper }}</small>
+                            
+                            {% if es_gerente %}
+                                <a href="{% url 'eliminar_gestion' g.id %}" 
+                                   style="background: #dc3545; color: white; padding: 3px 8px; border-radius: 4px; text-decoration: none; font-size: 10px; font-weight: bold; display: inline-flex; align-items: center; gap: 4px; border: 1px solid #c82333;"
+                                   onclick="return confirm('⚠️ ALERTA GERENCIAL: ¿Estás seguro de eliminar esta gestión de la bitácora de {{ g.gestor.username|upper }}? Esta acción NO se puede deshacer.');"
+                                   title="Eliminar esta gestión">
+                                    🗑️ Borrar
+                                </a>
+                            {% endif %}
+                        </div>
                     </div>
                 {% empty %}
                     <div style="text-align: center; color: #999; padding: 20px;">Sin gestiones previas.</div>

@@ -1,0 +1,205 @@
+{% extends 'cobranza/base.html' %} 
+
+{% block content %}
+<style>
+    /* Estilos Premium para P&P */
+    .dashboard-title {
+        color: #003366;
+        font-weight: 900;
+        letter-spacing: -0.5px;
+    }
+    .card-premium {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 51, 102, 0.08);
+        transition: all 0.3s ease;
+    }
+    .card-premium:hover {
+        box-shadow: 0 15px 35px rgba(0, 51, 102, 0.12);
+    }
+    .header-blue {
+        background: linear-gradient(135deg, #003366 0%, #004b99 100%);
+        color: white;
+        border-radius: 16px 16px 0 0 !important;
+        border-bottom: 4px solid #fab005;
+    }
+    .header-dark {
+        background: linear-gradient(135deg, #212529 0%, #343a40 100%);
+        color: white;
+        border-radius: 16px 16px 0 0 !important;
+        border-bottom: 4px solid #fd7e14;
+    }
+    .btn-action {
+        background: linear-gradient(135deg, #fab005 0%, #e59e04 100%);
+        color: #003366;
+        font-weight: 800;
+        border: none;
+        border-radius: 10px;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(250, 176, 5, 0.4);
+        color: #003366;
+    }
+    .btn-download {
+        background: #e8f4f8;
+        color: #003366;
+        border: 1px solid #003366;
+        border-radius: 8px;
+        font-weight: 700;
+        transition: all 0.2s;
+    }
+    .btn-download:hover {
+        background: #003366;
+        color: white;
+        box-shadow: 0 5px 15px rgba(0, 51, 102, 0.3);
+    }
+    .table-custom th {
+        background-color: #f8f9fa;
+        color: #003366;
+        font-weight: 700;
+        border-bottom: 2px solid #dee2e6;
+    }
+    .badge-proveedor {
+        background-color: #e9ecef;
+        color: #495057;
+        border: 1px solid #ced4da;
+        font-weight: 600;
+    }
+    .form-control-custom {
+        border-radius: 8px;
+        border: 1px solid #ced4da;
+        padding: 10px 15px;
+    }
+    .form-control-custom:focus {
+        border-color: #fab005;
+        box-shadow: 0 0 0 0.25rem rgba(250, 176, 5, 0.25);
+    }
+</style>
+
+<div class="container-fluid mt-4 px-4 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="dashboard-title">
+            <i class="fas fa-headset text-warning me-2"></i> Motor de Campañas Asterisk
+        </h2>
+    </div>
+
+    {% if mensajes %}
+        <div class="alert alert-success shadow-sm border-0 rounded-4 fw-bold fs-5 d-flex align-items-center mb-4" style="background-color: #d1e7dd; color: #0f5132;">
+            <i class="fas fa-check-circle fs-3 me-3"></i> 
+            <div>
+                {{ mensajes }}
+                {% if exitosos or fallidos %}
+                    <div class="mt-2 fs-6">
+                        <span class="badge bg-success me-2 rounded-pill px-3 py-2 shadow-sm">✅ Validados: {{ exitosos }}</span>
+                        <span class="badge bg-danger rounded-pill px-3 py-2 shadow-sm">❌ Rechazados: {{ fallidos }}</span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+
+    {% if errores %}
+        <div class="alert alert-danger shadow-sm border-0 rounded-4 mb-4" style="background-color: #f8d7da; color: #842029;">
+            <strong class="fs-5 d-flex align-items-center"><i class="fas fa-exclamation-triangle fs-3 me-2"></i> Atención: El sistema bloqueó registros.</strong>
+            <hr>
+            <ul class="mb-0 fs-6">
+                {% for error in errores %}
+                    <li class="mb-1">{{ error }}</li>
+                {% endfor %}
+            </ul>
+            <small class="text-muted mt-3 d-block fw-bold"><i class="fas fa-info-circle"></i> Se muestran máximo los primeros 15 errores detectados.</small>
+        </div>
+    {% endif %}
+
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card card-premium h-100">
+                <div class="card-header header-blue py-3">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-cloud-upload-alt me-2"></i> 1. Cargar Base de Datos</h5>
+                </div>
+                <div class="card-body p-4 bg-white" style="border-radius: 0 0 16px 16px;">
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-secondary">Nombre de la Campaña:</label>
+                            <input type="text" name="nombre_campana" class="form-control form-control-custom" placeholder="Ej: PROEMPRESA ABRIL 11" required>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-secondary">Proveedor:</label>
+                            <select name="proveedor" class="form-select form-control-custom" required>
+                                <option value="" disabled selected>-- Seleccione Proveedor --</option>
+                                <option value="CAJA HUANCAYO">Caja Huancayo</option>
+                                <option value="PROEMPRESA">Proempresa</option>
+                                <option value="FOCMAC">Focmac</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-5 p-3 rounded-3" style="background-color: #f8f9fa; border: 1px dashed #adb5bd;">
+                            <label class="form-label fw-bold text-dark mb-2 d-flex align-items-center">
+                                <i class="fas fa-file-excel text-success fs-4 me-2"></i> Archivo Excel
+                            </label>
+                            <small class="d-block text-muted mb-2">Columnas obligatorias: 'NRO_DOCUMENTO' y 'NRO_TELEFONO'</small>
+                            <input type="file" name="archivo_excel" class="form-control form-control-custom bg-white" accept=".xlsx, .xls" required>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-action w-100 fs-5 py-3">
+                            <i class="fas fa-cogs me-2"></i> Procesar y Validar
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card card-premium h-100">
+                <div class="card-header header-dark py-3">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-list-alt me-2"></i> 2. Listado de Campañas Generadas</h5>
+                </div>
+                <div class="card-body p-0" style="border-radius: 0 0 16px 16px; overflow: hidden;">
+                    <div class="table-responsive">
+                        <table class="table table-custom table-hover mb-0 text-center align-middle">
+                            <thead>
+                                <tr>
+                                    <th class="py-3">CÓD.</th>
+                                    <th class="py-3 text-start">Nombre de Campaña</th>
+                                    <th class="py-3">Proveedor</th>
+                                    <th class="py-3">Fecha de Creación</th>
+                                    <th class="py-3">Acción Final</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for campana in lista_campanas %}
+                                <tr>
+                                    <td class="fw-bold fs-5 text-primary">#{{ campana.id }}</td>
+                                    <td class="text-start fw-bold text-dark">{{ campana.nombre }}</td>
+                                    <td><span class="badge badge-proveedor px-3 py-2 rounded-pill">{{ campana.proveedor }}</span></td>
+                                    <td class="text-muted"><i class="far fa-calendar-alt me-1"></i> {{ campana.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        <a href="{% url 'descargar_csv_campana' campana.id %}" class="btn btn-download px-4 py-2">
+                                            <i class="fas fa-download me-1"></i> CSV
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="py-5">
+                                        <div class="text-muted">
+                                            <i class="fas fa-folder-open mb-3" style="font-size: 4rem; color: #dee2e6;"></i>
+                                            <h5 class="fw-bold text-secondary">Aún no hay campañas registradas</h5>
+                                            <p>Empieza subiendo tu primer Excel en el panel de la izquierda.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

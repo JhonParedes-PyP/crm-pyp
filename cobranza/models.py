@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 class Deudor(models.Model):
     # DATOS PRINCIPALES (Los que ya teníamos)
@@ -56,3 +57,44 @@ class AsignacionCartera(models.Model):
         
     def __str__(self):
         return f"{self.gestor.username} - {self.get_tipo_display()}: {self.valor}"
+
+
+# --- NUEVO MÓDULO: CAMPAÑAS ASTERISK ---
+class CampanaAsterisk(models.Model):
+    PROVEEDORES_CHOICES = [
+        ('CAJA HUANCAYO', 'Caja Huancayo'),
+        ('PROEMPRESA', 'Proempresa'),
+        ('FOCMAC', 'Focmac'),
+    ]
+
+    # El campo ID se crea de forma automática e invisible (1, 2, 3...)
+    nombre = models.CharField(max_length=200, verbose_name="Nombre de la Campaña")
+    proveedor = models.CharField(max_length=50, choices=PROVEEDORES_CHOICES, verbose_name="Proveedor")
+    fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Creación")
+    activa = models.BooleanField(default=True, verbose_name="¿Campaña Activa?")
+    usuario_creador = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Creado por")
+
+    class Meta:
+        verbose_name = "Campaña Asterisk"
+        verbose_name_plural = "Campañas Asterisk"
+        ordering = ['-id'] # Ordena para que la última campaña creada aparezca primero
+
+    def __str__(self):
+        return f"Campaña {self.id} - {self.nombre}"
+
+class DetalleCampanaAsterisk(models.Model):
+    # Esto vincula cada teléfono con su campaña maestra (la 1, la 2, etc.)
+    campana = models.ForeignKey(CampanaAsterisk, on_delete=models.CASCADE, related_name='detalles')
+    
+    # Los datos que irán directo al Excel final
+    dni = models.CharField(max_length=20, verbose_name="DNI")
+    telefono = models.CharField(max_length=20, verbose_name="Teléfono")
+    cod_cliente = models.CharField(max_length=100, verbose_name="Código Cliente (Kubo)")
+    cod_telefono = models.CharField(max_length=100, verbose_name="Código Teléfono (Kubo)")
+
+    class Meta:
+        verbose_name = "Detalle de Campaña"
+        verbose_name_plural = "Detalles de Campaña"
+
+    def __str__(self):
+        return f"Campaña {self.campana.id} - Tel: {self.telefono}"
