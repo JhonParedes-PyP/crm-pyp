@@ -134,25 +134,27 @@
 <script src="https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-fn.js?sub_v=1"></script>
 
 <script>
-    // 1. Pedir la llave temporal a tu motor de Python
-    fetch('/api/webrtc-key/')
-        .then(response => response.json())
-        .then(data => {
-            if (data.key) {
-                // 2. Encender el telefonito INMEDIATAMENTE (sin esperar)
-                zadarmaWidgetFn(
-                    data.key,    
-                    '542111',    
-                    'rounded',   
-                    'es',        
-                    true,        
-                    {right: '20px', bottom: '20px'} 
-                );
-            } else {
-                console.error("Error al obtener la llave:", data.error);
-            }
-        })
-        .catch(error => console.error("Error de conexión API:", error));
+    window.addEventListener('load', function() {
+        fetch('/api/webrtc-key/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.key) {
+                    zadarmaWidgetFn(
+                        data.key,
+                        '542111',
+                        'rounded',
+                        'es',
+                        true,
+                        {right: '20px', bottom: '20px'}
+                    );
+                } else {
+                    console.error("❌ Zadarma: llave no recibida →", data.error);
+                }
+            })
+            .catch(error => {
+                console.error("❌ Zadarma: error de conexión →", error);
+            });
+    }, false);
 </script>
 </body>
 </html>
