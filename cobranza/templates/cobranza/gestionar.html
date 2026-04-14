@@ -57,7 +57,7 @@
                         <span style="font-size: 16px; font-weight: bold; color: #333; display: block;">{{ contacto.numero }}</span>
                     </div>
                     <div style="display: flex; gap: 5px; width: 100%;">
-                        <a href="{{ contacto.link_call }}" style="background: #007bff; color: white; padding: 6px; border-radius: 4px; text-decoration: none; font-size: 12px; text-align: center; flex: 1;">📞 Llamar</a>
+                        <a href="sip:{{ contacto.numero }}" style="background: #007bff; color: white; padding: 6px; border-radius: 4px; text-decoration: none; font-size: 12px; text-align: center; flex: 1;">📞 Llamar</a>
                         <a href="{{ contacto.link_wa }}" target="_blank" style="background: #25D366; color: white; padding: 6px; border-radius: 4px; text-decoration: none; font-size: 12px; text-align: center; flex: 1;">WA</a>
                     </div>
                 </div>

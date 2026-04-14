@@ -130,5 +130,33 @@
     {% block content %}
     {% endblock %}
 </div>
+<script src="https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-lib.js?sub_v=1"></script>
+<script src="https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-fn.js?sub_v=1"></script>
+
+<script>
+    // 1. Pedir la llave temporal a tu motor de seguridad en Python
+    fetch('/api/webrtc-key/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.key) {
+                // 2. Si la llave es válida, encender el telefonito
+                if (window.addEventListener) {
+                    window.addEventListener('load', function() {
+                        zadarmaWidgetFn(
+                            data.key,    // Llave dinámica generada por tu views.py
+                            '542111',    // Tu SIP ID real
+                            'rounded',   // Diseño redondo como en tu captura
+                            'es',        // Idioma español
+                            true,        // Mostrar el widget inmediatamente
+                            {right: '20px', bottom: '20px'} // Posición en pantalla
+                        );
+                    }, false);
+                }
+            } else {
+                console.error("Error al obtener la llave de telefonía:", data.error);
+            }
+        })
+        .catch(error => console.error("Error de conexión con la API de Zadarma:", error));
+</script>
 </body>
 </html>

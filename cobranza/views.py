@@ -4,9 +4,13 @@ import urllib.parse
 import csv
 import hashlib
 import base64
+import hmac
+import requests
+from collections import OrderedDict
 from decimal import Decimal
 from datetime import timedelta
 from django.shortcuts import render, get_object_or_404, redirect
+
 
 # --- AQUÍ ESTÁ LA LÍNEA ACTUALIZADA CON LAS CAMPAÑAS ---
 from .models import Deudor, Gestion, TelefonoExtra, AsignacionCartera, CampanaAsterisk, DetalleCampanaAsterisk
@@ -1287,3 +1291,48 @@ def eliminar_gestion(request, gestion_id):
     
     # 5. Redirigimos de vuelta a la ficha del cliente
     return redirect('registrar_gestion', deudor_id=deudor_id)
+
+    # --- MÓDULO: TELEFONÍA WEBRTC (ZADARMA) ---
+@login_required
+def api_zadarma_webrtc_key(request):
+    # 1. Credenciales de la Bóveda (NO COMPARTIR NUNCA)
+    API_KEY = "3ca47bbb600a61474418"
+    API_SECRET = "e054ee45f7e64c58a9ee"
+    SIP_ID = "542111" # Ejemplo: "123456-101"
+    
+    api_url = "/v1/webrtc/get_key/"
+    params = {'sip': SIP_ID}
+    
+    # 2. Ordenar datos como lo exige el algoritmo de Zadarma
+    ordered_params = OrderedDict(sorted(params.items()))
+    query_string = urllib.parse.urlencode(ordered_params)
+    
+    # 3. Primer candado: Hash MD5
+    md5_string = hashlib.md5(query_string.encode('utf-8')).hexdigest()
+    
+    # 4. Preparar la cadena final a firmar
+    string_to_sign = api_url + query_string + md5_string
+    
+    # 5. Segundo candado: Firma Criptográfica HMAC-SHA1 + Base64
+    hmac_obj = hmac.new(API_SECRET.encode('utf-8'), string_to_sign.encode('utf-8'), hashlib.sha1)
+    firma_hex = hmac_obj.hexdigest()
+    firma_base64 = base64.b64encode(firma_hex.encode('utf-8')).decode('utf-8')
+    
+    # 6. Sellar el sobre virtual
+    headers = {
+        'Authorization': f"{API_KEY}:{firma_base64}"
+    }
+    
+    # 7. Solicitar permiso oficial a los servidores mundiales de Zadarma
+    try:
+        response = requests.get(f"https://api.zadarma.com{api_url}", params=ordered_params, headers=headers)
+        data = response.json()
+        
+        # Devolver la llave temporal a tu pantalla del CRM
+        if data.get('status') == 'success':
+            return JsonResponse({'key': data.get('key')})
+        else:
+            return JsonResponse({'error': 'Error de Zadarma: ' + str(data)}, status=400)
+            
+    except Exception as e:
+        return JsonResponse({'error': 'Error de conexión: ' + str(e)}, status=500)

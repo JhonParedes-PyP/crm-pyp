@@ -54,4 +54,6 @@ urlpatterns = [
 
     # Ruta para callback de Kubo (con 4 parámetros)
     path('datos-cliente/<str:telefono>/<str:campana>/<str:cod_cliente>/<str:cod_telefono>/', views.datos_cliente_kubo, name='datos_cliente_kubo'),
+    # --- RUTA DE SEGURIDAD WEBRTC ZADARMA ---
+    path('api/webrtc-key/', views.api_zadarma_webrtc_key, name='api_zadarma_webrtc_key'),
 ]
