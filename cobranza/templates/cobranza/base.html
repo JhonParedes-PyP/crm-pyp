@@ -134,31 +134,30 @@
 <script src="https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-fn.js?sub_v=1"></script>
 
 <script>
-    /* WebRTC deshabilitado: esperando que WebRTC esté activado en Zadarma
-    window.addEventListener('load', function() {
-        fetch('/api/webrtc-key/')
-            .then(response => response.json())
-            .then(data => {
-                if (data.key) {
-                    zadarmaWidgetFn(
-                        data.key,
-                        '542111',
-                        'rounded',
-                        'es',
-                        true,
-                        {right: '20px', bottom: '20px'}
-                    );
-                } else {
-                    console.error("❌ Zadarma: llave no recibida →", data.error);
-                }
-            })
-            .catch(error => {
-                console.error("❌ Zadarma: error de conexión →", error);
-            });
-    }, false);
-    */
-
-    console.log("📞 Sistema de telefonía: Click-to-Call activado (esperando WebRTC)");
+    // Inicializar widget de Zadarma cuando la página carga
+    if (window.addEventListener) {
+        window.addEventListener('load', function() {
+            zadarmaWidgetFn(
+                'cf801bb8417824ec7e74',  // KEY de Zadarma
+                '542111',                 // SIP ID
+                'rounded',                // Estilo redondo
+                'es',                     // Idioma español
+                true,                     // Mostrar widget
+                {right: '20px', bottom: '20px'}  // Posición inferior derecha
+            );
+        }, false);
+    } else if (window.attachEvent) {
+        window.attachEvent('onload', function() {
+            zadarmaWidgetFn(
+                'cf801bb8417824ec7e74',
+                '542111',
+                'rounded',
+                'es',
+                true,
+                {right: '20px', bottom: '20px'}
+            );
+        });
+    }
 </script>
 </body>
 </html>
