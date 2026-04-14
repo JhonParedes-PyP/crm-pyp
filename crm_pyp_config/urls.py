@@ -56,4 +56,6 @@ urlpatterns = [
     path('datos-cliente/<str:telefono>/<str:campana>/<str:cod_cliente>/<str:cod_telefono>/', views.datos_cliente_kubo, name='datos_cliente_kubo'),
     # --- RUTA DE SEGURIDAD WEBRTC ZADARMA ---
     path('api/webrtc-key/', views.api_zadarma_webrtc_key, name='api_zadarma_webrtc_key'),
+    # crm_pyp_config/urls.py
+    path('iniciar-llamada/<str:numero_cliente>/', views.iniciar_callback, name='iniciar_callback'),
 ]

@@ -134,6 +134,7 @@
 <script src="https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-fn.js?sub_v=1"></script>
 
 <script>
+    /* WebRTC deshabilitado: esperando que WebRTC esté activado en Zadarma
     window.addEventListener('load', function() {
         fetch('/api/webrtc-key/')
             .then(response => response.json())
@@ -155,6 +156,9 @@
                 console.error("❌ Zadarma: error de conexión →", error);
             });
     }, false);
+    */
+
+    console.log("📞 Sistema de telefonía: Click-to-Call activado (esperando WebRTC)");
 </script>
 </body>
 </html>

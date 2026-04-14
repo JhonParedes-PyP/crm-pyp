@@ -6,6 +6,10 @@ import hashlib
 import base64
 import hmac
 import requests
+import time
+from django.conf import settings
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
 from collections import OrderedDict
 from decimal import Decimal
 from datetime import timedelta
@@ -1292,47 +1296,86 @@ def eliminar_gestion(request, gestion_id):
     # 5. Redirigimos de vuelta a la ficha del cliente
     return redirect('registrar_gestion', deudor_id=deudor_id)
 
-    # --- MÓDULO: TELEFONÍA WEBRTC (ZADARMA) ---
+ # --- MÓDULO: TELEFONÍA WEBRTC (ZADARMA) ---
 @login_required
 def api_zadarma_webrtc_key(request):
-    # 1. Credenciales de la Bóveda (NO COMPARTIR NUNCA)
-    API_KEY = "3ca47bbb600a61474418"
-    API_SECRET = "e054ee45f7e64c58a9ee"
-    SIP_ID = "542111" # Ejemplo: "123456-101"
-    
     api_url = "/v1/webrtc/get_key/"
-    params = {'sip': SIP_ID}
-    
-    # 2. Ordenar datos como lo exige el algoritmo de Zadarma
+    params = {'sip': settings.ZADARMA_SIP}
+
     ordered_params = OrderedDict(sorted(params.items()))
     query_string = urllib.parse.urlencode(ordered_params)
-    
-    # 3. Primer candado: Hash MD5
+
     md5_string = hashlib.md5(query_string.encode('utf-8')).hexdigest()
-    
-    # 4. Preparar la cadena final a firmar
-    string_to_sign = api_url + query_string + md5_string
-    
-    # 5. Segundo candado: Firma Criptográfica HMAC-SHA1 + Base64
-    hmac_obj = hmac.new(API_SECRET.encode('utf-8'), string_to_sign.encode('utf-8'), hashlib.sha1)
-    firma_hex = hmac_obj.hexdigest()
-    firma_base64 = base64.b64encode(firma_hex.encode('utf-8')).decode('utf-8')
-    
-    # 6. Sellar el sobre virtual
+    data_to_sign = api_url + query_string + md5_string
+
+    signature = base64.b64encode(
+        hmac.new(
+            settings.ZADARMA_SECRET.encode('utf-8'),
+            data_to_sign.encode('utf-8'),
+            hashlib.sha1
+        ).digest()
+    ).decode()
+
     headers = {
-        'Authorization': f"{API_KEY}:{firma_base64}"
+        'Authorization': f"{settings.ZADARMA_KEY}:{signature}"
     }
-    
-    # 7. Solicitar permiso oficial a los servidores mundiales de Zadarma
+
     try:
-        response = requests.get(f"https://api.zadarma.com{api_url}", params=ordered_params, headers=headers)
+        response = requests.get(
+            f"https://api.zadarma.com{api_url}",
+            params=ordered_params,
+            headers=headers
+        )
         data = response.json()
-        
-        # Devolver la llave temporal a tu pantalla del CRM
+
         if data.get('status') == 'success':
             return JsonResponse({'key': data.get('key')})
         else:
             return JsonResponse({'error': 'Error de Zadarma: ' + str(data)}, status=400)
-            
+
     except Exception as e:
         return JsonResponse({'error': 'Error de conexión: ' + str(e)}, status=500)
+
+
+@login_required
+def iniciar_callback(request, numero_cliente):
+    numero_limpio = str(numero_cliente).strip()
+    if len(numero_limpio) == 9 and numero_limpio.startswith('9'):
+        numero_limpio = f"51{numero_limpio}"
+
+    api_method = '/v1/request/callback/'
+    params = {
+        'from': settings.ZADARMA_SIP,
+        'to': numero_limpio,
+    }
+
+    sorted_dict = dict(sorted(params.items()))
+    params_string = '&'.join([f'{k}={v}' for k, v in sorted_dict.items()])
+
+    md5_params = hashlib.md5(params_string.encode('utf-8')).hexdigest()
+    data_to_sign = f"{api_method}{params_string}{md5_params}"
+
+    signature = base64.b64encode(
+        hmac.new(
+            settings.ZADARMA_SECRET.encode('utf-8'),
+            data_to_sign.encode('utf-8'),
+            hashlib.sha1
+        ).digest()
+    ).decode()
+
+    headers = {
+        'Authorization': f"{settings.ZADARMA_KEY}:{signature}"
+    }
+
+    response = requests.get(
+        f"https://api.zadarma.com{api_method}",
+        params=params,
+        headers=headers
+    )
+
+    print("--- PRUEBA FINAL DE FIRMA ---")
+    print(f"Número: {numero_limpio}")
+    print(f"Firma enviada: {signature}")
+    print(f"Respuesta Zadarma: {response.json()}")
+
+    return JsonResponse(response.json())
