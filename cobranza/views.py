@@ -1299,9 +1299,14 @@ def eliminar_gestion(request, gestion_id):
 
 # --- MÓDULO: TELEFONÍA ZADARMA (SINCRONIZADO) ---
 
-@login_required
+@require_http_methods(["GET"])
 def api_zadarma_webrtc_key(request):
     """Genera la llave dinámica para el teléfono verde flotante"""
+    # Verificar token API (sin login requerido)
+    token = request.GET.get('token', '')
+    if token != settings.API_TOKEN_ZADARMA:
+        return JsonResponse({'error': 'Token inválido', 'message': 'Unauthorized'}, status=401)
+
     api_url = "/v1/webrtc/get_key/"
     params = {'sip': settings.ZADARMA_SIP}
 

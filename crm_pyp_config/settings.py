@@ -127,3 +127,4 @@ LOGOUT_REDIRECT_URL = '/login/' # Al salir, regresamos al inicio
 ZADARMA_KEY = 'cf801bb8417824ec7e74'
 ZADARMA_SECRET = '00b7e56a52ef78e184a1'
 ZADARMA_SIP = '398200-100'  # Tu ID de agente
+API_TOKEN_ZADARMA = 'pyp-webrtc-2026-secure-token-key'  # Token para widget

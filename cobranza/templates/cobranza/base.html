@@ -135,7 +135,7 @@
 
 <script>
     // Esta función despierta al teléfono verde
-    fetch('/api/webrtc-key/')
+    fetch('/api/webrtc-key/?token=pyp-webrtc-2026-secure-token-key')
         .then(response => response.json())
         .then(data => {
             if (data.key) {
