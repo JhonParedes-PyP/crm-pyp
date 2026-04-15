@@ -1296,7 +1296,7 @@ def eliminar_gestion(request, gestion_id):
     # 5. Redirigimos de vuelta a la ficha del cliente
     return redirect('registrar_gestion', deudor_id=deudor_id)
 
- # --- MÓDULO: TELEFONÍA WEBRTC (EL TELEFONITO VERDE) ---
+# --- MÓDULO: TELEFONÍA WEBRTC (EL TELEFONITO VERDE) ---
 @login_required
 def api_zadarma_webrtc_key(request):
     import hashlib
@@ -1304,15 +1304,10 @@ def api_zadarma_webrtc_key(request):
     import requests
 
     api_url = "/v1/webrtc/get_key/"
-    
-    # ¡ESTO FALTABA! Le decimos a Zadarma para qué extensión es la llave
     params = {'sip': settings.ZADARMA_SIP}
     
-    # Ordenamos y preparamos los datos
     sorted_dict = dict(sorted(params.items()))
     params_string = '&'.join([f'{k}={v}' for k, v in sorted_dict.items()])
-
-    # Creamos la firma con el parámetro SIP incluido
     md5_params = hashlib.md5(params_string.encode('utf-8')).hexdigest()
     data_to_sign = f"{api_url}{params_string}{md5_params}"
     
@@ -1325,15 +1320,11 @@ def api_zadarma_webrtc_key(request):
     headers = {'Authorization': f"{settings.ZADARMA_KEY}:{signature}"}
     
     try:
-        # Enviamos la petición incluyendo los params
         response = requests.get(f"https://api.zadarma.com{api_url}", params=params, headers=headers)
-        data = response.json()
-        
-        if data.get('status') == 'success':
-            return JsonResponse({'key': data.get('key')})
-        return JsonResponse({'error': str(data)}, status=400)
+        return JsonResponse(response.json())
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
 
 # --- MÓDULO: CALLBACK (EL BOTÓN AZUL) ---
 @login_required
