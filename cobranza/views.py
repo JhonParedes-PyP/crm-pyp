@@ -1296,86 +1296,81 @@ def eliminar_gestion(request, gestion_id):
     # 5. Redirigimos de vuelta a la ficha del cliente
     return redirect('registrar_gestion', deudor_id=deudor_id)
 
- # --- MÓDULO: TELEFONÍA WEBRTC (ZADARMA) ---
+ # --- MÓDULO: TELEFONÍA WEBRTC (EL TELEFONITO VERDE) ---
 @login_required
 def api_zadarma_webrtc_key(request):
+    import hashlib
+    import hmac
+    import requests
+
     api_url = "/v1/webrtc/get_key/"
+    
+    # ¡ESTO FALTABA! Le decimos a Zadarma para qué extensión es la llave
     params = {'sip': settings.ZADARMA_SIP}
+    
+    # Ordenamos y preparamos los datos
+    sorted_dict = dict(sorted(params.items()))
+    params_string = '&'.join([f'{k}={v}' for k, v in sorted_dict.items()])
 
-    ordered_params = OrderedDict(sorted(params.items()))
-    query_string = urllib.parse.urlencode(ordered_params)
+    # Creamos la firma con el parámetro SIP incluido
+    md5_params = hashlib.md5(params_string.encode('utf-8')).hexdigest()
+    data_to_sign = f"{api_url}{params_string}{md5_params}"
+    
+    signature = hmac.new(
+        settings.ZADARMA_SECRET.encode('utf-8'),
+        data_to_sign.encode('utf-8'),
+        hashlib.sha1
+    ).hexdigest()
 
-    md5_string = hashlib.md5(query_string.encode('utf-8')).hexdigest()
-    data_to_sign = api_url + query_string + md5_string
-
-    signature = base64.b64encode(
-        hmac.new(
-            settings.ZADARMA_SECRET.encode('utf-8'),
-            data_to_sign.encode('utf-8'),
-            hashlib.sha1
-        ).digest()
-    ).decode()
-
-    headers = {
-        'Authorization': f"{settings.ZADARMA_KEY}:{signature}"
-    }
-
+    headers = {'Authorization': f"{settings.ZADARMA_KEY}:{signature}"}
+    
     try:
-        response = requests.get(
-            f"https://api.zadarma.com{api_url}",
-            params=ordered_params,
-            headers=headers
-        )
+        # Enviamos la petición incluyendo los params
+        response = requests.get(f"https://api.zadarma.com{api_url}", params=params, headers=headers)
         data = response.json()
-
+        
         if data.get('status') == 'success':
             return JsonResponse({'key': data.get('key')})
-        else:
-            return JsonResponse({'error': 'Error de Zadarma: ' + str(data)}, status=400)
-
+        return JsonResponse({'error': str(data)}, status=400)
     except Exception as e:
-        return JsonResponse({'error': 'Error de conexión: ' + str(e)}, status=500)
+        return JsonResponse({'error': str(e)}, status=500)
 
-
+# --- MÓDULO: CALLBACK (EL BOTÓN AZUL) ---
 @login_required
 def iniciar_callback(request, numero_cliente):
-    numero_limpio = str(numero_cliente).strip()
-    if len(numero_limpio) == 9 and numero_limpio.startswith('9'):
-        numero_limpio = f"51{numero_limpio}"
+    import hashlib
+    import hmac
+    import requests
+    
+    num = str(numero_cliente).strip()
+    if len(num) == 9 and num.startswith('9'):
+        num = f"51{num}"
 
     api_method = '/v1/request/callback/'
     params = {
         'from': settings.ZADARMA_SIP,
-        'to': numero_limpio,
+        'to': num,
     }
 
+    # Ordenar parámetros alfabéticamente
     sorted_dict = dict(sorted(params.items()))
     params_string = '&'.join([f'{k}={v}' for k, v in sorted_dict.items()])
 
     md5_params = hashlib.md5(params_string.encode('utf-8')).hexdigest()
     data_to_sign = f"{api_method}{params_string}{md5_params}"
 
-    signature = base64.b64encode(
-        hmac.new(
-            settings.ZADARMA_SECRET.encode('utf-8'),
-            data_to_sign.encode('utf-8'),
-            hashlib.sha1
-        ).digest()
-    ).decode()
+    signature = hmac.new(
+        settings.ZADARMA_SECRET.encode('utf-8'),
+        data_to_sign.encode('utf-8'),
+        hashlib.sha1
+    ).hexdigest()
 
-    headers = {
-        'Authorization': f"{settings.ZADARMA_KEY}:{signature}"
-    }
+    headers = {'Authorization': f"{settings.ZADARMA_KEY}:{signature}"}
 
-    response = requests.get(
-        f"https://api.zadarma.com{api_method}",
-        params=params,
-        headers=headers
-    )
-
-    print("--- PRUEBA FINAL DE FIRMA ---")
-    print(f"Número: {numero_limpio}")
-    print(f"Firma enviada: {signature}")
-    print(f"Respuesta Zadarma: {response.json()}")
+    response = requests.get(f"https://api.zadarma.com{api_method}", params=params, headers=headers)
+    
+    # El chismoso para tu terminal
+    print(f"--- LLAMADA A {num} ---")
+    print(f"Respuesta: {response.json()}")
 
     return JsonResponse(response.json())
