@@ -134,25 +134,24 @@
 <script src="https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-fn.js?sub_v=1"></script>
 
 <script>
-    // Nueva inicialización dinámica
+    // Esta función despierta al teléfono verde
     fetch('/api/webrtc-key/')
         .then(response => response.json())
         .then(data => {
             if (data.key) {
                 zadarmaWidgetFn(
-                    data.key,           // Recibe la llave dinámica del servidor
-                    '398200-100',       // Asegúrate que este sea tu Login exacto
-                    'rounded', 
-                    'es', 
-                    true, 
+                    data.key,          // Recibe la llave fresca del servidor
+                    '398200-100',      // Tu extensión SIP exacta
+                    'rounded',
+                    'es',
+                    true,
                     {right: '20px', bottom: '20px'}
                 );
             } else {
-                console.error("❌ Zadarma Error:", data.error);
-                // Si sale error aquí, revisaremos la respuesta del servidor
+                console.error("❌ Zadarma dice:", data.message || data.error);
             }
         })
-        .catch(error => console.error("❌ Error de conexión:", error));
+        .catch(err => console.error("❌ Error de conexión:", err));
 </script>
 </body>
 </html>

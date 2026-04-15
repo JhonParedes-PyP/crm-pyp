@@ -10,6 +10,7 @@ import time
 from django.conf import settings
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
+from urllib.parse import urlencode
 from collections import OrderedDict
 from decimal import Decimal
 from datetime import timedelta
@@ -1296,24 +1297,23 @@ def eliminar_gestion(request, gestion_id):
     # 5. Redirigimos de vuelta a la ficha del cliente
     return redirect('registrar_gestion', deudor_id=deudor_id)
 
-# --- MÓDULO: TELEFONÍA (ZADARMA) ---
+# --- MÓDULO: TELEFONÍA ZADARMA (SINCRONIZADO) ---
+
 @login_required
 def api_zadarma_webrtc_key(request):
-    import hashlib
-    import hmac
-    import requests
-    from urllib.parse import urlencode
-
+    """Genera la llave dinámica para el teléfono verde flotante"""
     api_url = "/v1/webrtc/get_key/"
     params = {'sip': settings.ZADARMA_SIP}
 
-    # 1. Preparar la firma exactamente como pide Zadarma
+    # 1. Ordenar y codificar parámetros
     sorted_params = dict(sorted(params.items()))
     query_string = urlencode(sorted_params)
-    md5_string = hashlib.md5(query_string.encode('utf-8')).hexdigest()
-    data_to_sign = f"{api_url}{query_string}{md5_string}"
 
-    # 2. USAR HEXDIGEST (NO BASE64)
+    # 2. Firma Zadarma: método + query + md5(query)
+    md5_hash = hashlib.md5(query_string.encode('utf-8')).hexdigest()
+    data_to_sign = f"{api_url}{query_string}{md5_hash}"
+
+    # 3. HMAC-SHA1 en HEXADECIMAL
     signature = hmac.new(
         settings.ZADARMA_SECRET.encode('utf-8'),
         data_to_sign.encode('utf-8'),
@@ -1328,14 +1328,9 @@ def api_zadarma_webrtc_key(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-
 @login_required
 def iniciar_callback(request, numero_cliente):
-    import hashlib
-    import hmac
-    import requests
-    from urllib.parse import urlencode
-
+    """Inicia la llamada para el botón azul"""
     num = str(numero_cliente).strip()
     if len(num) == 9 and num.startswith('9'):
         num = f"51{num}"
@@ -1343,13 +1338,12 @@ def iniciar_callback(request, numero_cliente):
     api_method = '/v1/request/callback/'
     params = {'from': settings.ZADARMA_SIP, 'to': num}
 
-    # 1. Preparar firma
+    # 1. Firma idéntica al método anterior
     sorted_params = dict(sorted(params.items()))
     query_string = urlencode(sorted_params)
-    md5_string = hashlib.md5(query_string.encode('utf-8')).hexdigest()
-    data_to_sign = f"{api_method}{query_string}{md5_string}"
+    md5_hash = hashlib.md5(query_string.encode('utf-8')).hexdigest()
+    data_to_sign = f"{api_method}{query_string}{md5_hash}"
 
-    # 2. USAR HEXDIGEST (NO BASE64)
     signature = hmac.new(
         settings.ZADARMA_SECRET.encode('utf-8'),
         data_to_sign.encode('utf-8'),
@@ -1359,5 +1353,5 @@ def iniciar_callback(request, numero_cliente):
     headers = {'Authorization': f"{settings.ZADARMA_KEY}:{signature}"}
     response = requests.get(f"https://api.zadarma.com{api_method}", params=params, headers=headers)
 
-    print(f"--- LLAMADA A {num} | RESPUESTA: {response.json()}")
+    print(f"--- [CHISMOSO] LLAMADA A {num} | RESPUESTA: {response.json()}")
     return JsonResponse(response.json())
