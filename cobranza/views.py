@@ -1106,6 +1106,7 @@ def cargar_telefonos(request):
 @csrf_exempt 
 @require_http_methods(["POST"])
 def api_recibir_gestion_campo(request):
+
     # 1. EL CANDADO DE SEGURIDAD
     api_key = request.headers.get('Authorization')
     if api_key != 'Bearer PYP-CAMPO-2026':
@@ -1318,19 +1319,33 @@ def api_zadarma_webrtc_key(request):
     md5_hash = hashlib.md5(query_string.encode('utf-8')).hexdigest()
     data_to_sign = f"{api_url}{query_string}{md5_hash}"
 
-    # 3. HMAC-SHA1 en HEXADECIMAL
-    signature = hmac.new(
+    # 3. HMAC-SHA1 en BASE64 (como requiere Zadarma)
+    signature_bytes = hmac.new(
         settings.ZADARMA_SECRET.encode('utf-8'),
         data_to_sign.encode('utf-8'),
         hashlib.sha1
-    ).hexdigest()
+    ).digest()
+    signature = base64.b64encode(signature_bytes).decode()
 
     headers = {'Authorization': f"{settings.ZADARMA_KEY}:{signature}"}
 
     try:
-        response = requests.get(f"https://api.zadarma.com{api_url}", params=params, headers=headers)
+        url = f"https://api.zadarma.com{api_url}"
+        response = requests.get(url, params=params, headers=headers)
+
+        # DEBUG: Mostrar qué estamos enviando
+        print(f"\n🔍 DEBUG ZADARMA:")
+        print(f"  URL: {url}")
+        print(f"  Params: {params}")
+        print(f"  Query String: {query_string}")
+        print(f"  Key: {settings.ZADARMA_KEY}")
+        print(f"  Signature: {signature}")
+        print(f"  Headers: {headers}")
+        print(f"  Response: {response.json()}\n")
+
         return JsonResponse(response.json())
     except Exception as e:
+        print(f"❌ Error: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
 @login_required
@@ -1343,20 +1358,84 @@ def iniciar_callback(request, numero_cliente):
     api_method = '/v1/request/callback/'
     params = {'from': settings.ZADARMA_SIP, 'to': num}
 
-    # 1. Firma idéntica al método anterior
+    # 1. Firma idéntica al método anterior (BASE64)
     sorted_params = dict(sorted(params.items()))
     query_string = urlencode(sorted_params)
     md5_hash = hashlib.md5(query_string.encode('utf-8')).hexdigest()
     data_to_sign = f"{api_method}{query_string}{md5_hash}"
 
-    signature = hmac.new(
+    signature_bytes = hmac.new(
         settings.ZADARMA_SECRET.encode('utf-8'),
         data_to_sign.encode('utf-8'),
         hashlib.sha1
-    ).hexdigest()
+    ).digest()
+    signature = base64.b64encode(signature_bytes).decode()
 
     headers = {'Authorization': f"{settings.ZADARMA_KEY}:{signature}"}
     response = requests.get(f"https://api.zadarma.com{api_method}", params=params, headers=headers)
 
     print(f"--- [CHISMOSO] LLAMADA A {num} | RESPUESTA: {response.json()}")
     return JsonResponse(response.json())
+
+
+# --- API: LOGIN PARA APP MÓVIL P&P COBRANZA ---
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_app_login(request):
+    """
+    POST /api/v1/auth/app-login/
+    Autentica agentes de campo desde la app móvil.
+    No requiere sesión ni JWT — solo valida usuario/contraseña.
+    Requiere pertenecer al grupo 'APP_MOVIL' para tener acceso.
+    """
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'detail': 'Cuerpo de la petición inválido.'}, status=400)
+
+    username = data.get('username', '').strip()
+    password = data.get('password', '')
+
+    if not username or not password:
+        return JsonResponse({'detail': 'Credenciales inválidas'}, status=401)
+
+    from django.contrib.auth import authenticate as django_authenticate
+    user = django_authenticate(request, username=username, password=password)
+
+    if user is None:
+        return JsonResponse({'detail': 'Credenciales inválidas'}, status=401)
+
+    # Verificar que el usuario tenga permiso de app móvil (grupo APP_MOVIL o es superusuario)
+    tiene_acceso = user.is_superuser or user.groups.filter(name='APP_MOVIL').exists()
+    if not tiene_acceso:
+        return JsonResponse({'detail': 'Sin acceso a la app'}, status=403)
+
+    return JsonResponse({'ok': True}, status=200)
+
+
+# --- API: CREDENCIALES GOOGLE SERVICE ACCOUNT PARA APP MÓVIL ---
+@require_http_methods(["GET"])
+def api_app_credentials(request):
+    """
+    GET /api/v1/app-credentials/
+    Sirve el archivo llave.json de la Service Account de Google.
+    Protegido con el mismo token Bearer que el resto de la app de campo.
+    """
+    api_key = request.headers.get('Authorization', '')
+    if api_key != 'Bearer PYP-CAMPO-2026':
+        return JsonResponse({'detail': 'Acceso denegado.'}, status=401)
+
+    llave_path = getattr(settings, 'LLAVE_JSON_PATH', None)
+    if not llave_path:
+        return JsonResponse({'detail': 'Archivo de credenciales no configurado en el servidor.'}, status=404)
+
+    import os
+    if not os.path.isfile(llave_path):
+        return JsonResponse({'detail': 'Archivo de credenciales no encontrado en el servidor.'}, status=404)
+
+    try:
+        with open(llave_path, 'r', encoding='utf-8') as f:
+            credenciales = json.load(f)
+        return JsonResponse(credenciales, status=200)
+    except Exception as e:
+        return JsonResponse({'detail': f'Error al leer credenciales: {str(e)}'}, status=500)

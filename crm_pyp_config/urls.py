@@ -10,6 +10,10 @@ urlpatterns = [
     # --- API: RECIBIR GESTIÓN DESDE APP JUDICIAL ---
     path('api/v1/gestiones-campo/', views.api_recibir_gestion_campo, name='api_recibir_gestion_campo'),
 
+    # --- API: APP MÓVIL P&P COBRANZA ---
+    path('api/v1/auth/app-login/', views.api_app_login, name='api_app_login'),
+    path('api/v1/app-credentials/', views.api_app_credentials, name='api_app_credentials'),
+
     # Autenticación y Seguridad
     path('login/', auth_views.LoginView.as_view(template_name='cobranza/login.html'), name='login'),
     path('salir/', views.salir_sistema, name='salir_sistema'),
