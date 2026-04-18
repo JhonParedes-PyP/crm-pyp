@@ -1,0 +1,423 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ title }} — CRM P&P{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">
+        🏛️ P&amp;P Soluciones Jurídicas
+    </a>
+</h1>
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+/* ══════════════════════════════════════════════════════════════════════
+   PALETA: Azul marino de marca #003366 + tonos cálidos ámbar/crema
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* — Fuentes base — */
+body, .module h2, .module caption, #changelist-filter h2 {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* — Fondo general cálido — */
+body {
+    background-color: #fdf6ed;
+}
+
+/* — Header principal (azul marino de marca) — */
+#header {
+    background: #003366;
+    color: #ffffff;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+    padding: 12px 20px;
+}
+
+#header a:link, #header a:visited {
+    color: #fab005;
+}
+
+#header #site-name a {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-decoration: none;
+}
+
+/* — Breadcrumbs — */
+div.breadcrumbs {
+    background: #00254d;
+    color: #e8c97a;
+    padding: 8px 20px;
+    font-size: 12px;
+}
+
+div.breadcrumbs a {
+    color: #fab005;
+}
+
+div.breadcrumbs a:hover {
+    color: #ffd166;
+}
+
+/* — Barra de herramientas (#content-related) — */
+#content-related {
+    background: #fff8ee;
+    border-left: 3px solid #e8a000;
+}
+
+/* — Módulos / Secciones — */
+.module {
+    background: #ffffff;
+    border: 1px solid #e8d8b8;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+
+.module h2, .module caption {
+    background: linear-gradient(135deg, #003366, #004d99);
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 8px 14px;
+    text-transform: uppercase;
+}
+
+/* — Cabeceras de filtros laterales — */
+#changelist-filter {
+    background: #fff8ee;
+    border-left: 3px solid #e8a000;
+}
+
+#changelist-filter h2 {
+    background: #c8860a;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#changelist-filter h3 {
+    color: #5a3a00;
+    font-size: 11px;
+    font-weight: 700;
+    border-bottom: 1px solid #e8d0a0;
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+#changelist-filter ul {
+    padding: 0 12px 10px;
+}
+
+#changelist-filter li {
+    font-size: 12px;
+    color: #5a3a00;
+}
+
+#changelist-filter li a {
+    color: #003366;
+}
+
+#changelist-filter li a:hover, #changelist-filter li.selected a {
+    color: #c8860a;
+    font-weight: 700;
+}
+
+/* — Tabla de listado — */
+#result_list {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#result_list thead th {
+    background: #003366;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 9px 12px;
+    border-right: 1px solid rgba(255,255,255,0.12);
+    letter-spacing: 0.3px;
+}
+
+#result_list thead th a:link,
+#result_list thead th a:visited {
+    color: #fab005;
+}
+
+#result_list thead th.sorted {
+    background: #00254d;
+}
+
+/* — Filas alternas cálidas — */
+#result_list tr.row1 td {
+    background-color: #ffffff;
+}
+
+#result_list tr.row2 td {
+    background-color: #fffbf3;
+}
+
+#result_list tr:hover td {
+    background-color: #fff3d6 !important;
+    transition: background-color 0.15s;
+}
+
+#result_list td {
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #3a2a00;
+    border-bottom: 1px solid #f0e4c8;
+}
+
+/* — Paginación — */
+p.paginator {
+    background: #fff3d6;
+    border: 1px solid #e8d0a0;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: #5a3a00;
+}
+
+p.paginator a {
+    color: #003366;
+    font-weight: 700;
+}
+
+p.paginator a:hover {
+    color: #c8860a;
+}
+
+/* — Botones — */
+.button, input[type=submit], input[type=button], .submit-row input, a.button {
+    background: #003366;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 18px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+    letter-spacing: 0.3px;
+}
+
+.button:hover, input[type=submit]:hover, input[type=button]:hover, a.button:hover {
+    background: #004d99;
+}
+
+.button.default, input[type=submit].default {
+    background: #c8860a;
+}
+
+.button.default:hover, input[type=submit].default:hover {
+    background: #a86c00;
+}
+
+.deletelink, a.deletelink {
+    background: #b33000;
+    color: #ffffff;
+    border-radius: 5px;
+    padding: 8px 16px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.deletelink:hover, a.deletelink:hover {
+    background: #8a2200;
+}
+
+/* — Submit row — */
+.submit-row {
+    background: #fff3d6;
+    border-top: 2px solid #e8c97a;
+    padding: 12px 14px;
+    border-radius: 0 0 6px 6px;
+}
+
+/* — Fieldsets — */
+fieldset {
+    border: 1px solid #e8d0a0;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-bottom: 14px;
+}
+
+fieldset h2 {
+    background: linear-gradient(135deg, #c8860a, #e8a000) !important;
+    color: #ffffff !important;
+    border-radius: 4px;
+    padding: 5px 12px !important;
+    font-size: 12px !important;
+    margin: -14px -18px 12px -18px;
+}
+
+fieldset.collapsed h2 {
+    background: #888 !important;
+}
+
+/* — Formularios — */
+.form-row label {
+    color: #3a2a00;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.form-row input, .form-row select, .form-row textarea {
+    border: 1px solid #d4b896;
+    border-radius: 4px;
+    padding: 5px 8px;
+    font-size: 13px;
+    background: #fffdf8;
+    color: #3a2a00;
+}
+
+.form-row input:focus, .form-row select:focus, .form-row textarea:focus {
+    border-color: #c8860a;
+    outline: 2px solid rgba(200,134,10,0.2);
+    background: #ffffff;
+}
+
+/* — Mensajes de éxito/error — */
+.messagelist .success {
+    background: #e6f4ea;
+    border-left: 4px solid #1a6e2e;
+    color: #1a4a20;
+}
+
+.messagelist .warning {
+    background: #fff8e0;
+    border-left: 4px solid #c8860a;
+    color: #5a3a00;
+}
+
+.messagelist .error {
+    background: #fdecea;
+    border-left: 4px solid #b33000;
+    color: #5a0000;
+}
+
+/* — Dashboard: index de módulos — */
+#content-main .module table td a {
+    color: #003366;
+    font-weight: 600;
+}
+
+#content-main .module table td a:hover {
+    color: #c8860a;
+}
+
+/* — Barra de búsqueda — */
+#toolbar {
+    background: #fff3d6;
+    border-bottom: 1px solid #e8d0a0;
+    padding: 8px 14px;
+}
+
+#searchbar {
+    border: 1px solid #d4b896;
+    border-radius: 4px;
+    padding: 5px 10px;
+    background: #fffdf8;
+    color: #3a2a00;
+    font-size: 13px;
+}
+
+#toolbar input[type=submit] {
+    background: #c8860a;
+    color: white;
+    border-radius: 4px;
+    padding: 5px 14px;
+    font-size: 12px;
+    border: none;
+    cursor: pointer;
+}
+
+#toolbar input[type=submit]:hover {
+    background: #a86c00;
+}
+
+/* — User tools (barra superior derecha) — */
+#user-tools {
+    color: rgba(255,255,255,0.85);
+    font-size: 12px;
+}
+
+#user-tools a {
+    color: #fab005;
+    font-weight: 700;
+}
+
+#user-tools a:hover {
+    color: #ffd166;
+}
+
+/* — Date hierarchy — */
+div.xfull {
+    background: #fff3d6;
+    border-bottom: 1px solid #e8d0a0;
+}
+
+/* — Acciones de lista — */
+.actions label {
+    color: #5a3a00;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.actions select {
+    border: 1px solid #d4b896;
+    border-radius: 4px;
+    padding: 4px 8px;
+    background: #fffdf8;
+    color: #3a2a00;
+    font-size: 12px;
+}
+
+/* — Object tools (Añadir, Historial) — */
+ul.object-tools a {
+    background: #c8860a;
+    border-radius: 16px;
+    padding: 6px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+ul.object-tools a:hover {
+    background: #003366;
+}
+
+/* — Inline admin — */
+.inline-group h2 {
+    background: linear-gradient(135deg, #8a5a00, #c8860a) !important;
+}
+
+/* — Navigation sidebar (Django 3.2+) — */
+#nav-sidebar {
+    background: #fdf6ed;
+    border-right: 2px solid #e8d0a0;
+}
+
+#nav-sidebar .module h2 {
+    background: linear-gradient(135deg, #003366, #004d99);
+}
+
+/* — Responsive ajustes menores — */
+@media (max-width: 767px) {
+    #header { padding: 10px 14px; }
+    #header #site-name a { font-size: 15px; }
+}
+</style>
+{% endblock %}
