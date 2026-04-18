@@ -16,8 +16,98 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
+# ══════════════════════════════════════════════════════════════════════════════
+# JAZZMIN — Tema visual del panel administrativo
+# ══════════════════════════════════════════════════════════════════════════════
+JAZZMIN_SETTINGS = {
+    # ── Identidad ─────────────────────────────────────────────────────────────
+    "site_title":        "CRM P&P",
+    "site_header":       "P&P Soluciones Jurídicas",
+    "site_brand":        "P&P Cobranza",
+    "welcome_sign":      "Bienvenido al Panel Administrativo",
+    "copyright":         "P&P Soluciones Jurídicas © 2026",
+
+    # ── Iconos por modelo (FontAwesome 5) ─────────────────────────────────────
+    "icons": {
+        "auth":                          "fas fa-users-cog",
+        "auth.user":                     "fas fa-user",
+        "auth.group":                    "fas fa-users",
+        "cobranza.deudor":               "fas fa-file-invoice-dollar",
+        "cobranza.gestion":              "fas fa-clipboard-list",
+        "cobranza.telefonoextra":        "fas fa-phone-alt",
+        "cobranza.asignacioncartera":    "fas fa-briefcase",
+        "cobranza.campanaasterisk":      "fas fa-bullhorn",
+        "cobranza.detallecampanaasterisk": "fas fa-list-ol",
+    },
+    "default_icon_parents": "fas fa-folder",
+    "default_icon_children": "fas fa-circle",
+
+    # ── Menú lateral organizado por secciones ─────────────────────────────────
+    "order_with_respect_to": [
+        "cobranza.deudor",
+        "cobranza.gestion",
+        "cobranza.telefonoextra",
+        "cobranza.asignacioncartera",
+        "cobranza.campanaasterisk",
+        "cobranza.detallecampanaasterisk",
+        "auth",
+    ],
+
+    # ── Interfaz ──────────────────────────────────────────────────────────────
+    "show_ui_builder":          False,
+    "navigation_expanded":      True,
+    "hide_apps":                [],
+    "hide_models":              [],
+    "related_modal_active":     True,
+    "custom_css":               None,
+    "custom_js":                None,
+    "use_google_fonts_cdn":     False,
+    "show_sidebar":             True,
+    "topmenu_links": [
+        {"name": "Inicio CRM",  "url": "/dashboard/",       "new_window": False},
+        {"name": "Bandeja",     "url": "/bandeja-gestor/",  "new_window": False},
+        {"name": "Campañas",    "url": "/campanas-asterisk/", "new_window": False},
+    ],
+    "usermenu_links": [
+        {"name": "Ir al CRM",   "url": "/dashboard/",       "new_window": False},
+    ],
+    "changeform_format": "horizontal_tabs",
+}
+
+JAZZMIN_UI_TWEAKS = {
+    # ── Tema Bootstrap base ───────────────────────────────────────────────────
+    "navbar_small_text":    False,
+    "footer_small_text":    False,
+    "body_small_text":      False,
+    "brand_small_text":     False,
+
+    # ── Colores: azul marino + blanco (marca P&P) ─────────────────────────────
+    "brand_colour":         "navbar-dark",
+    "accent":               "accent-warning",       # dorado ámbar en links activos
+    "navbar":               "navbar-dark",
+    "no_navbar_border":     True,
+    "navbar_fixed":         True,
+    "layout_boxed":         False,
+    "footer_fixed":         False,
+    "sidebar_fixed":        True,
+    "sidebar":              "sidebar-dark-primary",  # sidebar oscuro azul
+    "sidebar_nav_small_text":       False,
+    "sidebar_disable_expand":       False,
+    "sidebar_nav_child_indent":     True,
+    "sidebar_nav_compact_style":    False,
+    "sidebar_nav_legacy_style":     False,
+    "sidebar_nav_flat_style":       False,
+    "theme":                "default",
+    "dark_mode_theme":      None,
+    "button_classes": {
+        "primary":   "btn-primary",
+        "secondary": "btn-warning",
+        "info":      "btn-info",
+        "warning":   "btn-warning",
+        "danger":    "btn-danger",
+        "success":   "btn-success",
+    },
+}
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-7%s0wl=)k%v8=z-6n(7f!vwn5$hhc)4kqfc5nl-uh0f7u)k1ru'
@@ -31,6 +121,7 @@ ALLOWED_HOSTS = ['192.168.1.43', '127.0.0.1', 'localhost', '134.209.76.91', 'crm
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',                      # ← debe ir ANTES de django.contrib.admin
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
