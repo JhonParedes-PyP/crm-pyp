@@ -237,50 +237,75 @@ function realizarLlamada(numero, btnElement) {
         limpio = '+51' + limpio;
     }
 
-    btnElement.innerText = "⏳ Cargando...";
-    btnElement.style.background = "#6c757d";
-    btnElement.disabled = true;
+    // Diagnóstico en consola
+    console.log('[Zadarma] Intentando llamar a:', limpio);
+    console.log('[Zadarma] zdrmWPhI:', window.zdrmWPhI);
+    console.log('[Zadarma] input:', document.getElementById('zdrm-webphone-phonenumber-input'));
+    console.log('[Zadarma] elementos zdrm en DOM:', document.querySelectorAll('[id*="zdrm"],[class*="zdrm"]').length);
 
-    var intentos = 0;
-    var maxIntentos = 20; // espera hasta 10 segundos (20 x 500ms)
+    var input = document.getElementById('zdrm-webphone-phonenumber-input');
 
-    function intentarLlamada() {
-        intentos++;
-        var input = document.getElementById('zdrm-webphone-phonenumber-input');
-
-        if (!input || !window.zdrmWPhI) {
-            if (intentos < maxIntentos) {
-                setTimeout(intentarLlamada, 500);
-            } else {
-                alert("El widget de teléfono tardó demasiado en cargar. Recarga la página.");
-                btnElement.innerText = "📞 Llamar";
-                btnElement.style.background = "#007bff";
-                btnElement.disabled = false;
-            }
-            return;
-        }
-
-        if (window.zdrmWPhI.status === 'call') {
-            alert("Ya hay una llamada en curso.");
-            btnElement.innerText = "📞 Llamar";
-            btnElement.style.background = "#007bff";
-            btnElement.disabled = false;
-            return;
-        }
-
+    // --- MÉTODO 1: API oficial zdrmWPhI ---
+    if (input && window.zdrmWPhI) {
         input.value = limpio;
         window.zdrmWPhI.callNum();
-
         btnElement.innerText = "📞 Marcando...";
         btnElement.style.background = "#28a745";
         setTimeout(function() {
             btnElement.innerText = "📞 Llamar";
             btnElement.style.background = "#007bff";
-            btnElement.disabled = false;
         }, 6000);
+        return;
     }
 
-    intentarLlamada();
+    // --- MÉTODO 2: El input existe pero zdrmWPhI no — abrir widget y prellenar ---
+    if (input) {
+        console.log('[Zadarma] input existe pero zdrmWPhI no. Intentando via DOM.');
+        // Abrir el panel del widget (buscar botón toggle)
+        var toggle = document.querySelector(
+            '#zdrm-webphone-toggle, .zdrm-webphone-toggle, ' +
+            '[id*="zdrm-webphone-btn"], [class*="zdrm-btn"], ' +
+            '[id*="zdrm"][id*="open"], [id*="zdrm"][id*="show"]'
+        );
+        if (toggle) toggle.click();
+
+        // Poner número y disparar eventos para que el widget lo detecte
+        input.value = limpio;
+        input.dispatchEvent(new Event('input', {bubbles: true}));
+        input.dispatchEvent(new Event('change', {bubbles: true}));
+
+        // Intentar encontrar y hacer clic en el botón de llamar del widget
+        setTimeout(function() {
+            var callBtn = document.querySelector(
+                '#zdrm-webphone-call-btn, .zdrm-webphone-call, ' +
+                '[id*="zdrm"][id*="call"], [class*="zdrm"][class*="call"]'
+            );
+            console.log('[Zadarma] botón call encontrado:', callBtn);
+            if (callBtn) {
+                callBtn.click();
+                btnElement.innerText = "📞 Marcando...";
+                btnElement.style.background = "#28a745";
+            } else {
+                btnElement.innerText = "📞 Ver widget ↘";
+                btnElement.style.background = "#17a2b8";
+            }
+            setTimeout(function() {
+                btnElement.innerText = "📞 Llamar";
+                btnElement.style.background = "#007bff";
+            }, 8000);
+        }, 400);
+        return;
+    }
+
+    // --- MÉTODO 3: Widget no cargó — copiar número al portapapeles ---
+    console.log('[Zadarma] Widget no encontrado en DOM. Elementos zdrm:', document.querySelectorAll('[id*="zdrm"],[class*="zdrm"]'));
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(limpio).then(function() {
+            alert('El widget de Zadarma no está cargado.\nNúmero copiado al portapapeles: ' + limpio + '\n\nAbre la consola del navegador (F12) para diagnóstico.');
+        });
+    } else {
+        alert('El widget de Zadarma no está cargado.\nNúmero: ' + limpio + '\n\nAbre la consola del navegador (F12) para diagnóstico.');
+    }
 }
 
 function manejarMenuDinamico() {
