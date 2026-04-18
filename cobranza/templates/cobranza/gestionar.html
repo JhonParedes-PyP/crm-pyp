@@ -232,38 +232,55 @@
 
 <script>
 function realizarLlamada(numero, btnElement) {
-    // Limpiar el número: quitar espacios, guiones, paréntesis
     var limpio = numero.toString().replace(/[\s\-\(\)]/g, '');
-    // Añadir código de país Perú (+51) si el número no lo trae
     if (!limpio.startsWith('+')) {
         limpio = '+51' + limpio;
     }
 
-    // zdrmWPhI es el objeto del widget Zadarma (widget.min.js lo expone como window.zdrmWPhI)
-    var input = document.getElementById('zdrm-webphone-phonenumber-input');
-
-    if (!input || !window.zdrmWPhI) {
-        alert("El widget Zadarma no está cargado. Recarga la página e intenta de nuevo.");
-        return;
-    }
-
-    if (window.zdrmWPhI.status === 'call') {
-        alert("Ya hay una llamada en curso.");
-        return;
-    }
-
-    // Poner el número en el input del widget y disparar la llamada
-    input.value = limpio;
-    window.zdrmWPhI.callNum();
-
-    btnElement.innerText = "📞 Marcando...";
-    btnElement.style.background = "#28a745";
+    btnElement.innerText = "⏳ Cargando...";
+    btnElement.style.background = "#6c757d";
     btnElement.disabled = true;
-    setTimeout(function() {
-        btnElement.innerText = "📞 Llamar";
-        btnElement.style.background = "#007bff";
-        btnElement.disabled = false;
-    }, 6000);
+
+    var intentos = 0;
+    var maxIntentos = 20; // espera hasta 10 segundos (20 x 500ms)
+
+    function intentarLlamada() {
+        intentos++;
+        var input = document.getElementById('zdrm-webphone-phonenumber-input');
+
+        if (!input || !window.zdrmWPhI) {
+            if (intentos < maxIntentos) {
+                setTimeout(intentarLlamada, 500);
+            } else {
+                alert("El widget de teléfono tardó demasiado en cargar. Recarga la página.");
+                btnElement.innerText = "📞 Llamar";
+                btnElement.style.background = "#007bff";
+                btnElement.disabled = false;
+            }
+            return;
+        }
+
+        if (window.zdrmWPhI.status === 'call') {
+            alert("Ya hay una llamada en curso.");
+            btnElement.innerText = "📞 Llamar";
+            btnElement.style.background = "#007bff";
+            btnElement.disabled = false;
+            return;
+        }
+
+        input.value = limpio;
+        window.zdrmWPhI.callNum();
+
+        btnElement.innerText = "📞 Marcando...";
+        btnElement.style.background = "#28a745";
+        setTimeout(function() {
+            btnElement.innerText = "📞 Llamar";
+            btnElement.style.background = "#007bff";
+            btnElement.disabled = false;
+        }, 6000);
+    }
+
+    intentarLlamada();
 }
 
 function manejarMenuDinamico() {
