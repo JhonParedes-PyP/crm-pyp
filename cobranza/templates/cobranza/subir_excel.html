@@ -6,5 +6,7 @@
 </form>
 
 {% if mensajes %}
-    <p>{{ mensajes }}</p>
+    <p style="padding:10px; border-radius:6px; background:{% if 'ADVERTENCIA' in mensajes %}#fff3cd; color:#856404;{% elif 'Error' in mensajes %}#f8d7da; color:#721c24;{% else %}#d4edda; color:#155724;{% endif %}">
+        {{ mensajes }}
+    </p>
 {% endif %}

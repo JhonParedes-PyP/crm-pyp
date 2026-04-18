@@ -22,6 +22,7 @@ class Deudor(models.Model):
     tlf_celular_aval = models.CharField(max_length=50, null=True, blank=True)
     nom_conyuge_aval = models.CharField(max_length=200, null=True, blank=True)
     rango_dias_mora = models.CharField(max_length=50, null=True, blank=True)
+    ultimo_dia_pago = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return self.nombre_completo

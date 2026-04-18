@@ -134,24 +134,14 @@
 <script src="https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-fn.js?sub_v=1"></script>
 
 <script>
-    // Esta función despierta al teléfono verde
-    fetch('/api/webrtc-key/?token=pyp-webrtc-2026-secure-token-key')
-        .then(response => response.json())
-        .then(data => {
-            if (data.key) {
-                zadarmaWidgetFn(
-                    data.key,          // Recibe la llave fresca del servidor
-                    '398200-100',      // Tu extensión SIP exacta
-                    'rounded',
-                    'es',
-                    true,
-                    {right: '20px', bottom: '20px'}
-                );
-            } else {
-                console.error("❌ Zadarma dice:", data.message || data.error);
-            }
-        })
-        .catch(err => console.error("❌ Error de conexión:", err));
+    zadarmaWidgetFn(
+        '3c66503b97b',
+        '398200-100',
+        'rounded',
+        'es',
+        true,
+        {right: '20px', bottom: '20px'}
+    );
 </script>
 </body>
 </html>

@@ -64,22 +64,47 @@ def salir_sistema(request):
 @login_required
 def subir_excel(request):
     mensajes = ""
+    columnas_detectadas = []
     if request.method == 'POST' and request.FILES.get('archivo_excel'):
         try:
             archivo = request.FILES['archivo_excel']
-            df = pd.read_excel(archivo, dtype=str).fillna('') 
-            
+            df = pd.read_excel(archivo, dtype=str).fillna('')
+            columnas_detectadas = list(df.columns)
+
+            # Buscar columna de último día de pago con variantes de nombre
+            VARIANTES_FECHA = [
+                'FEC_ULT_PAGO_ACTUAL',
+                'ULTIMO_DIA_PAGO', 'ULTIMO DIA PAGO', 'ULTIMO_DIA_DE_PAGO',
+                'FEC_ULTIMO_PAGO', 'FECHA_ULTIMO_PAGO', 'FECHA ULTIMO PAGO',
+                'FEC_ULT_PAGO', 'ULT_PAGO', 'ULTIMO_PAGO',
+            ]
+            col_fecha = None
+            cols_upper = {c.strip().upper(): c for c in df.columns}
+            for variante in VARIANTES_FECHA:
+                if variante in cols_upper:
+                    col_fecha = cols_upper[variante]
+                    break
+
             for index, row in df.iterrows():
                 cap_str = str(row.get('DEUDA_CAP', '0')).strip()
                 tot_str = str(row.get('DEUDA_TOTAL', '0')).strip()
                 cap = Decimal(cap_str) if cap_str else Decimal('0')
                 tot = Decimal(tot_str) if tot_str else Decimal('0')
-                
+
                 documento_val = str(row.get('DOC_DNI_RUC', '')).strip()
-                
+
+                ultimo_dia_pago_val = None
+                if col_fecha:
+                    raw = str(row.get(col_fecha, '')).strip()
+                    if raw and raw not in ('', 'nan', 'None'):
+                        try:
+                            ultimo_dia_pago_val = pd.to_datetime(raw, dayfirst=True).date()
+                        except Exception:
+                            ultimo_dia_pago_val = None
+
                 if documento_val:
                     Deudor.objects.update_or_create(
-                        documento=documento_val, 
+                        documento=documento_val,
                         defaults={
                             'cartera': str(row.get('CARTERA', 'GENERAL')).strip(),
                             'nombre_completo': str(row.get('NOM_CLI', 'SIN NOMBRE')).strip(),
@@ -95,27 +120,37 @@ def subir_excel(request):
                             'tlf_celular_aval': str(row.get('TLF_CELULAR_AVAL', '')).strip(),
                             'nom_conyuge_aval': str(row.get('NOM_CONYUGE_AVAL', '')).strip(),
                             'rango_dias_mora': str(row.get('RANGO_DIAS_MORA', '')).strip(),
+                            'ultimo_dia_pago': ultimo_dia_pago_val,
                         }
                     )
-            mensajes = "¡Excelente! La cartera multicliente se subió y actualizó con éxito."
+
+            if col_fecha:
+                mensajes = f"¡Excelente! Cartera cargada con éxito. Columna de fecha detectada: '{col_fecha}'"
+            else:
+                mensajes = (
+                    f"¡Cartera cargada! ADVERTENCIA: No se encontró columna de fecha de pago. "
+                    f"Columnas en el archivo: {', '.join(columnas_detectadas)}"
+                )
         except Exception as e:
             mensajes = f"Error al procesar el Excel: {e}"
-    return render(request, 'cobranza/subir_excel.html', {'mensajes': mensajes})
+    return render(request, 'cobranza/subir_excel.html', {'mensajes': mensajes, 'columnas_detectadas': columnas_detectadas})
 
 # --- FUNCIÓN AUXILIAR PARA OBTENER LISTA DE DEUDORES CON FILTROS Y ASIGNACIÓN ---
 def obtener_lista_deudores_filtrados(request, usuario=None, ids_seleccionados=None):
     q = request.GET.get('q', '') 
     cartera_filtro = request.GET.get('cartera', '')
     agencia_filtro = request.GET.get('agencia', '')
-    mora_filtro = request.GET.get('rango_dias_mora', '')
+    fecha_pago_desde = request.GET.get('fecha_pago_desde', '')
+    fecha_pago_hasta = request.GET.get('fecha_pago_hasta', '')
     orden = request.GET.get('orden', '')
     
-    if not any([q, cartera_filtro, agencia_filtro, mora_filtro, orden]):
+    if not any([q, cartera_filtro, agencia_filtro, fecha_pago_desde, fecha_pago_hasta, orden]):
         filtros_sesion = request.session.get('filtros_bandeja', {})
         q = filtros_sesion.get('q', '')
         cartera_filtro = filtros_sesion.get('cartera', '')
         agencia_filtro = filtros_sesion.get('agencia', '')
-        mora_filtro = filtros_sesion.get('mora', '')
+        fecha_pago_desde = filtros_sesion.get('fecha_pago_desde', '')
+        fecha_pago_hasta = filtros_sesion.get('fecha_pago_hasta', '')
         orden = filtros_sesion.get('orden', '')
     
     deudores = Deudor.objects.annotate(ultima_llamada=Max('gestion__fecha'))
@@ -142,15 +177,23 @@ def obtener_lista_deudores_filtrados(request, usuario=None, ids_seleccionados=No
         deudores = deudores.filter(cartera=cartera_filtro)
     if agencia_filtro: 
         deudores = deudores.filter(agencia=agencia_filtro)
-    if mora_filtro: 
-        deudores = deudores.filter(rango_dias_mora=mora_filtro)
+    if fecha_pago_desde:
+        from django.utils.dateparse import parse_date
+        d = parse_date(fecha_pago_desde)
+        if d:
+            deudores = deudores.filter(ultimo_dia_pago__gte=d)
+    if fecha_pago_hasta:
+        from django.utils.dateparse import parse_date
+        d = parse_date(fecha_pago_hasta)
+        if d:
+            deudores = deudores.filter(ultimo_dia_pago__lte=d)
     
     if orden == 'nombre': deudores = deudores.order_by('nombre_completo')
     elif orden == '-nombre': deudores = deudores.order_by('-nombre_completo')
     elif orden == 'agencia': deudores = deudores.order_by('agencia')
     elif orden == '-agencia': deudores = deudores.order_by('-agencia')
-    elif orden == 'mora': deudores = deudores.order_by('rango_dias_mora')
-    elif orden == '-mora': deudores = deudores.order_by('-rango_dias_mora')
+    elif orden == 'ultimo_dia_pago': deudores = deudores.order_by('ultimo_dia_pago')
+    elif orden == '-ultimo_dia_pago': deudores = deudores.order_by('-ultimo_dia_pago')
     elif orden == 'deuda_total': deudores = deudores.order_by('saldo_deuda')
     elif orden == '-deuda_total': deudores = deudores.order_by('-saldo_deuda')
 
@@ -216,7 +259,9 @@ def bandeja_gestor(request):
     q = request.GET.get('q', '') 
     cartera_filtro = request.GET.get('cartera', '')
     agencia_filtro = request.GET.get('agencia', '')
-    mora_filtro = request.GET.get('rango_dias_mora', '')
+    fecha_pago_desde = request.GET.get('fecha_pago_desde', '')
+    fecha_pago_hasta = request.GET.get('fecha_pago_hasta', '')
+    rango_deuda = request.GET.get('rango_deuda', '')
     orden = request.GET.get('orden', '')
 
     es_gerente_flag = es_gerente(request.user)
@@ -224,7 +269,6 @@ def bandeja_gestor(request):
     if es_gerente_flag:
         carteras_crudas = Deudor.objects.values_list('cartera', flat=True).distinct()
         agencias_crudas = Deudor.objects.values_list('agencia', flat=True).distinct()
-        moras_crudas = Deudor.objects.values_list('rango_dias_mora', flat=True).distinct()
     else:
         asignaciones = AsignacionCartera.objects.filter(gestor=request.user)
         carteras_asignadas = asignaciones.filter(tipo='cartera').values_list('valor', flat=True)
@@ -243,11 +287,23 @@ def bandeja_gestor(request):
         
         carteras_crudas = deudores_base.values_list('cartera', flat=True).distinct()
         agencias_crudas = deudores_base.values_list('agencia', flat=True).distinct()
-        moras_crudas = deudores_base.values_list('rango_dias_mora', flat=True).distinct()
     
     lista_carteras = sorted([str(c) for c in carteras_crudas if c and str(c).strip() != ''])
     lista_agencias = sorted([str(a) for a in agencias_crudas if a and str(a).strip() != ''])
-    lista_moras = sorted([str(m) for m in moras_crudas if m and str(m).strip() != ''])
+
+    # Mapa cartera -> agencias para filtrado dinámico en el frontend
+    if es_gerente_flag:
+        pares = Deudor.objects.values_list('cartera', 'agencia').distinct()
+    else:
+        pares = deudores_base.values_list('cartera', 'agencia').distinct()
+
+    mapa_cartera_agencias = {}
+    for cartera_val, agencia_val in pares:
+        c = str(cartera_val).strip() if cartera_val else ''
+        a = str(agencia_val).strip() if agencia_val else ''
+        if c and a:
+            mapa_cartera_agencias.setdefault(c, set()).add(a)
+    mapa_cartera_agencias = {k: sorted(v) for k, v in mapa_cartera_agencias.items()}
 
     deudores = Deudor.objects.annotate(ultima_llamada=Max('gestion__fecha'))
 
@@ -273,15 +329,31 @@ def bandeja_gestor(request):
         deudores = deudores.filter(cartera=cartera_filtro)
     if agencia_filtro: 
         deudores = deudores.filter(agencia=agencia_filtro)
-    if mora_filtro: 
-        deudores = deudores.filter(rango_dias_mora=mora_filtro)
+    if fecha_pago_desde:
+        from django.utils.dateparse import parse_date
+        d = parse_date(fecha_pago_desde)
+        if d:
+            deudores = deudores.filter(ultimo_dia_pago__gte=d)
+    if fecha_pago_hasta:
+        from django.utils.dateparse import parse_date
+        d = parse_date(fecha_pago_hasta)
+        if d:
+            deudores = deudores.filter(ultimo_dia_pago__lte=d)
+    if rango_deuda == '0-1000':
+        deudores = deudores.filter(saldo_deuda__gte=0, saldo_deuda__lt=1000)
+    elif rango_deuda == '1000-5000':
+        deudores = deudores.filter(saldo_deuda__gte=1000, saldo_deuda__lt=5000)
+    elif rango_deuda == '5000-10000':
+        deudores = deudores.filter(saldo_deuda__gte=5000, saldo_deuda__lt=10000)
+    elif rango_deuda == '10000+':
+        deudores = deudores.filter(saldo_deuda__gte=10000)
 
     if orden == 'nombre': deudores = deudores.order_by('nombre_completo')
     elif orden == '-nombre': deudores = deudores.order_by('-nombre_completo')
     elif orden == 'agencia': deudores = deudores.order_by('agencia')
     elif orden == '-agencia': deudores = deudores.order_by('-agencia')
-    elif orden == 'mora': deudores = deudores.order_by('rango_dias_mora')
-    elif orden == '-mora': deudores = deudores.order_by('-rango_dias_mora')
+    elif orden == 'ultimo_dia_pago': deudores = deudores.order_by('ultimo_dia_pago')
+    elif orden == '-ultimo_dia_pago': deudores = deudores.order_by('-ultimo_dia_pago')
     elif orden == 'deuda_total': deudores = deudores.order_by('saldo_deuda')
     elif orden == '-deuda_total': deudores = deudores.order_by('-saldo_deuda')
     
@@ -366,20 +438,24 @@ def bandeja_gestor(request):
         'q': q,
         'cartera': cartera_filtro,
         'agencia': agencia_filtro,
-        'mora': mora_filtro,
+        'fecha_pago_desde': fecha_pago_desde,
+        'fecha_pago_hasta': fecha_pago_hasta,
+        'rango_deuda': rango_deuda,
         'page': page_number,
         'orden': orden
     }
     
     return render(request, 'cobranza/bandeja.html', {
-        'deudores': deudores_con_info,
+        'deudores': deudores_paginados,
         'lista_carteras': lista_carteras,
         'lista_agencias': lista_agencias,
-        'lista_moras': lista_moras,
+        'mapa_cartera_agencias': json.dumps(mapa_cartera_agencias),
         'q': q,
         'cartera_filtro': cartera_filtro,
         'agencia_filtro': agencia_filtro,
-        'mora_filtro': mora_filtro,
+        'fecha_pago_desde': fecha_pago_desde,
+        'fecha_pago_hasta': fecha_pago_hasta,
+        'rango_deuda': rango_deuda,
         'orden_actual': orden,
         'es_gerente': es_gerente_flag,
     })
@@ -790,7 +866,9 @@ def registrar_gestion(request, deudor_id):
     if filtros.get('q'): params.append(f"q={filtros['q']}")
     if filtros.get('cartera'): params.append(f"cartera={filtros['cartera']}")
     if filtros.get('agencia'): params.append(f"agencia={filtros['agencia']}")
-    if filtros.get('mora'): params.append(f"rango_dias_mora={filtros['mora']}")
+    if filtros.get('fecha_pago_desde'): params.append(f"fecha_pago_desde={filtros['fecha_pago_desde']}")
+    if filtros.get('fecha_pago_hasta'): params.append(f"fecha_pago_hasta={filtros['fecha_pago_hasta']}")
+    if filtros.get('rango_deuda'): params.append(f"rango_deuda={filtros['rango_deuda']}")
     if filtros.get('page'): params.append(f"page={filtros['page']}")
     if filtros.get('orden'): params.append(f"orden={filtros['orden']}")
     

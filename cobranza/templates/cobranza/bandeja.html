@@ -15,7 +15,7 @@
 
         <div style="min-width: 140px;">
             <label style="font-size: 11px; font-weight: bold; color: #555; display: block; margin-bottom: 3px;">💼 Cartera</label>
-            <select name="cartera" style="width: 100%; padding: 6px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px;">
+            <select id="sel-cartera" name="cartera" style="width: 100%; padding: 6px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px;">
                 <option value="">-- Todas --</option>
                 {% for c in lista_carteras %}
                     <option value="{{ c }}" {% if c == cartera_filtro %}selected{% endif %}>{{ c }}</option>
@@ -25,7 +25,7 @@
         
         <div style="min-width: 140px;">
             <label style="font-size: 11px; font-weight: bold; color: #555; display: block; margin-bottom: 3px;">🏢 Agencia</label>
-            <select name="agencia" style="width: 100%; padding: 6px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px;">
+            <select id="sel-agencia" name="agencia" style="width: 100%; padding: 6px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px;">
                 <option value="">-- Todas --</option>
                 {% for ag in lista_agencias %}
                     <option value="{{ ag }}" {% if ag == agencia_filtro %}selected{% endif %}>{{ ag }}</option>
@@ -33,13 +33,14 @@
             </select>
         </div>
         
-        <div style="min-width: 120px;">
-            <label style="font-size: 11px; font-weight: bold; color: #555; display: block; margin-bottom: 3px;">⏱️ Mora</label>
-            <select name="rango_dias_mora" style="width: 100%; padding: 6px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px;">
+        <div style="min-width: 140px;">
+            <label style="font-size: 11px; font-weight: bold; color: #555; display: block; margin-bottom: 3px;">💰 Rango Deuda</label>
+            <select name="rango_deuda" style="width: 100%; padding: 6px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px;">
                 <option value="">-- Todos --</option>
-                {% for mora in lista_moras %}
-                    <option value="{{ mora }}" {% if mora == mora_filtro %}selected{% endif %}>{{ mora }}</option>
-                {% endfor %}
+                <option value="0-1000" {% if rango_deuda == '0-1000' %}selected{% endif %}>Menos de S/ 1,000</option>
+                <option value="1000-5000" {% if rango_deuda == '1000-5000' %}selected{% endif %}>S/ 1,000 - S/ 5,000</option>
+                <option value="5000-10000" {% if rango_deuda == '5000-10000' %}selected{% endif %}>S/ 5,000 - S/ 10,000</option>
+                <option value="10000+" {% if rango_deuda == '10000+' %}selected{% endif %}>Más de S/ 10,000</option>
             </select>
         </div>
         
@@ -63,25 +64,25 @@
                     <th style="padding: 8px;">DNI</th>
                     
                     <th style="padding: 8px;">
-                        <a href="?q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&rango_dias_mora={{ mora_filtro }}&orden={% if orden_actual == 'nombre' %}-nombre{% else %}nombre{% endif %}" 
+                        <a href="?q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&fecha_pago_desde={{ fecha_pago_desde }}&fecha_pago_hasta={{ fecha_pago_hasta }}&orden={% if orden_actual == 'nombre' %}-nombre{% else %}nombre{% endif %}" 
                            style="color: white; text-decoration: none; display: flex; align-items: center; gap: 5px;">
                             Cliente <span style="font-size: 0.8em;">{% if orden_actual == 'nombre' %}⬆️{% elif orden_actual == '-nombre' %}⬇️{% else %}↕️{% endif %}</span>
                         </a>
                     </th>
                     <th style="padding: 8px;">
-                        <a href="?q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&rango_dias_mora={{ mora_filtro }}&orden={% if orden_actual == 'agencia' %}-agencia{% else %}agencia{% endif %}" 
+                        <a href="?q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&fecha_pago_desde={{ fecha_pago_desde }}&fecha_pago_hasta={{ fecha_pago_hasta }}&orden={% if orden_actual == 'agencia' %}-agencia{% else %}agencia{% endif %}" 
                            style="color: white; text-decoration: none; display: flex; align-items: center; gap: 5px;">
                             Agencia <span style="font-size: 0.8em;">{% if orden_actual == 'agencia' %}⬆️{% elif orden_actual == '-agencia' %}⬇️{% else %}↕️{% endif %}</span>
                         </a>
                     </th>
                     <th style="padding: 8px;">
-                        <a href="?q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&rango_dias_mora={{ mora_filtro }}&orden={% if orden_actual == 'mora' %}-mora{% else %}mora{% endif %}" 
+                        <a href="?q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&fecha_pago_desde={{ fecha_pago_desde }}&fecha_pago_hasta={{ fecha_pago_hasta }}&orden={% if orden_actual == 'ultimo_dia_pago' %}-ultimo_dia_pago{% else %}ultimo_dia_pago{% endif %}" 
                            style="color: white; text-decoration: none; display: flex; align-items: center; gap: 5px;">
-                            Mora <span style="font-size: 0.8em;">{% if orden_actual == 'mora' %}⬆️{% elif orden_actual == '-mora' %}⬇️{% else %}↕️{% endif %}</span>
+                            Últ. Pago <span style="font-size: 0.8em;">{% if orden_actual == 'ultimo_dia_pago' %}⬆️{% elif orden_actual == '-ultimo_dia_pago' %}⬇️{% else %}↕️{% endif %}</span>
                         </a>
                     </th>
                     <th style="padding: 8px;">
-                        <a href="?q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&rango_dias_mora={{ mora_filtro }}&orden={% if orden_actual == 'deuda_total' %}-deuda_total{% else %}deuda_total{% endif %}" 
+                        <a href="?q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&fecha_pago_desde={{ fecha_pago_desde }}&fecha_pago_hasta={{ fecha_pago_hasta }}&orden={% if orden_actual == 'deuda_total' %}-deuda_total{% else %}deuda_total{% endif %}" 
                            style="color: white; text-decoration: none; display: flex; align-items: center; gap: 5px;">
                             Deuda <span style="font-size: 0.8em;">{% if orden_actual == 'deuda_total' %}⬆️{% elif orden_actual == '-deuda_total' %}⬇️{% else %}↕️{% endif %}</span>
                         </a>
@@ -107,7 +108,7 @@
                     <td style="padding: 8px;">{{ d.documento }}</td>
                     <td style="padding: 8px; font-weight: bold; color: #003366;">{{ d.nombre_completo }}</td>
                     <td style="padding: 8px; color: #666;">{{ d.agencia }}</td>
-                    <td style="padding: 8px; color: #d9534f;">{{ d.rango_dias_mora|default:"-" }}</td>
+                    <td style="padding: 8px; color: #17a2b8; font-weight: bold;">{{ d.ultimo_dia_pago|date:"d/m/Y"|default:"—" }}</td>
                     <td style="padding: 8px; font-weight: bold;">S/ {{ d.saldo_deuda|floatformat:2|intcomma }}</td>
                     <td style="padding: 8px; text-align: center;">
                         <a href="{% url 'registrar_gestion' d.id %}" style="background: #28a745; color: white; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 11px;">GESTIONAR</a>
@@ -127,7 +128,7 @@
     {% if deudores.has_other_pages %}
     <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee;">
         {% if deudores.has_previous %}
-            <a href="?page={{ deudores.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if cartera_filtro %}&cartera={{ cartera_filtro }}{% endif %}{% if agencia_filtro %}&agencia={{ agencia_filtro }}{% endif %}{% if mora_filtro %}&rango_dias_mora={{ mora_filtro }}{% endif %}{% if orden_actual %}&orden={{ orden_actual }}{% endif %}" 
+            <a href="?page={{ deudores.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if cartera_filtro %}&cartera={{ cartera_filtro }}{% endif %}{% if agencia_filtro %}&agencia={{ agencia_filtro }}{% endif %}{% if fecha_pago_desde %}&fecha_pago_desde={{ fecha_pago_desde }}{% endif %}{% if fecha_pago_hasta %}&fecha_pago_hasta={{ fecha_pago_hasta }}{% endif %}{% if orden_actual %}&orden={{ orden_actual }}{% endif %}" 
                style="background: #003366; color: white; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 11px;">◀ Anterior</a>
         {% else %}
             <span style="background: #ccc; color: #666; padding: 4px 10px; border-radius: 4px; font-size: 11px;">◀ Anterior</span>
@@ -138,7 +139,7 @@
         </span>
 
         {% if deudores.has_next %}
-            <a href="?page={{ deudores.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if cartera_filtro %}&cartera={{ cartera_filtro }}{% endif %}{% if agencia_filtro %}&agencia={{ agencia_filtro }}{% endif %}{% if mora_filtro %}&rango_dias_mora={{ mora_filtro }}{% endif %}{% if orden_actual %}&orden={{ orden_actual }}{% endif %}" 
+            <a href="?page={{ deudores.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if cartera_filtro %}&cartera={{ cartera_filtro }}{% endif %}{% if agencia_filtro %}&agencia={{ agencia_filtro }}{% endif %}{% if fecha_pago_desde %}&fecha_pago_desde={{ fecha_pago_desde }}{% endif %}{% if fecha_pago_hasta %}&fecha_pago_hasta={{ fecha_pago_hasta }}{% endif %}{% if orden_actual %}&orden={{ orden_actual }}{% endif %}" 
                style="background: #003366; color: white; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 11px;">Siguiente ▶</a>
         {% else %}
             <span style="background: #ccc; color: #666; padding: 4px 10px; border-radius: 4px; font-size: 11px;">Siguiente ▶</span>
@@ -149,5 +150,56 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+(function() {
+    var mapa = {{ mapa_cartera_agencias|safe }};
+    var selCartera = document.getElementById('sel-cartera');
+    var selAgencia = document.getElementById('sel-agencia');
+    var agenciaActual = "{{ agencia_filtro }}";
+
+    function actualizarAgencias() {
+        var cartera = selCartera.value;
+        var agencias = cartera && mapa[cartera] ? mapa[cartera] : null;
+
+        // Guardar selección actual
+        var valorAnterior = selAgencia.value;
+
+        // Limpiar opciones
+        selAgencia.innerHTML = '<option value="">-- Todas --</option>';
+
+        var lista = agencias || Object.values(mapa).reduce(function(acc, arr) {
+            arr.forEach(function(a) { if (acc.indexOf(a) === -1) acc.push(a); });
+            return acc;
+        }, []).sort();
+
+        lista.forEach(function(ag) {
+            var opt = document.createElement('option');
+            opt.value = ag;
+            opt.textContent = ag;
+            if (ag === valorAnterior) opt.selected = true;
+            selAgencia.appendChild(opt);
+        });
+    }
+
+    selCartera.addEventListener('change', function() {
+        actualizarAgencias();
+    });
+
+    // Al cargar, si hay cartera seleccionada, filtrar agencias y remarcar la agencia actual
+    if (selCartera.value) {
+        var cartera = selCartera.value;
+        var agencias = mapa[cartera] || [];
+        selAgencia.innerHTML = '<option value="">-- Todas --</option>';
+        agencias.forEach(function(ag) {
+            var opt = document.createElement('option');
+            opt.value = ag;
+            opt.textContent = ag;
+            if (ag === agenciaActual) opt.selected = true;
+            selAgencia.appendChild(opt);
+        });
+    }
+})();
+</script>
 
 {% endblock %}

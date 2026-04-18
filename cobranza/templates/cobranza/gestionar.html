@@ -78,8 +78,7 @@
                 <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>DNI:</strong> {{ deudor.documento }}</p>
                 <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Cuenta:</strong> {{ deudor.cuenta }}</p>
                 <p style="margin: 5px 0; font-size: 14px; color: #000; font-weight: 900;">Capital Base: S/ {{ deudor.monto_capital|floatformat:2|intcomma }}</p>
-                <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Mora:</strong> {{ deudor.rango_dias_mora }} días</p>
-                <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Última fecha de pago:</strong> {{ deudor.ultima_fecha_pago|default:"Sin registro" }}</p>
+                <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Últ. Día de Pago:</strong> {{ deudor.ultimo_dia_pago|date:"d/m/Y"|default:"Sin registro" }}</p>
             </div>
 
             <h4 style="color: #666; font-size: 11px; text-transform: uppercase; margin-bottom: 5px;">📍 Dirección del Titular</h4>

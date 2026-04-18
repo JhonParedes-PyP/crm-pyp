@@ -28,4 +28,8 @@ urlpatterns = [
     
     # NUEVA RUTA: Exportar seleccionados a Asterisk
     path('exportar-seleccionados/', views.exportar_seleccionados_asterisk, name='exportar_seleccionados'),
+
+    # ZADARMA: Widget WebRTC flotante y callback
+    path('api/webrtc-key/', views.api_zadarma_webrtc_key, name='api_zadarma_webrtc_key'),
+    path('api/callback/<str:numero_cliente>/', views.iniciar_callback, name='iniciar_callback'),
 ]
