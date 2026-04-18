@@ -238,8 +238,25 @@ function realizarLlamada(numero, btnElement) {
     if (!limpio.startsWith('+')) {
         limpio = '+51' + limpio;
     }
-    // El enlace tel: es interceptado por la extensión Zadarma instalada en Chrome
-    window.location.href = 'tel:' + limpio;
+
+    // Usar el widget WebRTC de Zadarma que ya está cargado en la página
+    if (window.zdrmWebPhone && typeof window.zdrmWebPhone.call === 'function') {
+        btnElement.innerText = "⏳ Conectando...";
+        btnElement.style.background = "#6c757d";
+        btnElement.disabled = true;
+
+        window.zdrmWebPhone.call(limpio);
+
+        btnElement.innerText = "📞 Marcando...";
+        btnElement.style.background = "#28a745";
+        setTimeout(function() {
+            btnElement.innerText = "📞 Llamar";
+            btnElement.style.background = "#007bff";
+            btnElement.disabled = false;
+        }, 5000);
+    } else {
+        alert("El teléfono no está listo. Abre primero el widget de llamadas (ícono verde en la esquina inferior derecha) y espera que se conecte.");
+    }
 }
 
 function manejarMenuDinamico() {
