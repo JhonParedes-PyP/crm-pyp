@@ -232,33 +232,14 @@
 
 <script>
 function realizarLlamada(numero, btnElement) {
-    // 1. Guardamos el texto original y cambiamos el botón temporalmente
-    let textoOriginal = btnElement.innerText;
-    btnElement.innerText = "⏳ Conectando...";
-    btnElement.style.background = "#6c757d"; // Lo ponemos gris
-    btnElement.disabled = true; // Lo bloqueamos para no hacer doble clic
-
-    // 2. Mandamos la orden silenciosa a tu Django (urls.py -> views.py)
-    fetch(`/iniciar-llamada/${numero}/`)
-        .then(response => response.json())
-        .then(data => {
-            // 3. La orden llegó a Zadarma. ¡Tu telefonito verde va a sonar!
-            btnElement.innerText = "📞 ¡Marcando!";
-            btnElement.style.background = "#28a745"; // Lo ponemos verde de éxito
-
-            // 4. Regresamos el botón a su estado normal después de 4 segundos
-            setTimeout(() => {
-                btnElement.innerText = textoOriginal;
-                btnElement.style.background = "#007bff"; // Vuelve a azul
-                btnElement.disabled = false;
-            }, 4000);
-        })
-        .catch(error => {
-            alert("Hubo un error de conexión con el servidor.");
-            btnElement.innerText = textoOriginal;
-            btnElement.style.background = "#007bff";
-            btnElement.disabled = false;
-        });
+    // Limpiar el número: quitar espacios, guiones, paréntesis
+    var limpio = numero.toString().replace(/[\s\-\(\)]/g, '');
+    // Añadir código de país Perú (+51) si el número no lo trae
+    if (!limpio.startsWith('+')) {
+        limpio = '+51' + limpio;
+    }
+    // El enlace tel: es interceptado por la extensión Zadarma instalada en Chrome
+    window.location.href = 'tel:' + limpio;
 }
 
 function manejarMenuDinamico() {
@@ -312,34 +293,6 @@ function manejarMenuDinamico() {
     }
 }
 
-function realizarLlamada(numero, btnElement) {
-    // 1. Guardamos el texto original y cambiamos el botón temporalmente
-    let textoOriginal = btnElement.innerText;
-    btnElement.innerText = "⏳ Conectando...";
-    btnElement.style.background = "#6c757d"; // Lo ponemos gris
-    btnElement.disabled = true; // Lo bloqueamos para no hacer doble clic
-
-    // 2. Mandamos la orden silenciosa a tu Django (urls.py -> views.py)
-    fetch(`/iniciar-llamada/${numero}/`)
-        .then(response => response.json())
-        .then(data => {
-            // 3. La orden llegó a Zadarma. ¡Tu telefonito verde va a sonar!
-            btnElement.innerText = "📞 ¡Marcando!";
-            btnElement.style.background = "#28a745"; // Lo ponemos verde de éxito
-
-            // 4. Regresamos el botón a su estado normal después de 4 segundos
-            setTimeout(() => {
-                btnElement.innerText = textoOriginal;
-                btnElement.style.background = "#007bff"; // Vuelve a azul
-                btnElement.disabled = false;
-            }, 4000);
-        })
-        .catch(error => {
-            alert("Hubo un error de conexión con el servidor.");
-            btnElement.innerText = textoOriginal;
-            btnElement.style.background = "#007bff";
-            btnElement.disabled = false;
-        });
-}
+// (función definida arriba)
 </script>
 {% endblock %}
