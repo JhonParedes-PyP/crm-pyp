@@ -240,31 +240,18 @@ function realizarLlamada(numero, btnElement) {
     btnElement.innerText = "⏳ Conectando...";
     btnElement.disabled = true;
 
-    // Intentar abrir el widget para que inicialice zdrmWPhI
-    var iframes = document.querySelectorAll('iframe[id*="zdrm"], iframe[src*="zadarma"]');
-    iframes.forEach(function(f) { try { f.style.display = 'block'; } catch(e) {} });
-
     var intentos = 0;
-    var maxIntentos = 25; // 5 segundos
+    var maxIntentos = 40; // 8 segundos
 
     var poll = setInterval(function() {
         intentos++;
 
-        if (window.zdrmWPhI) {
+        // API oficial de Zadarma v9: window.zdrmWebPhone.call(numero)
+        var api = window.zdrmWebPhone || window.zdrmWPhI;
+        if (api && typeof api.call === 'function') {
             clearInterval(poll);
             try {
-                // Intentar setNum + callNum (API v9)
-                if (typeof window.zdrmWPhI.setNum === 'function') {
-                    window.zdrmWPhI.setNum(limpio);
-                    window.zdrmWPhI.callNum();
-                } else {
-                    var input = document.getElementById('zdrm-webphone-phonenumber-input');
-                    if (input) {
-                        input.value = limpio;
-                        input.dispatchEvent(new Event('input', {bubbles: true}));
-                    }
-                    window.zdrmWPhI.callNum(limpio);
-                }
+                api.call(limpio);
                 btnElement.innerText = "📞 Marcando...";
                 btnElement.style.background = "#28a745";
                 setTimeout(function() {
@@ -281,13 +268,18 @@ function realizarLlamada(numero, btnElement) {
             return;
         }
 
+        // En el intento 5 (1 seg), intentar abrir el widget si existe .zdrm-phone
+        if (intentos === 5) {
+            var btn = document.querySelector('.zdrm-phone');
+            if (btn) btn.click();
+        }
+
         if (intentos >= maxIntentos) {
             clearInterval(poll);
             btnElement.innerText = "📞 Llamar";
             btnElement.style.background = "#007bff";
             btnElement.disabled = false;
-            // Fallback: copiar número y avisar
-            var msg = 'El widget no está listo aún.\nNúmero: ' + limpio + '\n\nHaz clic en el teléfono verde (↘) para abrirlo y vuelve a intentar.';
+            var msg = 'El softphone no está listo.\nNúmero: ' + limpio + '\n\nAbre el teléfono verde (↘) y espera que se registre, luego vuelve a intentar.';
             if (navigator.clipboard) {
                 navigator.clipboard.writeText(limpio).then(function() { alert(msg + '\n\n(Número copiado al portapapeles)'); });
             } else {
