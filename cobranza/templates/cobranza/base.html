@@ -134,14 +134,21 @@
 <script src="https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-fn.js?sub_v=1"></script>
 
 <script>
-    zadarmaWidgetFn(
-        '789c3d38056091726eb598f92de3e292',
-        '398200-100',
-        'rounded',
-        'es',
-        true,
-        {right: '20px', bottom: '20px'}
-    );
+    // Esperar a que zdrmWebrtcPhoneInterface esté definido antes de inicializar
+    (function initZadarma() {
+        if (typeof zdrmWebrtcPhoneInterface !== 'undefined') {
+            zadarmaWidgetFn(
+                '789c3d38056091726eb598f92de3e292',
+                '398200-100',
+                'rounded',
+                'es',
+                true,
+                {right: '20px', bottom: '20px'}
+            );
+        } else {
+            setTimeout(initZadarma, 100);
+        }
+    })();
 </script>
 </body>
 </html>
