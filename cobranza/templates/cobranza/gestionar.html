@@ -231,102 +231,93 @@
 </div>
 
 <script>
-/* ── LLAMADA DESDE PLATAFORMA ─────────────────────────────────────────────────
-   1. Intenta WebRTC (widget verde) durante ~3 s
-   2. Si no está listo → usa Callback API: Zadarma llama al agente primero,
-      luego conecta al cliente automáticamente
+/* ── LLAMADA SIP DIRECTA vía JsSIP (WebRTC) ───────────────────────────────────
+   - Se conecta a pbx.zadarma.com usando las credenciales SIP del agente
+   - Al presionar "Llamar" marca directamente sin salir del CRM
+   - Al presionar "🔴 Colgar" corta la llamada activa
    ─────────────────────────────────────────────────────────────────────────── */
 function realizarLlamada(numero, btnElement) {
-    var limpio = numero.toString().replace(/[\s\-\(\)]/g, '');
-    if (!limpio.startsWith('+')) {
-        limpio = '+51' + limpio;
+
+    /* Si hay llamada activa → colgar */
+    if (window.sipSession && !window.sipSession.isEnded()) {
+        window.sipSession.terminate();
+        return;
     }
 
-    btnElement.innerText = "⏳ Conectando...";
-    btnElement.disabled = true;
+    if (!window.sipUA) {
+        alert('El teléfono SIP no está disponible. Recarga la página.');
+        return;
+    }
+    if (!window.sipRegistered) {
+        alert('El teléfono SIP aún está conectando, espera unos segundos e intenta de nuevo.');
+        return;
+    }
 
-    var intentos = 0;
-    var maxIntentos = 15; // ~3 segundos para esperar WebRTC
+    /* Normalizar número → solo dígitos */
+    var limpio = numero.toString().replace(/[\s\-\(\)\+]/g, '');
+    /* Quitar código de país 51 si ya viene incluido */
+    if (limpio.startsWith('51') && limpio.length >= 11) {
+        limpio = limpio.substring(2);
+    }
+    /* Formato internacional para marcar por la línea externa del PBX */
+    var destino = '0051' + limpio;
 
-    var poll = setInterval(function() {
-        intentos++;
+    btnElement.innerText = '⏳ Marcando...';
+    btnElement.disabled  = true;
+    btnElement.style.background = '#fd7e14';
 
-        // Intentar WebRTC (widget Zadarma v9)
-        var api = window.zdrmWebPhone || window.zdrmWPhI;
-        if (api && typeof api.call === 'function') {
-            clearInterval(poll);
-            try {
-                api.call(limpio);
-                btnElement.innerText = "📞 Marcando...";
-                btnElement.style.background = "#28a745";
-                setTimeout(function() {
-                    btnElement.innerText = "📞 Llamar";
-                    btnElement.style.background = "#007bff";
-                    btnElement.disabled = false;
-                }, 8000);
-            } catch(e) {
-                console.warn('[WebRTC] Error, cambiando a Callback:', e);
-                clearInterval(poll);
-                usarCallback(limpio, btnElement);
+    var btn = btnElement; /* captura para los callbacks */
+
+    var options = {
+        mediaConstraints : { audio: true, video: false },
+        rtcOfferConstraints: { offerToReceiveAudio: 1, offerToReceiveVideo: 0 },
+        eventHandlers: {
+            'progress': function() {
+                btn.innerText = '🔔 Timbrado...';
+            },
+            'confirmed': function() {
+                btn.innerText  = '🔴 Colgar';
+                btn.style.background = '#dc3545';
+                btn.disabled   = false;
+                /* Conectar audio remoto */
+                var audioEl = document.getElementById('sip-audio');
+                if (audioEl && window.sipSession && window.sipSession.connection) {
+                    window.sipSession.connection.addEventListener('track', function(e) {
+                        if (e.streams && e.streams[0]) { audioEl.srcObject = e.streams[0]; }
+                    });
+                }
+            },
+            'failed': function(e) {
+                var causa = (e.data && e.data.cause) ? e.data.cause : 'Error desconocido';
+                alert('La llamada falló: ' + causa);
+                _resetBtn(btn);
+                window.sipSession = null;
+            },
+            'ended': function() {
+                _resetBtn(btn);
+                window.sipSession = null;
             }
-            return;
         }
+    };
 
-        // Abrir widget al segundo si existe
-        if (intentos === 5) {
-            var btn = document.querySelector('.zdrm-phone');
-            if (btn) btn.click();
-        }
-
-        // WebRTC no disponible → usar Callback API
-        if (intentos >= maxIntentos) {
-            clearInterval(poll);
-            usarCallback(limpio, btnElement);
-        }
-    }, 200);
+    try {
+        window.sipSession = window.sipUA.call(
+            'sip:' + destino + '@' + (window.SIP_DOMAIN || 'pbx.zadarma.com'),
+            options
+        );
+    } catch(err) {
+        alert('No se pudo iniciar la llamada: ' + err.message);
+        _resetBtn(btn);
+        window.sipSession = null;
+    }
 }
 
-function usarCallback(numeroConPais, btnElement) {
-    // Extraer solo los 9 dígitos del número local peruano
-    var num = numeroConPais.replace('+51', '').replace('+', '');
-
-    btnElement.innerText = "📲 Llamando...";
-    btnElement.style.background = "#fd7e14";
-
-    fetch('/iniciar-llamada/' + num + '/', {
-        method: 'GET',
-        credentials: 'same-origin'
-    })
-    .then(function(r) {
-        if (!r.ok && r.status !== 200) {
-            throw new Error('HTTP ' + r.status);
-        }
-        return r.json();
-    })
-    .then(function(data) {
-        if (data.status === 'success') {
-            btnElement.innerText = "✅ Conectando...";
-            btnElement.style.background = "#28a745";
-            alert('✅ Zadarma está conectando la llamada.\n\nEspera que tu teléfono suene primero, luego el sistema marcará al cliente.');
-        } else {
-            btnElement.innerText = "❌ Error";
-            btnElement.style.background = "#dc3545";
-            alert('No se pudo iniciar la llamada:\n' + (data.message || JSON.stringify(data)));
-        }
-    })
-    .catch(function(e) {
-        btnElement.innerText = "❌ Error";
-        btnElement.style.background = "#dc3545";
-        alert('Error de conexión al iniciar llamada: ' + e.message + '\n\nVerifica que tu sesión esté activa.');
-    })
-    .finally(function() {
-        setTimeout(function() {
-            btnElement.innerText = "📞 Llamar";
-            btnElement.style.background = "#007bff";
-            btnElement.disabled = false;
-        }, 6000);
-    });
+function _resetBtn(btn) {
+    btn.innerText  = '📞 Llamar';
+    btn.style.background = '#007bff';
+    btn.disabled   = false;
 }
+
 
 function manejarMenuDinamico() {
     var principal = document.getElementById("resultado_principal").value;
