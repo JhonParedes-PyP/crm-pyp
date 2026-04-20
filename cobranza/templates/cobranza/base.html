@@ -133,54 +133,116 @@
 <!-- Teléfono SIP vía JsSIP (WebRTC directo sin depender de la REST API) -->
 <audio id="sip-audio" autoplay style="display:none;"></audio>
 
-<div id="sip-status" style="position:fixed; bottom:14px; right:14px; padding:6px 14px; border-radius:20px; font-size:12px; font-weight:bold; z-index:9999; background:#6c757d; color:white; box-shadow:0 2px 6px rgba(0,0,0,0.3); transition: background 0.4s;">
-    📞 SIP: Conectando...
+<div id="sip-status" style="position:fixed; bottom:14px; right:14px; padding:6px 14px; border-radius:20px; font-size:12px; font-weight:bold; z-index:9999; background:#6c757d; color:white; box-shadow:0 2px 6px rgba(0,0,0,0.3); transition: background 0.4s; cursor:pointer;" title="Haz clic para reconectar">
+    📞 SIP: Cargando...
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/jssip@3.10.0/dist/jssip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jssip@3.10.0/dist/jssip.min.js"
+        onerror="document.getElementById('sip-status').innerText='📞 SIP: Sin librería'; document.getElementById('sip-status').style.background='#dc3545';"></script>
 <script>
 (function() {
+    var statusEl = document.getElementById('sip-status');
+
     if (typeof JsSIP === 'undefined') {
-        console.error('[SIP] JsSIP no cargó');
+        statusEl.innerText = '📞 SIP: Error carga JS';
+        statusEl.style.background = '#dc3545';
+        console.error('[SIP] JsSIP no cargó desde CDN');
         return;
     }
 
-    JsSIP.debug.disable('JsSIP:*');
+    /* Activar logs en consola para diagnóstico */
+    JsSIP.debug.enable('JsSIP:*');
 
-    var WS_URL   = 'wss://pbx.zadarma.com:4443';
-    var SIP_USER = '398200-100';
-    var SIP_PASS = 'EaU2huAPu4';
+    var SIP_USER   = '398200-100';
+    var SIP_PASS   = 'EaU2huAPu4';
     var SIP_DOMAIN = 'pbx.zadarma.com';
 
-    var socket = new JsSIP.WebSocketInterface(WS_URL);
-    var ua = new JsSIP.UA({
-        sockets          : [socket],
-        uri              : 'sip:' + SIP_USER + '@' + SIP_DOMAIN,
-        password         : SIP_PASS,
-        register         : true,
-        session_timers   : false,
-        user_agent       : 'CRM-PyP/1.0'
-    });
+    /* Zadarma PBX WebSocket — probamos primero :4443, luego :443 */
+    var WS_URLS = [
+        'wss://pbx.zadarma.com:4443',
+        'wss://pbx.zadarma.com:443',
+        'wss://sip.zadarma.com:4443'
+    ];
 
-    var statusEl = document.getElementById('sip-status');
+    function crearUA(wsUrl) {
+        console.log('[SIP] Intentando conexión a:', wsUrl);
+        statusEl.innerText = '📞 SIP: Conectando...';
+        statusEl.style.background = '#6c757d';
 
-    ua.on('connected',    function() { statusEl.innerText = '📞 SIP: Conectado'; statusEl.style.background = '#17a2b8'; });
-    ua.on('disconnected', function() { statusEl.innerText = '📞 SIP: Sin conexión'; statusEl.style.background = '#6c757d'; window.sipRegistered = false; });
-    ua.on('registered',   function() { statusEl.innerText = '📞 SIP: Listo ✓'; statusEl.style.background = '#28a745'; window.sipRegistered = true; });
-    ua.on('unregistered', function() { statusEl.innerText = '📞 SIP: Desregistrado'; statusEl.style.background = '#6c757d'; window.sipRegistered = false; });
-    ua.on('registrationFailed', function(e) {
-        statusEl.innerText = '📞 SIP: Error registro';
-        statusEl.style.background = '#dc3545';
+        var socket = new JsSIP.WebSocketInterface(wsUrl);
+        var ua;
+        try {
+            ua = new JsSIP.UA({
+                sockets        : [socket],
+                uri            : 'sip:' + SIP_USER + '@' + SIP_DOMAIN,
+                password       : SIP_PASS,
+                register       : true,
+                session_timers : false,
+                connection_recovery_min_interval : 4,
+                connection_recovery_max_interval : 32
+            });
+        } catch(err) {
+            console.error('[SIP] Error creando UA:', err);
+            statusEl.innerText = '📞 SIP: Error config';
+            statusEl.style.background = '#dc3545';
+            return null;
+        }
+
+        /* ── Eventos de conexión ── */
+        ua.on('connected', function() {
+            console.log('[SIP] WebSocket conectado a', wsUrl);
+            statusEl.innerText = '📞 SIP: Registrando...';
+            statusEl.style.background = '#17a2b8';
+        });
+
+        ua.on('disconnected', function(e) {
+            console.warn('[SIP] WebSocket desconectado:', e.cause || e);
+            statusEl.innerText = '📞 SIP: Sin conexión';
+            statusEl.style.background = '#6c757d';
+            window.sipRegistered = false;
+        });
+
+        ua.on('registered', function() {
+            console.log('[SIP] Registrado correctamente como', SIP_USER);
+            statusEl.innerText = '📞 SIP: Listo ✓';
+            statusEl.style.background = '#28a745';
+            window.sipRegistered = true;
+        });
+
+        ua.on('unregistered', function() {
+            console.warn('[SIP] Desregistrado');
+            statusEl.innerText = '📞 SIP: Desregistrado';
+            statusEl.style.background = '#fd7e14';
+            window.sipRegistered = false;
+        });
+
+        ua.on('registrationFailed', function(e) {
+            console.error('[SIP] Registro fallido — causa:', e.cause, '| response:', e.response);
+            statusEl.innerText = '📞 SIP: ❌ ' + (e.cause || 'Error');
+            statusEl.style.background = '#dc3545';
+            window.sipRegistered = false;
+        });
+
+        /* Asignar ANTES de start() para que esté disponible de inmediato */
+        window.sipUA         = ua;
+        window.sipSession    = null;
         window.sipRegistered = false;
-        console.error('[SIP] Registro fallido:', e.cause);
+        window.SIP_DOMAIN    = SIP_DOMAIN;
+
+        ua.start();
+        return ua;
+    }
+
+    /* Intentar primera URL */
+    crearUA(WS_URLS[0]);
+
+    /* Reconectar haciendo clic en el indicador */
+    statusEl.addEventListener('click', function() {
+        if (window.sipUA) { try { window.sipUA.stop(); } catch(e) {} }
+        window.sipUA = null;
+        window.sipRegistered = false;
+        crearUA(WS_URLS[0]);
     });
-
-    ua.start();
-
-    window.sipUA         = ua;
-    window.sipSession    = null;
-    window.sipRegistered = false;
-    window.SIP_DOMAIN    = SIP_DOMAIN;
 })();
 </script>
 </body>
