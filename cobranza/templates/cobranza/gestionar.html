@@ -231,6 +231,11 @@
 </div>
 
 <script>
+/* ── LLAMADA DESDE PLATAFORMA ─────────────────────────────────────────────────
+   1. Intenta WebRTC (widget verde) durante ~3 s
+   2. Si no está listo → usa Callback API: Zadarma llama al agente primero,
+      luego conecta al cliente automáticamente
+   ─────────────────────────────────────────────────────────────────────────── */
 function realizarLlamada(numero, btnElement) {
     var limpio = numero.toString().replace(/[\s\-\(\)]/g, '');
     if (!limpio.startsWith('+')) {
@@ -241,12 +246,12 @@ function realizarLlamada(numero, btnElement) {
     btnElement.disabled = true;
 
     var intentos = 0;
-    var maxIntentos = 40; // 8 segundos
+    var maxIntentos = 15; // ~3 segundos para esperar WebRTC
 
     var poll = setInterval(function() {
         intentos++;
 
-        // API oficial de Zadarma v9: window.zdrmWebPhone.call(numero)
+        // Intentar WebRTC (widget Zadarma v9)
         var api = window.zdrmWebPhone || window.zdrmWPhI;
         if (api && typeof api.call === 'function') {
             clearInterval(poll);
@@ -260,33 +265,67 @@ function realizarLlamada(numero, btnElement) {
                     btnElement.disabled = false;
                 }, 8000);
             } catch(e) {
-                console.error('[Zadarma] Error al llamar:', e);
-                btnElement.innerText = "📞 Llamar";
-                btnElement.style.background = "#007bff";
-                btnElement.disabled = false;
+                console.warn('[WebRTC] Error, cambiando a Callback:', e);
+                clearInterval(poll);
+                usarCallback(limpio, btnElement);
             }
             return;
         }
 
-        // En el intento 5 (1 seg), intentar abrir el widget si existe .zdrm-phone
+        // Abrir widget al segundo si existe
         if (intentos === 5) {
             var btn = document.querySelector('.zdrm-phone');
             if (btn) btn.click();
         }
 
+        // WebRTC no disponible → usar Callback API
         if (intentos >= maxIntentos) {
             clearInterval(poll);
+            usarCallback(limpio, btnElement);
+        }
+    }, 200);
+}
+
+function usarCallback(numeroConPais, btnElement) {
+    // Extraer solo los 9 dígitos del número local peruano
+    var num = numeroConPais.replace('+51', '').replace('+', '');
+
+    btnElement.innerText = "📲 Llamando...";
+    btnElement.style.background = "#fd7e14";
+
+    fetch('/iniciar-llamada/' + num + '/', {
+        method: 'GET',
+        credentials: 'same-origin'
+    })
+    .then(function(r) {
+        if (!r.ok && r.status !== 200) {
+            throw new Error('HTTP ' + r.status);
+        }
+        return r.json();
+    })
+    .then(function(data) {
+        if (data.status === 'success') {
+            btnElement.innerText = "✅ Conectando...";
+            btnElement.style.background = "#28a745";
+            alert('✅ Zadarma está conectando la llamada.\n\nEspera que tu teléfono suene primero, luego el sistema marcará al cliente.');
+        } else {
+            btnElement.innerText = "❌ Error";
+            btnElement.style.background = "#dc3545";
+            alert('No se pudo iniciar la llamada:\n' + (data.message || JSON.stringify(data)));
+        }
+    })
+    .catch(function(e) {
+        btnElement.innerText = "❌ Error";
+        btnElement.style.background = "#dc3545";
+        alert('Error de conexión al iniciar llamada: ' + e.message + '\n\nVerifica que tu sesión esté activa.');
+    })
+    .finally(function() {
+        setTimeout(function() {
             btnElement.innerText = "📞 Llamar";
             btnElement.style.background = "#007bff";
             btnElement.disabled = false;
-            var msg = 'El softphone no está listo.\nNúmero: ' + limpio + '\n\nAbre el teléfono verde (↘) y espera que se registre, luego vuelve a intentar.';
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(limpio).then(function() { alert(msg + '\n\n(Número copiado al portapapeles)'); });
-            } else {
-                alert(msg);
-            }
-        }
-    }, 200);
+        }, 6000);
+    });
 }
 
 function manejarMenuDinamico() {

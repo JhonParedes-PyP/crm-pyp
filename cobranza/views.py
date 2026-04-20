@@ -22,6 +22,7 @@ from .models import Deudor, Gestion, TelefonoExtra, AsignacionCartera, CampanaAs
 
 from django.db import models
 from django.db.models import Q, Sum, Count, Max, OuterRef, Subquery
+from django.db.models.expressions import RawSQL
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -469,17 +470,16 @@ def datos_cliente_kubo(request, telefono, campana, cod_cliente, cod_telefono):
     
     Ejemplo: https://micrm.com/datos-cliente/967050203/85200/U7Hlpt2u/0w=/N6mIwgDkYQa=/
     """
-    # Buscar cliente por teléfono
-    try:
-        deudor = Deudor.objects.get(telefono_principal=telefono)
-    except Deudor.DoesNotExist:
+    # Buscar cliente por teléfono (usando filter para evitar MultipleObjectsReturned)
+    deudor = Deudor.objects.filter(telefono_principal=telefono).first()
+    if not deudor:
         # Buscar en teléfonos adicionales
-        try:
-            telefono_extra = TelefonoExtra.objects.get(numero=telefono)
+        telefono_extra = TelefonoExtra.objects.filter(numero=telefono).first()
+        if telefono_extra:
             deudor = telefono_extra.deudor
-        except TelefonoExtra.DoesNotExist:
+        else:
             return HttpResponse("Cliente no encontrado", status=404)
-    
+
     # Redirigir a la ficha de gestión del cliente
     return redirect('registrar_gestion', deudor_id=deudor.id)
 
@@ -510,8 +510,14 @@ def generar_campana_asterisk(request):
         
         if mora_desde and mora_desde.isdigit():
             mora_num = int(mora_desde)
-            deudores = deudores.filter(rango_dias_mora__gte=mora_num)
-        
+            # rango_dias_mora es CharField: se castea a entero en PostgreSQL
+            deudores = deudores.annotate(
+                mora_int=RawSQL(
+                    "CASE WHEN rango_dias_mora ~ '[0-9]+' THEN CAST(SUBSTRING(rango_dias_mora FROM '[0-9]+') AS INTEGER) ELSE NULL END",
+                    []
+                )
+            ).filter(mora_int__gte=mora_num)
+
         if monto_minimo and monto_minimo.replace('.', '').isdigit():
             deudores = deudores.filter(saldo_deuda__gte=Decimal(monto_minimo))
         
@@ -583,13 +589,15 @@ def exportar_todos_asterisk(request):
 def exportar_morosos_30(request):
     if not es_gerente(request.user):
         return HttpResponse("Acceso Denegado.", status=403)
-    
+
     CAMPANA_ID = '85200'
-    
-    deudores = Deudor.objects.filter(
-        saldo_deuda__gt=0,
-        rango_dias_mora__gte=30
-    ).exclude(telefono_principal='').exclude(telefono_principal='Sin número')
+
+    deudores = Deudor.objects.filter(saldo_deuda__gt=0).annotate(
+        mora_int=RawSQL(
+            "CASE WHEN rango_dias_mora ~ '[0-9]+' THEN CAST(SUBSTRING(rango_dias_mora FROM '[0-9]+') AS INTEGER) ELSE NULL END",
+            []
+        )
+    ).filter(mora_int__gte=30).exclude(telefono_principal='').exclude(telefono_principal='Sin número')
     
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="morosos_30_dias.csv"'
@@ -610,13 +618,15 @@ def exportar_morosos_30(request):
 def exportar_morosos_90(request):
     if not es_gerente(request.user):
         return HttpResponse("Acceso Denegado.", status=403)
-    
+
     CAMPANA_ID = '85200'
-    
-    deudores = Deudor.objects.filter(
-        saldo_deuda__gt=0,
-        rango_dias_mora__gte=90
-    ).exclude(telefono_principal='').exclude(telefono_principal='Sin número')
+
+    deudores = Deudor.objects.filter(saldo_deuda__gt=0).annotate(
+        mora_int=RawSQL(
+            "CASE WHEN rango_dias_mora ~ '[0-9]+' THEN CAST(SUBSTRING(rango_dias_mora FROM '[0-9]+') AS INTEGER) ELSE NULL END",
+            []
+        )
+    ).filter(mora_int__gte=90).exclude(telefono_principal='').exclude(telefono_principal='Sin número')
     
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="morosos_90_dias.csv"'
@@ -1092,6 +1102,8 @@ def buscar_por_dni(request, dni):
 # --- EXPORTAR GESTIONES A EXCEL ---
 @login_required
 def exportar_gestiones_excel(request):
+    if not es_gerente(request.user):
+        return HttpResponse("Acceso Denegado.", status=403)
     gestiones = Gestion.objects.all().order_by('-fecha')
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -1450,10 +1462,20 @@ def iniciar_callback(request, numero_cliente):
     signature = base64.b64encode(signature_bytes).decode()
 
     headers = {'Authorization': f"{settings.ZADARMA_KEY}:{signature}"}
-    response = requests.get(f"https://api.zadarma.com{api_method}", params=params, headers=headers)
+    try:
+        response = requests.get(
+            f"https://api.zadarma.com{api_method}",
+            params=params,
+            headers=headers,
+            timeout=10
+        )
+        data = response.json()
+    except Exception as e:
+        print(f"--- [CALLBACK ERROR] {e}")
+        return JsonResponse({'status': 'error', 'message': f'Error de conexión con Zadarma: {str(e)}'}, status=500)
 
-    print(f"--- [CHISMOSO] LLAMADA A {num} | RESPUESTA: {response.json()}")
-    return JsonResponse(response.json())
+    print(f"--- [CALLBACK] LLAMADA A {num} | RESPUESTA: {data}")
+    return JsonResponse(data)
 
 
 # --- API: LOGIN PARA APP MÓVIL P&P COBRANZA ---

@@ -134,20 +134,26 @@
 <script src="https://my.zadarma.com/webphoneWebRTCWidget/v9/js/loader-phone-fn.js?sub_v=1"></script>
 
 <script>
-    // Esperar a que zdrmWebrtcPhoneInterface esté definido antes de inicializar
+    /* Carga la clave WebRTC dinámicamente desde Zadarma para evitar expiración */
     (function initZadarma() {
-        if (typeof zdrmWebrtcPhoneInterface !== 'undefined') {
-            zadarmaWidgetFn(
-                '789c3d38056091726eb598f92de3e292',
-                '398200-100',
-                'rounded',
-                'es',
-                true,
-                {right: '20px', bottom: '20px'}
-            );
-        } else {
-            setTimeout(initZadarma, 100);
-        }
+        fetch('/api/webrtc-key/?token={{ zadarma_api_token }}')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var key = data.webrtc_token || '';
+                if (!key) {
+                    console.warn('[Zadarma] Clave WebRTC no disponible en este momento.');
+                    return;
+                }
+                var tryInit = setInterval(function() {
+                    if (typeof zdrmWebrtcPhoneInterface !== 'undefined') {
+                        clearInterval(tryInit);
+                        zadarmaWidgetFn(key, '{{ zadarma_sip }}', 'rounded', 'es', true, {right: '20px', bottom: '20px'});
+                    }
+                }, 100);
+            })
+            .catch(function(e) {
+                console.warn('[Zadarma] No se pudo obtener la clave WebRTC:', e);
+            });
     })();
 </script>
 </body>

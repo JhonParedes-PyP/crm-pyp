@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -110,10 +111,11 @@ JAZZMIN_UI_TWEAKS = {
 }
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-7%s0wl=)k%v8=z-6n(7f!vwn5$hhc)4kqfc5nl-uh0f7u)k1ru'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-7%s0wl=)k%v8=z-6n(7f!vwn5$hhc)4kqfc5nl-uh0f7u)k1ru')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# En producción: systemctl set-environment DJANGO_DEBUG=False
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = ['192.168.1.43', '127.0.0.1', 'localhost', '134.209.76.91', 'crm.pypsolucionesjuridicas.com']
 
@@ -154,6 +156,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'crm_pyp_config.context_processors.zadarma_token',
             ],
         },
     },
@@ -162,16 +165,14 @@ TEMPLATES = [
 WSGI_APPLICATION = 'crm_pyp_config.wsgi.application'
 
 
-import os
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'pyp_db',                  # <--- Aquí confirmas el nombre
-        'USER': 'postgres',                # <--- El usuario
-        'PASSWORD': 'Moises16Micaela12pyp', # <--- Tu contraseña actual
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.environ.get('DB_NAME', 'pyp_db'),
+        'USER': os.environ.get('DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'Moises16Micaela12pyp'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
@@ -216,10 +217,10 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/login/' # Al salir, regresamos al inicio
 
-ZADARMA_KEY = '9eaec4a0660c4158c877'
-ZADARMA_SECRET = 'f6735045cdda663f6f51'
-ZADARMA_SIP = '398200-100'  # Tu ID de agente
-API_TOKEN_ZADARMA = 'pyp-webrtc-2026-secure-token-key'  # Token para widget
+ZADARMA_KEY = os.environ.get('ZADARMA_KEY', '9eaec4a0660c4158c877')
+ZADARMA_SECRET = os.environ.get('ZADARMA_SECRET', 'f6735045cdda663f6f51')
+ZADARMA_SIP = os.environ.get('ZADARMA_SIP', '398200-100')
+API_TOKEN_ZADARMA = os.environ.get('ZADARMA_API_TOKEN', 'pyp-webrtc-2026-secure-token-key')
 
 # Ruta al archivo llave.json de la Service Account de Google (para app móvil)
 # Coloca el archivo en la raíz del proyecto con el nombre llave.json
