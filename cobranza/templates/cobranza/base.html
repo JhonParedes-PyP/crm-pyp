@@ -137,7 +137,8 @@
     📞 SIP: Cargando...
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/jssip@3.10.0/dist/jssip.min.js"
+{% load static %}
+<script src="{% static 'cobranza/js/jssip.min.js' %}"
         onerror="document.getElementById('sip-status').innerText='📞 SIP: Sin librería'; document.getElementById('sip-status').style.background='#dc3545';"></script>
 <script>
 (function() {
