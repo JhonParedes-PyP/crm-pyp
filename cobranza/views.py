@@ -122,6 +122,18 @@ def subir_excel(request):
                             'nom_conyuge_aval': str(row.get('NOM_CONYUGE_AVAL', '')).strip(),
                             'rango_dias_mora': str(row.get('RANGO_DIAS_MORA', '')).strip(),
                             'ultimo_dia_pago': ultimo_dia_pago_val,
+                            # Datos aval extendidos
+                            'aval_direccion': str(row.get('DIR_CASA_AVAL', '')).strip(),
+                            'aval_distrito': str(row.get('DISTRITO_AVAL', '')).strip(),
+                            # Datos judiciales
+                            'expediente': str(row.get('EXPEDIENTE', '')).strip(),
+                            'juzgado': str(row.get('JUZGADO', '')).strip(),
+                            'condicion': str(row.get('CONDICION', row.get('SITUACION', ''))).strip(),
+                            'referencia': str(row.get('REFERENCIA', '')).strip(),
+                            'proceso': str(row.get('PROCESO_JUDICIAL', '')).strip(),
+                            'fec_demanda': pd.to_datetime(str(row.get('FEC_DEMANDA', '')).strip(), dayfirst=True, errors='coerce').date() if str(row.get('FEC_DEMANDA', '')).strip() not in ('', 'nan', 'None') else None,
+                            'monto_demanda': Decimal(str(row.get('MONTO_DEMANDA', '0')).strip()) if str(row.get('MONTO_DEMANDA', '0')).strip() not in ('', 'nan', 'None') else None,
+                            'ingreso_judicial': pd.to_datetime(str(row.get('FEC_INGRESO_JUDICIAL', '')).strip(), dayfirst=True, errors='coerce').date() if str(row.get('FEC_INGRESO_JUDICIAL', '')).strip() not in ('', 'nan', 'None') else None,
                         }
                     )
 
@@ -1502,13 +1514,8 @@ def api_app_login(request):
     from django.contrib.auth import authenticate as django_authenticate
     user = django_authenticate(request, username=username, password=password)
 
-    if user is None:
+    if user is None or not user.is_active:
         return JsonResponse({'detail': 'Credenciales inválidas'}, status=401)
-
-    # Verificar que el usuario tenga permiso de app móvil (grupo APP_MOVIL o es superusuario)
-    tiene_acceso = user.is_superuser or user.groups.filter(name='APP_MOVIL').exists()
-    if not tiene_acceso:
-        return JsonResponse({'detail': 'Sin acceso a la app'}, status=403)
 
     return JsonResponse({'ok': True}, status=200)
 
