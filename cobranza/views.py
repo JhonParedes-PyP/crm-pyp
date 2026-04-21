@@ -1539,3 +1539,109 @@ def api_app_credentials(request):
         return JsonResponse(credenciales, status=200)
     except Exception as e:
         return JsonResponse({'detail': f'Error al leer credenciales: {str(e)}'}, status=500)
+
+
+# --- API: CARTERA APP MÓVIL ---
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_cartera_lista(request):
+    """
+    GET /api/v1/cartera/?agente={username}  → Cartera asignada al agente
+    GET /api/v1/cartera/?dni={dni}          → Búsqueda por DNI
+    Requiere: Authorization: Bearer PYP-CAMPO-2026
+    """
+    api_key = request.headers.get('Authorization', '')
+    if api_key != 'Bearer PYP-CAMPO-2026':
+        return JsonResponse({'success': False, 'detail': 'Acceso denegado.'}, status=401)
+
+    agente = request.GET.get('agente', '').strip()
+    dni = request.GET.get('dni', '').strip()
+
+    if not agente and not dni:
+        return JsonResponse({'success': False, 'detail': 'Parámetro requerido: agente o dni.'}, status=400)
+
+    if dni:
+        deudores = Deudor.objects.filter(documento=dni)
+    else:
+        asignaciones = AsignacionCartera.objects.filter(gestor__username=agente).values('tipo', 'valor')
+        carteras = [a['valor'] for a in asignaciones if a['tipo'] == 'cartera']
+        agencias = [a['valor'] for a in asignaciones if a['tipo'] == 'agencia']
+
+        filtro = Q()
+        if carteras:
+            filtro |= Q(cartera__in=carteras)
+        if agencias:
+            filtro |= Q(agencia__in=agencias)
+
+        deudores = Deudor.objects.filter(filtro) if filtro else Deudor.objects.none()
+
+    data = []
+    for d in deudores:
+        data.append({
+            'fila_id': d.id,
+            'agencia': d.agencia or '',
+            'cuenta': d.cuenta or '',
+            'nombre': d.nombre_completo or '',
+            'ultimo_pago': str(d.ultimo_dia_pago) if d.ultimo_dia_pago else '',
+            'expediente': d.expediente or '',
+            'juzgado': d.juzgado or '',
+            'fec_demanda': str(d.fec_demanda) if d.fec_demanda else '',
+            'monto_demanda': str(d.monto_demanda) if d.monto_demanda is not None else '',
+            'capital': str(d.monto_capital),
+            'total': str(d.saldo_deuda),
+            'ingreso_judicial': str(d.ingreso_judicial) if d.ingreso_judicial else '',
+            'direccion': d.dir_casa or '',
+            'distrito': d.distrito or '',
+            'aval_nombre': d.nom_aval or '',
+            'aval_direccion': d.aval_direccion or '',
+            'aval_distrito': d.aval_distrito or '',
+            'condicion': d.condicion or '',
+            'dni': d.documento or '',
+            'referencia': d.referencia or '',
+            'telefono': d.telefono_principal or '',
+            'aval_telefono': d.tlf_celular_aval or '',
+            'link_gps': d.link_gps or '',
+            'link_gps_aval': d.link_gps_aval or '',
+            'gestion_extra': d.gestion_extra or '',
+            'proceso': d.proceso or '',
+            'detalle_bien': d.detalle_bien or '',
+            'estado_medida_cautelar': d.estado_medida_cautelar or '',
+            'seguimiento_cautelar': d.seguimiento_cautelar or '',
+            'estado_proceso_principal': d.estado_proceso_principal or '',
+            'seguimiento_principal': d.seguimiento_principal or '',
+            'codigo_cautelar': d.codigo_cautelar or '',
+            'foto_evidencia': d.foto_evidencia or '',
+        })
+
+    return JsonResponse({'success': True, 'data': data}, status=200)
+
+
+@csrf_exempt
+@require_http_methods(["PATCH"])
+def api_cartera_patch(request, fila_id):
+    """
+    PATCH /api/v1/cartera/{fila_id}/
+    Actualiza link_gps, link_gps_aval o foto_evidencia de un registro.
+    Requiere: Authorization: Bearer PYP-CAMPO-2026
+    """
+    api_key = request.headers.get('Authorization', '')
+    if api_key != 'Bearer PYP-CAMPO-2026':
+        return JsonResponse({'success': False, 'detail': 'Acceso denegado.'}, status=401)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'success': False, 'detail': 'Cuerpo JSON inválido.'}, status=400)
+
+    CAMPOS_PERMITIDOS = {'link_gps', 'link_gps_aval', 'foto_evidencia'}
+    campos_a_actualizar = {k: v for k, v in data.items() if k in CAMPOS_PERMITIDOS}
+
+    if not campos_a_actualizar:
+        return JsonResponse({'success': False, 'detail': 'No se enviaron campos válidos. Permitidos: link_gps, link_gps_aval, foto_evidencia.'}, status=400)
+
+    deudor = get_object_or_404(Deudor, id=fila_id)
+    for campo, valor in campos_a_actualizar.items():
+        setattr(deudor, campo, valor)
+    deudor.save(update_fields=list(campos_a_actualizar.keys()))
+
+    return JsonResponse({'success': True}, status=200)

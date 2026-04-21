@@ -24,6 +24,32 @@ class Deudor(models.Model):
     rango_dias_mora = models.CharField(max_length=50, null=True, blank=True)
     ultimo_dia_pago = models.DateField(null=True, blank=True)
 
+    # DATOS JUDICIALES
+    expediente = models.CharField(max_length=100, null=True, blank=True)
+    juzgado = models.CharField(max_length=200, null=True, blank=True)
+    fec_demanda = models.DateField(null=True, blank=True)
+    monto_demanda = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    ingreso_judicial = models.DateField(null=True, blank=True)
+    condicion = models.CharField(max_length=100, null=True, blank=True)
+    referencia = models.TextField(null=True, blank=True)
+
+    # DATOS AVAL EXTENDIDOS
+    aval_direccion = models.TextField(null=True, blank=True)
+    aval_distrito = models.CharField(max_length=100, null=True, blank=True)
+
+    # CAMPOS APP MÓVIL (actualizables por gestores de campo)
+    link_gps = models.CharField(max_length=500, null=True, blank=True)
+    link_gps_aval = models.CharField(max_length=500, null=True, blank=True)
+    gestion_extra = models.TextField(null=True, blank=True)
+    proceso = models.TextField(null=True, blank=True)
+    detalle_bien = models.TextField(null=True, blank=True)
+    estado_medida_cautelar = models.CharField(max_length=100, null=True, blank=True)
+    seguimiento_cautelar = models.TextField(null=True, blank=True)
+    estado_proceso_principal = models.CharField(max_length=100, null=True, blank=True)
+    seguimiento_principal = models.TextField(null=True, blank=True)
+    codigo_cautelar = models.CharField(max_length=100, null=True, blank=True)
+    foto_evidencia = models.TextField(null=True, blank=True)  # URL de imagen o base64
+
     def __str__(self):
         return self.nombre_completo
 

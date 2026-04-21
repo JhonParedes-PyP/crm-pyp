@@ -13,6 +13,8 @@ urlpatterns = [
     # --- API: APP MÓVIL P&P COBRANZA ---
     path('api/v1/auth/app-login/', views.api_app_login, name='api_app_login'),
     path('api/v1/app-credentials/', views.api_app_credentials, name='api_app_credentials'),
+    path('api/v1/cartera/', views.api_cartera_lista, name='api_cartera_lista'),
+    path('api/v1/cartera/<int:fila_id>/', views.api_cartera_patch, name='api_cartera_patch'),
 
     # Autenticación y Seguridad
     path('login/', auth_views.LoginView.as_view(template_name='cobranza/login.html'), name='login'),
