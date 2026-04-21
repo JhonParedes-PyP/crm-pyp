@@ -64,6 +64,8 @@ def salir_sistema(request):
 # --- CARGA DE CARTERA ---
 @login_required
 def subir_excel(request):
+    if not es_gerente(request.user):
+        return HttpResponse("Acceso Denegado. Solo Gerencia puede cargar carteras.", status=403)
     mensajes = ""
     columnas_detectadas = []
     if request.method == 'POST' and request.FILES.get('archivo_excel'):
