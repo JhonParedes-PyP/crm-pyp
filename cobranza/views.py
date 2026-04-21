@@ -88,6 +88,8 @@ def subir_excel(request):
                     col_fecha = cols_upper[variante]
                     break
 
+            dni_en_excel = set()
+
             for index, row in df.iterrows():
                 cap_str = str(row.get('DEUDA_CAP', '0')).strip()
                 tot_str = str(row.get('DEUDA_TOTAL', '0')).strip()
@@ -106,6 +108,7 @@ def subir_excel(request):
                             ultimo_dia_pago_val = None
 
                 if documento_val:
+                    dni_en_excel.add(documento_val)
                     Deudor.objects.update_or_create(
                         documento=documento_val,
                         defaults={
@@ -139,13 +142,14 @@ def subir_excel(request):
                         }
                     )
 
+            # Eliminar clientes que NO vienen en el nuevo Excel
+            eliminados, _ = Deudor.objects.exclude(documento__in=dni_en_excel).delete()
+
+            resumen = f"{len(dni_en_excel)} clientes cargados/actualizados. {eliminados} eliminados (no estaban en el archivo)."
             if col_fecha:
-                mensajes = f"¡Excelente! Cartera cargada con éxito. Columna de fecha detectada: '{col_fecha}'"
+                mensajes = f"¡Cartera sincronizada! {resumen} Columna de fecha: '{col_fecha}'"
             else:
-                mensajes = (
-                    f"¡Cartera cargada! ADVERTENCIA: No se encontró columna de fecha de pago. "
-                    f"Columnas en el archivo: {', '.join(columnas_detectadas)}"
-                )
+                mensajes = f"¡Cartera sincronizada! {resumen} ADVERTENCIA: No se encontró columna de fecha de pago."
         except Exception as e:
             mensajes = f"Error al procesar el Excel: {e}"
     return render(request, 'cobranza/subir_excel.html', {'mensajes': mensajes, 'columnas_detectadas': columnas_detectadas})
