@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 import os
+from dotenv import load_dotenv
+
+load_dotenv()  # Carga las variables desde el archivo .env
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -111,11 +114,11 @@ JAZZMIN_UI_TWEAKS = {
 }
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-7%s0wl=)k%v8=z-6n(7f!vwn5$hhc)4kqfc5nl-uh0f7u)k1ru')
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # En producción: systemctl set-environment DJANGO_DEBUG=False
-DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() == 'true'
+DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = ['192.168.1.43', '127.0.0.1', 'localhost', '134.209.76.91', 'crm.pypsolucionesjuridicas.com']
 
@@ -168,9 +171,9 @@ WSGI_APPLICATION = 'crm_pyp_config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME', 'pyp_db'),
-        'USER': os.environ.get('DB_USER', 'postgres'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', 'Moises16Micaela12pyp'),
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
         'HOST': os.environ.get('DB_HOST', 'localhost'),
         'PORT': os.environ.get('DB_PORT', '5432'),
     }
@@ -217,10 +220,10 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/login/' # Al salir, regresamos al inicio
 
-ZADARMA_KEY = os.environ.get('ZADARMA_KEY', '9eaec4a0660c4158c877')
-ZADARMA_SECRET = os.environ.get('ZADARMA_SECRET', 'f6735045cdda663f6f51')
-ZADARMA_SIP = os.environ.get('ZADARMA_SIP', '398200-100')
-API_TOKEN_ZADARMA = os.environ.get('ZADARMA_API_TOKEN', 'pyp-webrtc-2026-secure-token-key')
+ZADARMA_KEY = os.environ.get('ZADARMA_KEY')
+ZADARMA_SECRET = os.environ.get('ZADARMA_SECRET')
+ZADARMA_SIP = os.environ.get('ZADARMA_SIP')
+API_TOKEN_ZADARMA = os.environ.get('ZADARMA_API_TOKEN')
 
 # Ruta al archivo llave.json de la Service Account de Google (para app móvil)
 # Coloca el archivo en la raíz del proyecto con el nombre llave.json

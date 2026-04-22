@@ -1,4 +1,0 @@
-key
-cf801bb8417824ec7e74
-Secret
-00b7e56a52ef78e184a1

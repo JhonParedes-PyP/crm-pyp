@@ -36,7 +36,6 @@ urlpatterns = [
     path('eliminar-gestion/<int:gestion_id>/', views.eliminar_gestion, name='eliminar_gestion'),
 
     # Exportaciones y Reportes
-    path('exportar-asterisk/', views.exportar_csv_asterisk, name='descargar_asterisk'),
     path('exportar-gestiones/', views.exportar_gestiones_excel, name='exportar_gestiones_excel'),
     
     # Asignación de Carteras (solo gerentes)
@@ -44,15 +43,6 @@ urlpatterns = [
     
     # Carga masiva de teléfonos (solo gerentes)
     path('cargar-telefonos/', views.cargar_telefonos, name='cargar_telefonos'),
-    
-    # Campañas Asterisk Antiguas (solo gerentes)
-    path('subir-lista-llamadas/', views.subir_lista_llamadas, name='subir_lista_llamadas'),
-    path('exportar-csv-campana/', views.exportar_csv_desde_lista, name='exportar_csv_campana'),
-    path('campana-asterisk/', views.generar_campana_asterisk, name='generar_campana_asterisk'),
-    path('exportar-todos-asterisk/', views.exportar_todos_asterisk, name='exportar_todos_asterisk'),
-    path('exportar-morosos-30/', views.exportar_morosos_30, name='exportar_morosos_30'),
-    path('exportar-morosos-90/', views.exportar_morosos_90, name='exportar_morosos_90'),
-    path('exportar-promesas-vencidas/', views.exportar_promesas_vencidas, name='exportar_promesas_vencidas'),
     
     # --- NUEVO MÓDULO ASTERISK P&P (EL QUE CREAMOS HOY) ---
     path('campanas-asterisk/', views.panel_campanas_asterisk, name='panel_campanas'),

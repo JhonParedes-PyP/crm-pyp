@@ -21,7 +21,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from .models import Deudor, Gestion, TelefonoExtra, AsignacionCartera, CampanaAsterisk, DetalleCampanaAsterisk
 
 from django.db import models
-from django.db.models import Q, Sum, Count, Max, OuterRef, Subquery
+from django.db.models import Q, Sum, Count, Max, OuterRef, Subquery, Case, When, Value, IntegerField, F
 from django.db.models.expressions import RawSQL
 from django.utils import timezone
 from django.contrib.auth.models import User
@@ -154,27 +154,29 @@ def subir_excel(request):
             mensajes = f"Error al procesar el Excel: {e}"
     return render(request, 'cobranza/subir_excel.html', {'mensajes': mensajes, 'columnas_detectadas': columnas_detectadas})
 
-# --- FUNCIÓN AUXILIAR PARA OBTENER LISTA DE DEUDORES CON FILTROS Y ASIGNACIÓN ---
-def obtener_lista_deudores_filtrados(request, usuario=None, ids_seleccionados=None):
+# --- FUNCIÓN BASE: OBTENER QUERYSET UNIFICADO PARA BANDEJA ---
+def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False):
     q = request.GET.get('q', '') 
     cartera_filtro = request.GET.get('cartera', '')
     agencia_filtro = request.GET.get('agencia', '')
     fecha_pago_desde = request.GET.get('fecha_pago_desde', '')
     fecha_pago_hasta = request.GET.get('fecha_pago_hasta', '')
+    rango_deuda = request.GET.get('rango_deuda', '')
     orden = request.GET.get('orden', '')
-    
-    if not any([q, cartera_filtro, agencia_filtro, fecha_pago_desde, fecha_pago_hasta, orden]):
+
+    if usar_sesion_fallback and not any([q, cartera_filtro, agencia_filtro, fecha_pago_desde, fecha_pago_hasta, rango_deuda, orden]):
         filtros_sesion = request.session.get('filtros_bandeja', {})
         q = filtros_sesion.get('q', '')
         cartera_filtro = filtros_sesion.get('cartera', '')
         agencia_filtro = filtros_sesion.get('agencia', '')
         fecha_pago_desde = filtros_sesion.get('fecha_pago_desde', '')
         fecha_pago_hasta = filtros_sesion.get('fecha_pago_hasta', '')
+        rango_deuda = filtros_sesion.get('rango_deuda', '')
         orden = filtros_sesion.get('orden', '')
-    
+
     deudores = Deudor.objects.annotate(ultima_llamada=Max('gestion__fecha'))
-    
-    if usuario and not es_gerente(usuario):
+
+    if not es_gerente(usuario):
         asignaciones = AsignacionCartera.objects.filter(gestor=usuario)
         carteras_asignadas = asignaciones.filter(tipo='cartera').values_list('valor', flat=True)
         agencias_asignadas = asignaciones.filter(tipo='agencia').values_list('valor', flat=True)
@@ -188,159 +190,7 @@ def obtener_lista_deudores_filtrados(request, usuario=None, ids_seleccionados=No
         if condiciones:
             deudores = deudores.filter(condiciones)
         else:
-            deudores = deudores.filter(id__in=[])
-    
-    if q: 
-        deudores = deudores.filter(Q(documento__icontains=q) | Q(nombre_completo__icontains=q))
-    if cartera_filtro: 
-        deudores = deudores.filter(cartera=cartera_filtro)
-    if agencia_filtro: 
-        deudores = deudores.filter(agencia=agencia_filtro)
-    if fecha_pago_desde:
-        from django.utils.dateparse import parse_date
-        d = parse_date(fecha_pago_desde)
-        if d:
-            deudores = deudores.filter(ultimo_dia_pago__gte=d)
-    if fecha_pago_hasta:
-        from django.utils.dateparse import parse_date
-        d = parse_date(fecha_pago_hasta)
-        if d:
-            deudores = deudores.filter(ultimo_dia_pago__lte=d)
-    
-    if orden == 'nombre': deudores = deudores.order_by('nombre_completo')
-    elif orden == '-nombre': deudores = deudores.order_by('-nombre_completo')
-    elif orden == 'agencia': deudores = deudores.order_by('agencia')
-    elif orden == '-agencia': deudores = deudores.order_by('-agencia')
-    elif orden == 'ultimo_dia_pago': deudores = deudores.order_by('ultimo_dia_pago')
-    elif orden == '-ultimo_dia_pago': deudores = deudores.order_by('-ultimo_dia_pago')
-    elif orden == 'deuda_total': deudores = deudores.order_by('saldo_deuda')
-    elif orden == '-deuda_total': deudores = deudores.order_by('-saldo_deuda')
-
-    hoy = timezone.now().date()
-    
-    ultima_promesa_subquery = Gestion.objects.filter(
-        deudor=OuterRef('pk'),
-        resultado__icontains='PROMESA',
-        fecha_promesa__gte=hoy,
-    ).exclude(
-        deudor__gestion__resultado__icontains='PAGO',
-        deudor__gestion__fecha__gt=models.F('fecha')
-    ).order_by('-fecha_promesa').values('fecha_promesa')[:1]
-    
-    promesa_vencida_subquery = Gestion.objects.filter(
-        deudor=OuterRef('pk'),
-        resultado__icontains='PROMESA',
-        fecha_promesa__lt=hoy,
-    ).exclude(
-        deudor__gestion__resultado__icontains='PAGO',
-        deudor__gestion__fecha__gt=models.F('fecha')
-    ).values('id')[:1]
-    
-    deudores = deudores.annotate(
-        ultima_promesa_fecha=Subquery(ultima_promesa_subquery),
-        tiene_promesa_vencida=Subquery(promesa_vencida_subquery)
-    )
-    
-    lista_deudores = []
-    for d in deudores:
-        if not d.ultima_llamada: 
-            color = "rojo"
-        else:
-            dias = (timezone.now() - d.ultima_llamada).days
-            color = "rojo" if dias >= 3 else ("amarillo" if dias >= 1 else "verde")
-        
-        alerta_promesa = d.tiene_promesa_vencida is not None
-        
-        lista_deudores.append({
-            'id': d.id,
-            'color': color,
-            'alerta_promesa': alerta_promesa
-        })
-    
-    if not orden:
-        def prioridad(item):
-            if item['alerta_promesa']:
-                return 0
-            orden_color = {"rojo": 1, "amarillo": 2, "verde": 3}
-            return orden_color.get(item['color'], 4)
-        lista_deudores.sort(key=prioridad)
-    
-    ids = [item['id'] for item in lista_deudores]
-    
-    if ids_seleccionados:
-        ids = [id for id in ids if id in ids_seleccionados]
-    
-    return ids
-
-# --- BANDEJA DE TRABAJO ---
-@login_required
-def bandeja_gestor(request):
-    q = request.GET.get('q', '') 
-    cartera_filtro = request.GET.get('cartera', '')
-    agencia_filtro = request.GET.get('agencia', '')
-    fecha_pago_desde = request.GET.get('fecha_pago_desde', '')
-    fecha_pago_hasta = request.GET.get('fecha_pago_hasta', '')
-    rango_deuda = request.GET.get('rango_deuda', '')
-    orden = request.GET.get('orden', '')
-
-    es_gerente_flag = es_gerente(request.user)
-
-    if es_gerente_flag:
-        carteras_crudas = Deudor.objects.values_list('cartera', flat=True).distinct()
-        agencias_crudas = Deudor.objects.values_list('agencia', flat=True).distinct()
-    else:
-        asignaciones = AsignacionCartera.objects.filter(gestor=request.user)
-        carteras_asignadas = asignaciones.filter(tipo='cartera').values_list('valor', flat=True)
-        agencias_asignadas = asignaciones.filter(tipo='agencia').values_list('valor', flat=True)
-        
-        condiciones = Q()
-        if carteras_asignadas.exists():
-            condiciones |= Q(cartera__in=carteras_asignadas)
-        if agencias_asignadas.exists():
-            condiciones |= Q(agencia__in=agencias_asignadas)
-        
-        if condiciones:
-            deudores_base = Deudor.objects.filter(condiciones)
-        else:
-            deudores_base = Deudor.objects.filter(id__in=[])
-        
-        carteras_crudas = deudores_base.values_list('cartera', flat=True).distinct()
-        agencias_crudas = deudores_base.values_list('agencia', flat=True).distinct()
-    
-    lista_carteras = sorted([str(c) for c in carteras_crudas if c and str(c).strip() != ''])
-    lista_agencias = sorted([str(a) for a in agencias_crudas if a and str(a).strip() != ''])
-
-    # Mapa cartera -> agencias para filtrado dinámico en el frontend
-    if es_gerente_flag:
-        pares = Deudor.objects.values_list('cartera', 'agencia').distinct()
-    else:
-        pares = deudores_base.values_list('cartera', 'agencia').distinct()
-
-    mapa_cartera_agencias = {}
-    for cartera_val, agencia_val in pares:
-        c = str(cartera_val).strip() if cartera_val else ''
-        a = str(agencia_val).strip() if agencia_val else ''
-        if c and a:
-            mapa_cartera_agencias.setdefault(c, set()).add(a)
-    mapa_cartera_agencias = {k: sorted(v) for k, v in mapa_cartera_agencias.items()}
-
-    deudores = Deudor.objects.annotate(ultima_llamada=Max('gestion__fecha'))
-
-    if not es_gerente_flag:
-        asignaciones = AsignacionCartera.objects.filter(gestor=request.user)
-        carteras_asignadas = asignaciones.filter(tipo='cartera').values_list('valor', flat=True)
-        agencias_asignadas = asignaciones.filter(tipo='agencia').values_list('valor', flat=True)
-        
-        condiciones = Q()
-        if carteras_asignadas.exists():
-            condiciones |= Q(cartera__in=carteras_asignadas)
-        if agencias_asignadas.exists():
-            condiciones |= Q(agencia__in=agencias_asignadas)
-        
-        if condiciones:
-            deudores = deudores.filter(condiciones)
-        else:
-            deudores = deudores.filter(id__in=[])
+            deudores = deudores.none()
 
     if q: 
         deudores = deudores.filter(Q(documento__icontains=q) | Q(nombre_completo__icontains=q))
@@ -351,13 +201,11 @@ def bandeja_gestor(request):
     if fecha_pago_desde:
         from django.utils.dateparse import parse_date
         d = parse_date(fecha_pago_desde)
-        if d:
-            deudores = deudores.filter(ultimo_dia_pago__gte=d)
+        if d: deudores = deudores.filter(ultimo_dia_pago__gte=d)
     if fecha_pago_hasta:
         from django.utils.dateparse import parse_date
         d = parse_date(fecha_pago_hasta)
-        if d:
-            deudores = deudores.filter(ultimo_dia_pago__lte=d)
+        if d: deudores = deudores.filter(ultimo_dia_pago__lte=d)
     if rango_deuda == '0-1000':
         deudores = deudores.filter(saldo_deuda__gte=0, saldo_deuda__lt=1000)
     elif rango_deuda == '1000-5000':
@@ -367,17 +215,7 @@ def bandeja_gestor(request):
     elif rango_deuda == '10000+':
         deudores = deudores.filter(saldo_deuda__gte=10000)
 
-    if orden == 'nombre': deudores = deudores.order_by('nombre_completo')
-    elif orden == '-nombre': deudores = deudores.order_by('-nombre_completo')
-    elif orden == 'agencia': deudores = deudores.order_by('agencia')
-    elif orden == '-agencia': deudores = deudores.order_by('-agencia')
-    elif orden == 'ultimo_dia_pago': deudores = deudores.order_by('ultimo_dia_pago')
-    elif orden == '-ultimo_dia_pago': deudores = deudores.order_by('-ultimo_dia_pago')
-    elif orden == 'deuda_total': deudores = deudores.order_by('saldo_deuda')
-    elif orden == '-deuda_total': deudores = deudores.order_by('-saldo_deuda')
-    
     hoy = timezone.now().date()
-    
     ultima_promesa_subquery = Gestion.objects.filter(
         deudor=OuterRef('pk'),
         resultado__icontains='PROMESA',
@@ -400,82 +238,123 @@ def bandeja_gestor(request):
         ultima_promesa_fecha=Subquery(ultima_promesa_subquery),
         tiene_promesa_vencida=Subquery(promesa_vencida_subquery)
     )
+
+    hoy_datetime = timezone.now()
+    hace_3_dias = hoy_datetime - timedelta(days=3)
+    hace_1_dia = hoy_datetime - timedelta(days=1)
+
+    prioridad_annotation = Case(
+        When(tiene_promesa_vencida__isnull=False, then=Value(0)),
+        When(ultima_llamada__isnull=True, then=Value(1)),
+        When(ultima_llamada__lte=hace_3_dias, then=Value(1)),
+        When(ultima_llamada__lte=hace_1_dia, then=Value(2)),
+        default=Value(3),
+        output_field=IntegerField()
+    )
+
+    deudores = deudores.annotate(prioridad=prioridad_annotation)
+
+    if orden == 'nombre': deudores = deudores.order_by('nombre_completo')
+    elif orden == '-nombre': deudores = deudores.order_by('-nombre_completo')
+    elif orden == 'agencia': deudores = deudores.order_by('agencia')
+    elif orden == '-agencia': deudores = deudores.order_by('-agencia')
+    elif orden == 'ultimo_dia_pago': deudores = deudores.order_by('ultimo_dia_pago')
+    elif orden == '-ultimo_dia_pago': deudores = deudores.order_by('-ultimo_dia_pago')
+    elif orden == 'deuda_total': deudores = deudores.order_by('saldo_deuda')
+    elif orden == '-deuda_total': deudores = deudores.order_by('-saldo_deuda')
+    else:
+        deudores = deudores.order_by('prioridad', F('ultima_llamada').asc(nulls_first=True))
+
+    filtros = {
+        'q': q, 'cartera': cartera_filtro, 'agencia': agencia_filtro,
+        'fecha_pago_desde': fecha_pago_desde, 'fecha_pago_hasta': fecha_pago_hasta,
+        'rango_deuda': rango_deuda, 'orden': orden
+    }
+    return deudores, filtros
+
+# --- FUNCIÓN AUXILIAR PARA OBTENER LISTA DE DEUDORES CON FILTROS Y ASIGNACIÓN ---
+def obtener_lista_deudores_filtrados(request, usuario=None, ids_seleccionados=None):
+    deudores, _ = obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=True)
+    if ids_seleccionados:
+        return list(deudores.filter(id__in=ids_seleccionados).values_list('id', flat=True))
+    return list(deudores.values_list('id', flat=True))
+
+# --- BANDEJA DE TRABAJO ---
+@login_required
+def bandeja_gestor(request):
+    es_gerente_flag = es_gerente(request.user)
     
-    lista_deudores = []
-    for d in deudores:
-        if not d.ultima_llamada: 
-            color = "rojo"
-        else:
-            dias = (timezone.now() - d.ultima_llamada).days
-            color = "rojo" if dias >= 3 else ("amarillo" if dias >= 1 else "verde")
-        
-        alerta_promesa = d.tiene_promesa_vencida is not None
-        proxima_promesa = d.ultima_promesa_fecha
-        
-        lista_deudores.append({
-            'deudor': d,
-            'color': color,
-            'alerta_promesa': alerta_promesa,
-            'proxima_promesa': proxima_promesa
-        })
+    # 1. Obtener el QuerySet delegado a Base de Datos
+    deudores, filtros = obtener_queryset_bandeja(request, request.user, usar_sesion_fallback=False)
     
-    if not orden:
-        def prioridad(item):
-            if item['alerta_promesa']:
-                return 0
-            orden_color = {"rojo": 1, "amarillo": 2, "verde": 3}
-            return orden_color.get(item['color'], 4)
-        lista_deudores.sort(key=prioridad)
-        
-    deudores_ordenados = [item['deudor'] for item in lista_deudores]
-    
-    paginator = Paginator(deudores_ordenados, 20)
+    # 2. Obtener opciones para los Combos (filtros visuales)
+    if es_gerente_flag:
+        deudores_base = Deudor.objects.all()
+    else:
+        asignaciones = AsignacionCartera.objects.filter(gestor=request.user)
+        carteras_asignadas = asignaciones.filter(tipo='cartera').values_list('valor', flat=True)
+        agencias_asignadas = asignaciones.filter(tipo='agencia').values_list('valor', flat=True)
+        cond = Q()
+        if carteras_asignadas.exists(): cond |= Q(cartera__in=carteras_asignadas)
+        if agencias_asignadas.exists(): cond |= Q(agencia__in=agencias_asignadas)
+        deudores_base = Deudor.objects.filter(cond) if cond else Deudor.objects.none()
+
+    carteras_crudas = deudores_base.values_list('cartera', flat=True).distinct()
+    agencias_crudas = deudores_base.values_list('agencia', flat=True).distinct()
+    lista_carteras = sorted([str(c) for c in carteras_crudas if c and str(c).strip() != ''])
+    lista_agencias = sorted([str(a) for a in agencias_crudas if a and str(a).strip() != ''])
+
+    pares = deudores_base.values_list('cartera', 'agencia').distinct()
+    mapa_cartera_agencias = {}
+    for cartera_val, agencia_val in pares:
+        c = str(cartera_val).strip() if cartera_val else ''
+        a = str(agencia_val).strip() if agencia_val else ''
+        if c and a:
+            mapa_cartera_agencias.setdefault(c, set()).add(a)
+    mapa_cartera_agencias = {k: sorted(v) for k, v in mapa_cartera_agencias.items()}
+
+    # 3. Paginar Directamente (solo ejecuta COUNT y FETCH 20 en Postgres)
+    paginator = Paginator(deudores, 20)
     page_number = request.GET.get('page')
     deudores_paginados = paginator.get_page(page_number)
     
-    deudores_con_info = []
+    # 4. Establecer atributos visuales solo a los 20 objetos cargados
     for d in deudores_paginados:
-        info = next((item for item in lista_deudores if item['deudor'].id == d.id), None)
-        if info:
-            d.color = info['color']
-            d.alerta_promesa = info['alerta_promesa']
-            d.proxima_promesa = info['proxima_promesa']
-        else:
+        if getattr(d, 'prioridad', 3) == 1:
+            d.color = 'rojo'
+        elif getattr(d, 'prioridad', 3) == 2:
+            d.color = 'amarillo'
+        elif getattr(d, 'prioridad', 3) == 3:
+            d.color = 'verde'
+        else: # Prioridad 0
             if not d.ultima_llamada: 
                 d.color = "rojo"
             else:
                 dias = (timezone.now() - d.ultima_llamada).days
                 d.color = "rojo" if dias >= 3 else ("amarillo" if dias >= 1 else "verde")
-            d.alerta_promesa = False
-            d.proxima_promesa = None
-        deudores_con_info.append(d)
-    
-    lista_ids_filtrados = obtener_lista_deudores_filtrados(request, request.user)
+        
+        d.alerta_promesa = d.tiene_promesa_vencida is not None
+        d.proxima_promesa = d.ultima_promesa_fecha
+
+    # 5. Guardar sesión para navegación (< Anterior / Siguiente >)
+    lista_ids_filtrados = list(deudores.values_list('id', flat=True))
     request.session['lista_ids_navegacion'] = lista_ids_filtrados
     
-    request.session['filtros_bandeja'] = {
-        'q': q,
-        'cartera': cartera_filtro,
-        'agencia': agencia_filtro,
-        'fecha_pago_desde': fecha_pago_desde,
-        'fecha_pago_hasta': fecha_pago_hasta,
-        'rango_deuda': rango_deuda,
-        'page': page_number,
-        'orden': orden
-    }
+    filtros['page'] = page_number
+    request.session['filtros_bandeja'] = filtros
     
     return render(request, 'cobranza/bandeja.html', {
         'deudores': deudores_paginados,
         'lista_carteras': lista_carteras,
         'lista_agencias': lista_agencias,
         'mapa_cartera_agencias': json.dumps(mapa_cartera_agencias),
-        'q': q,
-        'cartera_filtro': cartera_filtro,
-        'agencia_filtro': agencia_filtro,
-        'fecha_pago_desde': fecha_pago_desde,
-        'fecha_pago_hasta': fecha_pago_hasta,
-        'rango_deuda': rango_deuda,
-        'orden_actual': orden,
+        'q': filtros['q'],
+        'cartera_filtro': filtros['cartera'],
+        'agencia_filtro': filtros['agencia'],
+        'fecha_pago_desde': filtros['fecha_pago_desde'],
+        'fecha_pago_hasta': filtros['fecha_pago_hasta'],
+        'rango_deuda': filtros['rango_deuda'],
+        'orden_actual': filtros['orden'],
         'es_gerente': es_gerente_flag,
     })
 
@@ -500,316 +379,6 @@ def datos_cliente_kubo(request, telefono, campana, cod_cliente, cod_telefono):
 
     # Redirigir a la ficha de gestión del cliente
     return redirect('registrar_gestion', deudor_id=deudor.id)
-
-# --- GENERAR CAMPAÑA ASTERISK CON FILTROS (GERENTES) ---
-@login_required
-def generar_campana_asterisk(request):
-    if not es_gerente(request.user):
-        return HttpResponse("Acceso Denegado. Solo la Gerencia puede generar campañas.", status=403)
-    
-    CAMPANA_ID = '85200'
-    
-    if request.method == 'POST':
-        # Obtener filtros del formulario
-        cartera_filtro = request.POST.get('cartera', '')
-        agencia_filtro = request.POST.get('agencia', '')
-        mora_desde = request.POST.get('mora_desde', '')
-        monto_minimo = request.POST.get('monto_minimo', '')
-        dias_sin_gestion = request.POST.get('dias_sin_gestion', '')
-        
-        # Construir consulta
-        deudores = Deudor.objects.filter(saldo_deuda__gt=0)
-        
-        if cartera_filtro:
-            deudores = deudores.filter(cartera=cartera_filtro)
-        
-        if agencia_filtro:
-            deudores = deudores.filter(agencia=agencia_filtro)
-        
-        if mora_desde and mora_desde.isdigit():
-            mora_num = int(mora_desde)
-            # rango_dias_mora es CharField: se castea a entero en PostgreSQL
-            deudores = deudores.annotate(
-                mora_int=RawSQL(
-                    "CASE WHEN rango_dias_mora ~ '[0-9]+' THEN CAST(SUBSTRING(rango_dias_mora FROM '[0-9]+') AS INTEGER) ELSE NULL END",
-                    []
-                )
-            ).filter(mora_int__gte=mora_num)
-
-        if monto_minimo and monto_minimo.replace('.', '').isdigit():
-            deudores = deudores.filter(saldo_deuda__gte=Decimal(monto_minimo))
-        
-        if dias_sin_gestion and dias_sin_gestion.isdigit():
-            fecha_limite = timezone.now() - timedelta(days=int(dias_sin_gestion))
-            deudores = deudores.annotate(ultima_gestion=Max('gestion__fecha'))
-            deudores = deudores.filter(Q(ultima_gestion__isnull=True) | Q(ultima_gestion__lte=fecha_limite))
-        
-        # Excluir clientes sin teléfono válido
-        deudores = deudores.exclude(telefono_principal='').exclude(telefono_principal='Sin número')
-        
-        if not deudores.exists():
-            return HttpResponse("No hay clientes que cumplan con los filtros seleccionados.", status=400)
-        
-        # Generar CSV
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="campana_asterisk.csv"'
-        writer = csv.writer(response)
-        writer.writerow(['TELEFONO', 'CAMPANA', 'COD_CLIENTE', 'COD_TELEFONO'])
-        
-        for d in deudores:
-            telefono = d.telefono_principal
-            if telefono and len(telefono) >= 9:
-                cod_cliente = encode_md5_base64(d.documento)
-                cod_telefono = encode_md5_base64(f"{d.id}{telefono}")
-                writer.writerow([telefono, CAMPANA_ID, cod_cliente, cod_telefono])
-        
-        return response
-    
-    else:
-        # GET: mostrar formulario con listas de carteras y agencias
-        lista_carteras = Deudor.objects.values_list('cartera', flat=True).distinct()
-        lista_carteras = sorted([c for c in lista_carteras if c and str(c).strip() != ''])
-        
-        lista_agencias = Deudor.objects.values_list('agencia', flat=True).distinct()
-        lista_agencias = sorted([a for a in lista_agencias if a and str(a).strip() != ''])
-        
-        return render(request, 'cobranza/campana_asterisk_gerente.html', {
-            'lista_carteras': lista_carteras,
-            'lista_agencias': lista_agencias,
-        })
-
-# --- EXPORTAR TODOS LOS CLIENTES ---
-@login_required
-def exportar_todos_asterisk(request):
-    if not es_gerente(request.user):
-        return HttpResponse("Acceso Denegado.", status=403)
-    
-    CAMPANA_ID = '85200'
-    
-    deudores = Deudor.objects.filter(saldo_deuda__gt=0).exclude(telefono_principal='').exclude(telefono_principal='Sin número')
-    
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="todos_clientes.csv"'
-    writer = csv.writer(response)
-    writer.writerow(['TELEFONO', 'CAMPANA', 'COD_CLIENTE', 'COD_TELEFONO'])
-    
-    for d in deudores:
-        telefono = d.telefono_principal
-        if telefono and len(telefono) >= 9:
-            cod_cliente = encode_md5_base64(d.documento)
-            cod_telefono = encode_md5_base64(f"{d.id}{telefono}")
-            writer.writerow([telefono, CAMPANA_ID, cod_cliente, cod_telefono])
-    
-    return response
-
-# --- EXPORTAR MOROSOS 30+ DÍAS ---
-@login_required
-def exportar_morosos_30(request):
-    if not es_gerente(request.user):
-        return HttpResponse("Acceso Denegado.", status=403)
-
-    CAMPANA_ID = '85200'
-
-    deudores = Deudor.objects.filter(saldo_deuda__gt=0).annotate(
-        mora_int=RawSQL(
-            "CASE WHEN rango_dias_mora ~ '[0-9]+' THEN CAST(SUBSTRING(rango_dias_mora FROM '[0-9]+') AS INTEGER) ELSE NULL END",
-            []
-        )
-    ).filter(mora_int__gte=30).exclude(telefono_principal='').exclude(telefono_principal='Sin número')
-    
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="morosos_30_dias.csv"'
-    writer = csv.writer(response)
-    writer.writerow(['TELEFONO', 'CAMPANA', 'COD_CLIENTE', 'COD_TELEFONO'])
-    
-    for d in deudores:
-        telefono = d.telefono_principal
-        if telefono and len(telefono) >= 9:
-            cod_cliente = encode_md5_base64(d.documento)
-            cod_telefono = encode_md5_base64(f"{d.id}{telefono}")
-            writer.writerow([telefono, CAMPANA_ID, cod_cliente, cod_telefono])
-    
-    return response
-
-# --- EXPORTAR MOROSOS 90+ DÍAS ---
-@login_required
-def exportar_morosos_90(request):
-    if not es_gerente(request.user):
-        return HttpResponse("Acceso Denegado.", status=403)
-
-    CAMPANA_ID = '85200'
-
-    deudores = Deudor.objects.filter(saldo_deuda__gt=0).annotate(
-        mora_int=RawSQL(
-            "CASE WHEN rango_dias_mora ~ '[0-9]+' THEN CAST(SUBSTRING(rango_dias_mora FROM '[0-9]+') AS INTEGER) ELSE NULL END",
-            []
-        )
-    ).filter(mora_int__gte=90).exclude(telefono_principal='').exclude(telefono_principal='Sin número')
-    
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="morosos_90_dias.csv"'
-    writer = csv.writer(response)
-    writer.writerow(['TELEFONO', 'CAMPANA', 'COD_CLIENTE', 'COD_TELEFONO'])
-    
-    for d in deudores:
-        telefono = d.telefono_principal
-        if telefono and len(telefono) >= 9:
-            cod_cliente = encode_md5_base64(d.documento)
-            cod_telefono = encode_md5_base64(f"{d.id}{telefono}")
-            writer.writerow([telefono, CAMPANA_ID, cod_cliente, cod_telefono])
-    
-    return response
-
-# --- EXPORTAR PROMESAS VENCIDAS ---
-@login_required
-def exportar_promesas_vencidas(request):
-    if not es_gerente(request.user):
-        return HttpResponse("Acceso Denegado.", status=403)
-    
-    CAMPANA_ID = '85200'
-    hoy = timezone.now().date()
-    
-    # Buscar clientes con promesas vencidas sin pago posterior
-    deudores_ids = Gestion.objects.filter(
-        resultado__icontains='PROMESA',
-        fecha_promesa__lt=hoy
-    ).exclude(
-        deudor__gestion__resultado__icontains='PAGO',
-        deudor__gestion__fecha__gt=models.F('fecha')
-    ).values_list('deudor_id', flat=True).distinct()
-    
-    deudores = Deudor.objects.filter(id__in=deudores_ids).exclude(telefono_principal='').exclude(telefono_principal='Sin número')
-    
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="promesas_vencidas.csv"'
-    writer = csv.writer(response)
-    writer.writerow(['TELEFONO', 'CAMPANA', 'COD_CLIENTE', 'COD_TELEFONO'])
-    
-    for d in deudores:
-        telefono = d.telefono_principal
-        if telefono and len(telefono) >= 9:
-            cod_cliente = encode_md5_base64(d.documento)
-            cod_telefono = encode_md5_base64(f"{d.id}{telefono}")
-            writer.writerow([telefono, CAMPANA_ID, cod_cliente, cod_telefono])
-    
-    return response
-
-# --- SUBIR LISTA DE LLAMADAS ---
-@login_required
-def subir_lista_llamadas(request):
-    if not es_gerente(request.user):
-        return HttpResponse("Acceso Denegado. Solo la Gerencia puede generar campañas.", status=403)
-    
-    CAMPANA_ID = '85200'
-    resultados = []
-    
-    if request.method == 'POST' and request.FILES.get('archivo_excel'):
-        try:
-            archivo = request.FILES['archivo_excel']
-            df = pd.read_excel(archivo, dtype=str).fillna('')
-            
-            if 'DNI' not in df.columns or 'TELEFONO' not in df.columns:
-                return render(request, 'cobranza/subir_lista_llamadas.html', {
-                    'error': "El archivo debe tener las columnas 'DNI' y 'TELEFONO'",
-                    'resultados': []
-                })
-            
-            for index, row in df.iterrows():
-                dni = str(row.get('DNI', '')).strip()
-                telefono = str(row.get('TELEFONO', '')).strip()
-                
-                telefono_limpio = ''.join(filter(str.isdigit, telefono))
-                
-                if len(telefono_limpio) != 9:
-                    resultados.append({
-                        'dni': dni,
-                        'nombre': '',
-                        'telefono': telefono,
-                        'cod_cliente': '',
-                        'cod_telefono': '',
-                        'estado': '❌ ERROR',
-                        'motivo': 'Teléfono no tiene 9 dígitos'
-                    })
-                    continue
-                
-                try:
-                    deudor = Deudor.objects.get(documento=dni)
-                except Deudor.DoesNotExist:
-                    resultados.append({
-                        'dni': dni,
-                        'nombre': '',
-                        'telefono': telefono_limpio,
-                        'cod_cliente': '',
-                        'cod_telefono': '',
-                        'estado': '❌ ERROR',
-                        'motivo': 'DNI no encontrado en la base'
-                    })
-                    continue
-                
-                cod_cliente = encode_md5_base64(deudor.documento)
-                cod_telefono = encode_md5_base64(f"{deudor.id}{telefono_limpio}")
-                
-                resultados.append({
-                    'dni': dni,
-                    'nombre': deudor.nombre_completo,
-                    'telefono': telefono_limpio,
-                    'cod_cliente': cod_cliente,
-                    'cod_telefono': cod_telefono,
-                    'estado': '✅ OK',
-                    'motivo': ''
-                })
-            
-            request.session['campana_resultados'] = resultados
-            
-            exitosos = len([r for r in resultados if r['estado'] == '✅ OK'])
-            fallidos = len([r for r in resultados if r['estado'] == '❌ ERROR'])
-            
-            return render(request, 'cobranza/subir_lista_llamadas.html', {
-                'resultados': resultados,
-                'exitosos': exitosos,
-                'fallidos': fallidos,
-                'total': len(resultados),
-                'campana_id': CAMPANA_ID,
-                'mensaje_exito': f"Procesado: {exitosos} exitosos, {fallidos} fallidos"
-            })
-            
-        except Exception as e:
-            return render(request, 'cobranza/subir_lista_llamadas.html', {
-                'error': f"Error al procesar el archivo: {e}",
-                'resultados': []
-            })
-    
-    return render(request, 'cobranza/subir_lista_llamadas.html', {
-        'resultados': []
-    })
-
-# --- EXPORTAR CSV DESDE LISTA SUBIDA ---
-@login_required
-def exportar_csv_desde_lista(request):
-    if not es_gerente(request.user):
-        return HttpResponse("Acceso Denegado.", status=403)
-    
-    CAMPANA_ID = '85200'
-    resultados = request.session.get('campana_resultados', [])
-    
-    if not resultados:
-        return HttpResponse("No hay datos para exportar", status=400)
-    
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="campana_asterisk.csv"'
-    writer = csv.writer(response)
-    writer.writerow(['TELEFONO', 'CAMPANA', 'COD_CLIENTE', 'COD_TELEFONO'])
-    
-    for r in resultados:
-        if r['estado'] == '✅ OK':
-            writer.writerow([
-                r['telefono'],
-                CAMPANA_ID,
-                r['cod_cliente'],
-                r['cod_telefono']
-            ])
-    
-    return response
 
 # --- ASIGNACIÓN DE CARTERAS Y AGENCIAS ---
 @login_required
@@ -1088,28 +657,6 @@ def dashboard_gerente(request):
         'gestores_gestiones': gestores_gestiones,
         'gestores_montos': gestores_montos,
     })
-
-# --- EXPORTAR CSV ASTERISK (TODOS LOS CLIENTES - MANTENIDO) ---
-@login_required
-def exportar_csv_asterisk(request):
-    if not es_gerente(request.user): 
-        return HttpResponse("No", status=403)
-    
-    CAMPANA_ID = '85200'
-    
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="Asterisk_PP.csv"'
-    writer = csv.writer(response)
-    writer.writerow(['TELEFONO', 'CAMPANA', 'COD_CLIENTE', 'COD_TELEFONO'])
-    
-    for d in Deudor.objects.filter(saldo_deuda__gt=0):
-        telefono = d.telefono_principal
-        if telefono and telefono != 'Sin número' and len(telefono) >= 9:
-            cod_cliente = encode_md5_base64(d.documento)
-            cod_telefono = encode_md5_base64(f"{d.id}{telefono}")
-            writer.writerow([telefono, CAMPANA_ID, cod_cliente, cod_telefono])
-    
-    return response
 
 # --- BUSCAR POR DNI ---
 @login_required
@@ -1441,19 +988,8 @@ def api_zadarma_webrtc_key(request):
         url = f"https://api.zadarma.com{api_url}"
         response = requests.get(url, params=params, headers=headers)
 
-        # DEBUG: Mostrar qué estamos enviando
-        print(f"\n🔍 DEBUG ZADARMA:")
-        print(f"  URL: {url}")
-        print(f"  Params: {params}")
-        print(f"  Query String: {query_string}")
-        print(f"  Key: {settings.ZADARMA_KEY}")
-        print(f"  Signature: {signature}")
-        print(f"  Headers: {headers}")
-        print(f"  Response: {response.json()}\n")
-
         return JsonResponse(response.json())
     except Exception as e:
-        print(f"❌ Error: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
 @login_required
@@ -1489,10 +1025,8 @@ def iniciar_callback(request, numero_cliente):
         )
         data = response.json()
     except Exception as e:
-        print(f"--- [CALLBACK ERROR] {e}")
         return JsonResponse({'status': 'error', 'message': f'Error de conexión con Zadarma: {str(e)}'}, status=500)
 
-    print(f"--- [CALLBACK] LLAMADA A {num} | RESPUESTA: {data}")
     return JsonResponse(data)
 
 

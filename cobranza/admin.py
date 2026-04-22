@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from .models import Deudor, Gestion, TelefonoExtra, AsignacionCartera, CampanaAsterisk, DetalleCampanaAsterisk
 
 # ─── Títulos del panel administrativo ───────────────────────────────────────
@@ -114,10 +115,10 @@ class CampanaAsteriskAdmin(admin.ModelAdmin):
     @admin.display(description='Estado', ordering='activa', boolean=False)
     def activa_badge(self, obj):
         if obj.activa:
-            return format_html('<span style="background:#1a6e2e;color:white;padding:2px 10px;'
-                               'border-radius:10px;font-size:11px;">● ACTIVA</span>')
-        return format_html('<span style="background:#888;color:white;padding:2px 10px;'
-                           'border-radius:10px;font-size:11px;">○ Inactiva</span>')
+            return mark_safe('<span style="background:#1a6e2e;color:white;padding:2px 10px;'
+                             'border-radius:10px;font-size:11px;">● ACTIVA</span>')
+        return mark_safe('<span style="background:#888;color:white;padding:2px 10px;'
+                         'border-radius:10px;font-size:11px;">○ Inactiva</span>')
 
     @admin.display(description='Nº Teléfonos')
     def total_numeros(self, obj):
