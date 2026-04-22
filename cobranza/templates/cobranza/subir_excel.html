@@ -1,12 +1,34 @@
-<h2>Subir Cartera de Clientes - P&P Soluciones Jurídicas</h2>
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    <input type="file" name="archivo_excel" accept=".xlsx, .xls">
-    <button type="submit">Cargar Clientes</button>
-</form>
+{% extends 'cobranza/base.html' %}
+{% block content %}
 
-{% if mensajes %}
-    <p style="padding:10px; border-radius:6px; background:{% if 'ADVERTENCIA' in mensajes %}#fff3cd; color:#856404;{% elif 'Error' in mensajes %}#f8d7da; color:#721c24;{% else %}#d4edda; color:#155724;{% endif %}">
-        {{ mensajes }}
-    </p>
-{% endif %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+    <h2 style="color: #003366; margin: 0;">📁 Subir Cartera de Clientes</h2>
+    <a href="{% url 'dashboard_gerente' %}" style="background: #003366; color: white; padding: 9px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">
+        ← Volver al Dashboard
+    </a>
+</div>
+
+<div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.07); max-width: 600px;">
+    <form method="post" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 15px;">
+        {% csrf_token %}
+        <div>
+            <label style="font-size: 13px; font-weight: bold; color: #555; display: block; margin-bottom: 6px;">Archivo Excel (.xlsx / .xls):</label>
+            <input type="file" name="archivo_excel" accept=".xlsx, .xls" required
+                   style="width: 100%; padding: 10px; border: 2px dashed #ccc; border-radius: 8px; font-size: 14px; cursor: pointer;">
+        </div>
+        <button type="submit" style="background: #28a745; color: white; padding: 12px; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer;">
+            📤 Cargar Cartera
+        </button>
+    </form>
+
+    {% if mensajes %}
+        <div style="margin-top: 20px; padding: 14px; border-radius: 8px;
+            {% if 'ADVERTENCIA' in mensajes %}background:#fff3cd; color:#856404; border-left: 4px solid #ffc107;
+            {% elif 'Error' in mensajes %}background:#f8d7da; color:#721c24; border-left: 4px solid #dc3545;
+            {% else %}background:#d4edda; color:#155724; border-left: 4px solid #28a745;{% endif %}">
+            {{ mensajes }}
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}
