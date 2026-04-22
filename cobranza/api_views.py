@@ -164,7 +164,8 @@ def api_app_credentials(request):
 def api_cartera_lista(request):
     """
     GET /api/v1/cartera/?agente={username}  → Cartera asignada al agente
-    GET /api/v1/cartera/?dni={dni}          → Búsqueda por DNI
+    GET /api/v1/cartera/?dni={dni}          → Búsqueda exacta por DNI
+    GET /api/v1/cartera/?nombre={texto}     → Búsqueda parcial por nombre (case-insensitive)
     Requiere: Authorization: Bearer PYP-CAMPO-2026
     """
     api_key = request.headers.get('Authorization', '')
@@ -173,12 +174,15 @@ def api_cartera_lista(request):
 
     agente = request.GET.get('agente', '').strip()
     dni = request.GET.get('dni', '').strip()
+    nombre = request.GET.get('nombre', '').strip()
 
-    if not agente and not dni:
-        return JsonResponse({'success': False, 'detail': 'Parámetro requerido: agente o dni.'}, status=400)
+    if not agente and not dni and not nombre:
+        return JsonResponse({'success': False, 'detail': 'Parámetro requerido: agente, dni o nombre.'}, status=400)
 
     if dni:
         deudores = Deudor.objects.filter(documento=dni)
+    elif nombre:
+        deudores = Deudor.objects.filter(nombre_completo__icontains=nombre)
     else:
         asignaciones = AsignacionCartera.objects.filter(gestor__username=agente).values('tipo', 'valor')
         carteras = [a['valor'] for a in asignaciones if a['tipo'] == 'cartera']
