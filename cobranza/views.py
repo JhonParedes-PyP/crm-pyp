@@ -934,8 +934,11 @@ def descargar_csv_campana(request, campana_id):
 
     return response
 
+from django.views.decorators.http import require_POST
+
 # --- RUTA SECRETA: ELIMINAR GESTIÓN (SOLO GERENTES) ---
 @login_required
+@require_POST
 def eliminar_gestion(request, gestion_id):
     # 1. Bloqueo de seguridad: Si no es gerente, lo rechaza
     if not es_gerente(request.user):
