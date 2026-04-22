@@ -221,6 +221,9 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL  = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Dominio público del sitio (usado para construir URLs absolutas en la API)
+SITE_URL = os.environ.get('SITE_URL', 'https://crm.pypsolucionesjuridicas.com')
+
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/login/' # Al salir, regresamos al inicio

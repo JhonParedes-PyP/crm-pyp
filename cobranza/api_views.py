@@ -227,7 +227,7 @@ def api_cartera_lista(request):
             'estado_proceso_principal': d.estado_proceso_principal or '',
             'seguimiento_principal': d.seguimiento_principal or '',
             'codigo_cautelar': d.codigo_cautelar or '',
-            'foto_evidencia': request.build_absolute_uri(d.foto_evidencia.url) if d.foto_evidencia else '',
+            'foto_evidencia': settings.SITE_URL + d.foto_evidencia.url if d.foto_evidencia else '',
         })
 
     return JsonResponse({'success': True, 'data': data}, status=200)
@@ -267,6 +267,6 @@ def api_cartera_patch(request, fila_id):
 
     deudor.save(update_fields=campos_actualizados)
 
-    foto_url = request.build_absolute_uri(deudor.foto_evidencia.url) if deudor.foto_evidencia else ''
+    foto_url = settings.SITE_URL + deudor.foto_evidencia.url if deudor.foto_evidencia else ''
     return JsonResponse({'success': True, 'foto_url': foto_url}, status=200)
 
