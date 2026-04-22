@@ -960,38 +960,18 @@ def eliminar_gestion(request, gestion_id):
 
 @require_http_methods(["GET"])
 def api_zadarma_webrtc_key(request):
-    """Genera la llave dinámica para el teléfono verde flotante"""
+    """Devuelve las credenciales SIP de forma segura al cliente autenticado"""
     token = request.GET.get('token', '')
     if not request.user.is_authenticated and token != getattr(settings, 'API_TOKEN_ZADARMA', ''):
         return JsonResponse({'error': 'No autorizado', 'message': 'Unauthorized'}, status=401)
 
-    api_url = "/v1/webrtc/get_key/"
-    params = {'sip': settings.ZADARMA_SIP}
-
-    sorted_params = dict(sorted(params.items()))
-    query_string = urlencode(sorted_params)
-
-    md5_hash = hashlib.md5(query_string.encode('utf-8')).hexdigest()
-    data_to_sign = f"{api_url}{query_string}{md5_hash}"
-
-    signature_bytes = hmac.new(
-        settings.ZADARMA_SECRET.encode('utf-8'),
-        data_to_sign.encode('utf-8'),
-        hashlib.sha1
-    ).digest()
-    signature = base64.b64encode(signature_bytes).decode()
-
-    headers = {'Authorization': f"{settings.ZADARMA_KEY}:{signature}"}
-
-    try:
-        url = f"https://api.zadarma.com{api_url}"
-        response = requests.get(url, params=params, headers=headers)
-        data = response.json()
-        if data.get('status') == 'success':
-            data['sip'] = settings.ZADARMA_SIP
-        return JsonResponse(data)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+    # El WebRTC nativo de Zadarma (JsSIP) en este proyecto requiere la contraseña directa.
+    # En lugar de quemarla en el HTML, se devuelve por API segura.
+    return JsonResponse({
+        'status': 'success',
+        'sip': getattr(settings, 'ZADARMA_SIP', '398200-100'),
+        'key': getattr(settings, 'ZADARMA_SIP_PASS', 'EaU2huAPu4') 
+    })
 
 @login_required
 def iniciar_callback(request, numero_cliente):
