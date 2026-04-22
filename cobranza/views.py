@@ -55,6 +55,20 @@ def encode_md5_base64(valor):
     codigo = codigo[:11] + '='
     return codigo
 
+# --- FUNCIÓN AUXILIAR: CONVERTIR FECHA SIN EXPLOTAR CON NaT ---
+def safe_date(valor):
+    """Convierte un string a date. Devuelve None si está vacío o es inválido."""
+    raw = str(valor).strip()
+    if raw in ('', 'nan', 'None', 'NaT'):
+        return None
+    try:
+        resultado = pd.to_datetime(raw, dayfirst=True, errors='coerce')
+        if pd.isna(resultado):
+            return None
+        return resultado.date()
+    except Exception:
+        return None
+
 # --- SEGURIDAD ---
 @require_http_methods(["GET", "POST"])
 def salir_sistema(request):
@@ -102,10 +116,7 @@ def subir_excel(request):
                 if col_fecha:
                     raw = str(row.get(col_fecha, '')).strip()
                     if raw and raw not in ('', 'nan', 'None'):
-                        try:
-                            ultimo_dia_pago_val = pd.to_datetime(raw, dayfirst=True).date()
-                        except Exception:
-                            ultimo_dia_pago_val = None
+                        ultimo_dia_pago_val = safe_date(raw)
 
                 if documento_val:
                     dni_en_excel.add(documento_val)
@@ -136,9 +147,9 @@ def subir_excel(request):
                             'condicion': str(row.get('CONDICION', row.get('SITUACION', ''))).strip(),
                             'referencia': str(row.get('REFERENCIA', '')).strip(),
                             'proceso': str(row.get('PROCESO_JUDICIAL', '')).strip(),
-                            'fec_demanda': pd.to_datetime(str(row.get('FEC_DEMANDA', '')).strip(), dayfirst=True, errors='coerce').date() if str(row.get('FEC_DEMANDA', '')).strip() not in ('', 'nan', 'None') else None,
+                            'fec_demanda': safe_date(row.get('FEC_DEMANDA', '')),
                             'monto_demanda': Decimal(str(row.get('MONTO_DEMANDA', '0')).strip()) if str(row.get('MONTO_DEMANDA', '0')).strip() not in ('', 'nan', 'None') else None,
-                            'ingreso_judicial': pd.to_datetime(str(row.get('FEC_INGRESO_JUDICIAL', '')).strip(), dayfirst=True, errors='coerce').date() if str(row.get('FEC_INGRESO_JUDICIAL', '')).strip() not in ('', 'nan', 'None') else None,
+                            'ingreso_judicial': safe_date(row.get('FEC_INGRESO_JUDICIAL', '')),
                         }
                     )
 
