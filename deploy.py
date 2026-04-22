@@ -30,13 +30,13 @@ try:
     
     # 2. Descargar código
     run_cmd(ssh, f"cd {project_dir} && git config --global --add safe.directory {project_dir} && git pull origin main")
-    
+
     # 3. Leer el .env local y subirlo
     print("Subiendo .env al servidor...")
     try:
         with open('.env', 'r', encoding='utf-8') as f:
             env_content = f.read()
-            
+
         sftp = ssh.open_sftp()
         with sftp.open(f"{project_dir}/.env", "w") as remote_env:
             remote_env.write(env_content)
@@ -45,7 +45,22 @@ try:
     except Exception as e:
         print(f"[ERROR] subiendo .env: {e}")
 
-    # 4. Reiniciar el servicio
+    # 4. Instalar dependencias nuevas (ej: Pillow para ImageField)
+    print("Instalando dependencias...")
+    run_cmd(ssh, f"{project_dir}/venv/bin/pip install -r {project_dir}/requirements.txt -q")
+
+    # 5. Aplicar migraciones de base de datos
+    print("Aplicando migraciones...")
+    run_cmd(ssh, f"{project_dir}/venv/bin/python {project_dir}/manage.py migrate --noinput")
+
+    # 6. Recolectar archivos estáticos
+    print("Recolectando archivos estáticos...")
+    run_cmd(ssh, f"{project_dir}/venv/bin/python {project_dir}/manage.py collectstatic --noinput")
+
+    # 7. Crear carpeta media si no existe
+    run_cmd(ssh, f"mkdir -p {project_dir}/media/evidencias && chmod 755 {project_dir}/media/evidencias")
+
+    # 8. Reiniciar el servicio
     print("Reiniciando el servidor web...")
     run_cmd(ssh, "systemctl restart gunicorn 2>/dev/null || systemctl restart crm-pyp 2>/dev/null || systemctl restart crm_pyp 2>/dev/null")
     

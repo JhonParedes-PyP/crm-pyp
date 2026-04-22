@@ -48,7 +48,7 @@ class Deudor(models.Model):
     estado_proceso_principal = models.CharField(max_length=100, null=True, blank=True)
     seguimiento_principal = models.TextField(null=True, blank=True)
     codigo_cautelar = models.CharField(max_length=100, null=True, blank=True)
-    foto_evidencia = models.TextField(null=True, blank=True)  # URL de imagen o base64
+    foto_evidencia = models.ImageField(upload_to='evidencias/', null=True, blank=True)
 
     def __str__(self):
         return self.nombre_completo
