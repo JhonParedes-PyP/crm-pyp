@@ -259,16 +259,33 @@ def api_cartera_patch(request, fila_id):
     deudor = get_object_or_404(Deudor, id=fila_id)
     campos_actualizados = []
 
-    if 'link_gps' in request.POST:
-        deudor.link_gps = request.POST['link_gps']
+    # Django solo parsea multipart automáticamente para POST.
+    # Para PATCH, hay que forzar el parseo manualmente.
+    if request.method == 'PATCH':
+        content_type = request.content_type or ''
+        if 'multipart/form-data' in content_type:
+            from django.http.multipartparser import MultiPartParser
+            try:
+                post_data, files = MultiPartParser(
+                    request.META, request, request.upload_handlers
+                ).parse()
+            except Exception:
+                post_data, files = request.POST, request.FILES
+        else:
+            post_data, files = request.POST, request.FILES
+    else:
+        post_data, files = request.POST, request.FILES
+
+    if 'link_gps' in post_data:
+        deudor.link_gps = post_data['link_gps']
         campos_actualizados.append('link_gps')
 
-    if 'link_gps_aval' in request.POST:
-        deudor.link_gps_aval = request.POST['link_gps_aval']
+    if 'link_gps_aval' in post_data:
+        deudor.link_gps_aval = post_data['link_gps_aval']
         campos_actualizados.append('link_gps_aval')
 
-    if 'foto_evidencia' in request.FILES:
-        deudor.foto_evidencia = request.FILES['foto_evidencia']
+    if 'foto_evidencia' in files:
+        deudor.foto_evidencia = files['foto_evidencia']
         campos_actualizados.append('foto_evidencia')
 
     if not campos_actualizados:
