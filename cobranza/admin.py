@@ -37,8 +37,8 @@ class DeudorAdmin(admin.ModelAdmin):
     @admin.display(description='Saldo Deuda', ordering='saldo_deuda')
     def saldo_deuda_fmt(self, obj):
         if obj.saldo_deuda is not None:
-            return format_html('<span style="color:#8a3a00;font-weight:600;">S/ {:,.2f}</span>',
-                               obj.saldo_deuda)
+            valor_formateado = f"{obj.saldo_deuda:,.2f}"
+            return format_html('<span style="color:#8a3a00;font-weight:600;">S/ {}</span>', valor_formateado)
         return '—'
 
 
@@ -69,8 +69,8 @@ class GestionAdmin(admin.ModelAdmin):
     @admin.display(description='Monto Pago', ordering='monto_pago')
     def monto_pago_fmt(self, obj):
         if obj.monto_pago and obj.monto_pago > 0:
-            return format_html('<span style="color:#1a6e2e;font-weight:700;">S/ {:,.2f}</span>',
-                               obj.monto_pago)
+            valor_formateado = f"{obj.monto_pago:,.2f}"
+            return format_html('<span style="color:#1a6e2e;font-weight:700;">S/ {}</span>', valor_formateado)
         return '—'
 
 
