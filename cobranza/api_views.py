@@ -184,17 +184,22 @@ def api_cartera_lista(request):
     elif nombre:
         deudores = Deudor.objects.filter(nombre_completo__icontains=nombre)
     else:
-        asignaciones = AsignacionCartera.objects.filter(gestor__username=agente).values('tipo', 'valor')
-        carteras = [a['valor'] for a in asignaciones if a['tipo'] == 'cartera']
-        agencias = [a['valor'] for a in asignaciones if a['tipo'] == 'agencia']
+        # Si es superusuario, ve toda la cartera
+        usuario = User.objects.filter(username=agente).first()
+        if usuario and (usuario.is_superuser or usuario.groups.filter(name='GERENTE').exists()):
+            deudores = Deudor.objects.all()
+        else:
+            asignaciones = AsignacionCartera.objects.filter(gestor__username=agente).values('tipo', 'valor')
+            carteras = [a['valor'] for a in asignaciones if a['tipo'] == 'cartera']
+            agencias = [a['valor'] for a in asignaciones if a['tipo'] == 'agencia']
 
-        filtro = Q()
-        if carteras:
-            filtro |= Q(cartera__in=carteras)
-        if agencias:
-            filtro |= Q(agencia__in=agencias)
+            filtro = Q()
+            if carteras:
+                filtro |= Q(cartera__in=carteras)
+            if agencias:
+                filtro |= Q(agencia__in=agencias)
 
-        deudores = Deudor.objects.filter(filtro) if filtro else Deudor.objects.none()
+            deudores = Deudor.objects.filter(filtro) if filtro else Deudor.objects.none()
 
     data = []
     for d in deudores:
