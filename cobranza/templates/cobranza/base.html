@@ -138,7 +138,7 @@
 </div>
 
 {% load static %}
-<script src="{% static 'cobranza/js/jssip.min.js' %}"
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jssip/3.10.1/jssip.min.js"
         onerror="document.getElementById('sip-status').innerText='📞 SIP: Sin librería'; document.getElementById('sip-status').style.background='#dc3545';"></script>
 <script>
 (function() {
@@ -154,8 +154,6 @@
     /* Activar logs en consola para diagnóstico */
     JsSIP.debug.enable('JsSIP:*');
 
-    var SIP_USER   = '398200-100';
-    var SIP_PASS   = 'EaU2huAPu4';
     var SIP_DOMAIN = 'pbx.zadarma.com';
 
     /* Zadarma PBX WebSocket — probamos primero :4443, luego :443 */
@@ -165,7 +163,25 @@
         'wss://sip.zadarma.com:4443'
     ];
 
-    function crearUA(wsUrl) {
+    function initSIP() {
+        fetch('/api/webrtc-key/')
+            .then(res => res.json())
+            .then(data => {
+                if (data.status !== 'success' || !data.key || !data.sip) {
+                    statusEl.innerText = '📞 SIP: Auth Falló';
+                    statusEl.style.background = '#dc3545';
+                    return;
+                }
+                crearUA(WS_URLS[0], data.sip, data.key);
+            })
+            .catch(err => {
+                console.error('[SIP] Error obteniendo token:', err);
+                statusEl.innerText = '📞 SIP: Auth Falló';
+                statusEl.style.background = '#dc3545';
+            });
+    }
+
+    function crearUA(wsUrl, sipUser, sipPass) {
         console.log('[SIP] Intentando conexión a:', wsUrl);
         statusEl.innerText = '📞 SIP: Conectando...';
         statusEl.style.background = '#6c757d';
@@ -175,8 +191,8 @@
         try {
             ua = new JsSIP.UA({
                 sockets        : [socket],
-                uri            : 'sip:' + SIP_USER + '@' + SIP_DOMAIN,
-                password       : SIP_PASS,
+                uri            : 'sip:' + sipUser + '@' + SIP_DOMAIN,
+                password       : sipPass,
                 register       : true,
                 session_timers : false,
                 connection_recovery_min_interval : 4,
@@ -204,7 +220,7 @@
         });
 
         ua.on('registered', function() {
-            console.log('[SIP] Registrado correctamente como', SIP_USER);
+            console.log('[SIP] Registrado correctamente como', sipUser);
             statusEl.innerText = '📞 SIP: Listo ✓';
             statusEl.style.background = '#28a745';
             window.sipRegistered = true;
@@ -234,15 +250,15 @@
         return ua;
     }
 
-    /* Intentar primera URL */
-    crearUA(WS_URLS[0]);
+    /* Iniciar pidiendo llave al backend */
+    initSIP();
 
     /* Reconectar haciendo clic en el indicador */
     statusEl.addEventListener('click', function() {
         if (window.sipUA) { try { window.sipUA.stop(); } catch(e) {} }
         window.sipUA = null;
         window.sipRegistered = false;
-        crearUA(WS_URLS[0]);
+        initSIP();
     });
 })();
 </script>

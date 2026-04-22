@@ -961,23 +961,19 @@ def eliminar_gestion(request, gestion_id):
 @require_http_methods(["GET"])
 def api_zadarma_webrtc_key(request):
     """Genera la llave dinámica para el teléfono verde flotante"""
-    # Verificar token API (sin login requerido)
     token = request.GET.get('token', '')
-    if token != settings.API_TOKEN_ZADARMA:
-        return JsonResponse({'error': 'Token inválido', 'message': 'Unauthorized'}, status=401)
+    if not request.user.is_authenticated and token != getattr(settings, 'API_TOKEN_ZADARMA', ''):
+        return JsonResponse({'error': 'No autorizado', 'message': 'Unauthorized'}, status=401)
 
     api_url = "/v1/webrtc/get_key/"
     params = {'sip': settings.ZADARMA_SIP}
 
-    # 1. Ordenar y codificar parámetros
     sorted_params = dict(sorted(params.items()))
     query_string = urlencode(sorted_params)
 
-    # 2. Firma Zadarma: método + query + md5(query)
     md5_hash = hashlib.md5(query_string.encode('utf-8')).hexdigest()
     data_to_sign = f"{api_url}{query_string}{md5_hash}"
 
-    # 3. HMAC-SHA1 en BASE64 (como requiere Zadarma)
     signature_bytes = hmac.new(
         settings.ZADARMA_SECRET.encode('utf-8'),
         data_to_sign.encode('utf-8'),
@@ -990,8 +986,10 @@ def api_zadarma_webrtc_key(request):
     try:
         url = f"https://api.zadarma.com{api_url}"
         response = requests.get(url, params=params, headers=headers)
-
-        return JsonResponse(response.json())
+        data = response.json()
+        if data.get('status') == 'success':
+            data['sip'] = settings.ZADARMA_SIP
+        return JsonResponse(data)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
