@@ -224,6 +224,10 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Dominio público del sitio (usado para construir URLs absolutas en la API)
 SITE_URL = os.environ.get('SITE_URL', 'https://crm.pypsolucionesjuridicas.com')
 
+# Límite de tamaño para uploads (Excel de carteras puede pesar varios MB)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024   # 20 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024   # 20 MB
+
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/login/' # Al salir, regresamos al inicio
