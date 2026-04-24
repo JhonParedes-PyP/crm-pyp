@@ -64,25 +64,25 @@
                     <th style="padding: 8px;">DNI</th>
                     
                     <th style="padding: 8px;">
-                        <a href="?q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&fecha_pago_desde={{ fecha_pago_desde }}&fecha_pago_hasta={{ fecha_pago_hasta }}&orden={% if orden_actual == 'nombre' %}-nombre{% else %}nombre{% endif %}" 
+                        <a href="?q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&fecha_pago_desde={{ fecha_pago_desde }}&fecha_pago_hasta={{ fecha_pago_hasta }}&rango_deuda={{ rango_deuda }}&orden={% if orden_actual == 'nombre' %}-nombre{% else %}nombre{% endif %}" 
                            style="color: white; text-decoration: none; display: flex; align-items: center; gap: 5px;">
                             Cliente <span style="font-size: 0.8em;">{% if orden_actual == 'nombre' %}⬆️{% elif orden_actual == '-nombre' %}⬇️{% else %}↕️{% endif %}</span>
                         </a>
                     </th>
                     <th style="padding: 8px;">
-                        <a href="?q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&fecha_pago_desde={{ fecha_pago_desde }}&fecha_pago_hasta={{ fecha_pago_hasta }}&orden={% if orden_actual == 'agencia' %}-agencia{% else %}agencia{% endif %}" 
+                        <a href="?q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&fecha_pago_desde={{ fecha_pago_desde }}&fecha_pago_hasta={{ fecha_pago_hasta }}&rango_deuda={{ rango_deuda }}&orden={% if orden_actual == 'agencia' %}-agencia{% else %}agencia{% endif %}" 
                            style="color: white; text-decoration: none; display: flex; align-items: center; gap: 5px;">
                             Agencia <span style="font-size: 0.8em;">{% if orden_actual == 'agencia' %}⬆️{% elif orden_actual == '-agencia' %}⬇️{% else %}↕️{% endif %}</span>
                         </a>
                     </th>
                     <th style="padding: 8px;">
-                        <a href="?q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&fecha_pago_desde={{ fecha_pago_desde }}&fecha_pago_hasta={{ fecha_pago_hasta }}&orden={% if orden_actual == 'ultimo_dia_pago' %}-ultimo_dia_pago{% else %}ultimo_dia_pago{% endif %}" 
+                        <a href="?q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&fecha_pago_desde={{ fecha_pago_desde }}&fecha_pago_hasta={{ fecha_pago_hasta }}&rango_deuda={{ rango_deuda }}&orden={% if orden_actual == 'ultimo_dia_pago' %}-ultimo_dia_pago{% else %}ultimo_dia_pago{% endif %}" 
                            style="color: white; text-decoration: none; display: flex; align-items: center; gap: 5px;">
                             Últ. Pago <span style="font-size: 0.8em;">{% if orden_actual == 'ultimo_dia_pago' %}⬆️{% elif orden_actual == '-ultimo_dia_pago' %}⬇️{% else %}↕️{% endif %}</span>
                         </a>
                     </th>
                     <th style="padding: 8px;">
-                        <a href="?q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&fecha_pago_desde={{ fecha_pago_desde }}&fecha_pago_hasta={{ fecha_pago_hasta }}&orden={% if orden_actual == 'deuda_total' %}-deuda_total{% else %}deuda_total{% endif %}" 
+                        <a href="?q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&fecha_pago_desde={{ fecha_pago_desde }}&fecha_pago_hasta={{ fecha_pago_hasta }}&rango_deuda={{ rango_deuda }}&orden={% if orden_actual == 'deuda_total' %}-deuda_total{% else %}deuda_total{% endif %}" 
                            style="color: white; text-decoration: none; display: flex; align-items: center; gap: 5px;">
                             Deuda <span style="font-size: 0.8em;">{% if orden_actual == 'deuda_total' %}⬆️{% elif orden_actual == '-deuda_total' %}⬇️{% else %}↕️{% endif %}</span>
                         </a>

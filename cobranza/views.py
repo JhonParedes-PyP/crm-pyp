@@ -269,10 +269,10 @@ def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False):
     elif orden == '-nombre': deudores = deudores.order_by('-nombre_completo')
     elif orden == 'agencia': deudores = deudores.order_by('agencia')
     elif orden == '-agencia': deudores = deudores.order_by('-agencia')
-    elif orden == 'ultimo_dia_pago': deudores = deudores.order_by('ultimo_dia_pago')
-    elif orden == '-ultimo_dia_pago': deudores = deudores.order_by('-ultimo_dia_pago')
-    elif orden == 'deuda_total': deudores = deudores.order_by('saldo_deuda')
-    elif orden == '-deuda_total': deudores = deudores.order_by('-saldo_deuda')
+    elif orden == 'ultimo_dia_pago': deudores = deudores.order_by(F('ultimo_dia_pago').asc(nulls_last=True))
+    elif orden == '-ultimo_dia_pago': deudores = deudores.order_by(F('ultimo_dia_pago').desc(nulls_last=True))
+    elif orden == 'deuda_total': deudores = deudores.order_by(F('saldo_deuda').asc(nulls_last=True))
+    elif orden == '-deuda_total': deudores = deudores.order_by(F('saldo_deuda').desc(nulls_last=True))
     else:
         deudores = deudores.order_by('prioridad', F('ultima_llamada').asc(nulls_first=True))
 
