@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -101,7 +102,10 @@
 <body>
 <nav>
     <div class="nav-top">
-        <div class="logo">⚖️ P&P SOLUCIONES JURÍDICAS</div>
+        <div class="logo" style="display:flex; align-items:center; gap:12px;">
+            <img src="{% static 'cobranza/logo_pyp.jpeg' %}" alt="Logo P&P" style="height:42px; width:auto; border-radius:6px; object-fit:cover;">
+            ⚖️ P&P SOLUCIONES JURÍDICAS
+        </div>
     </div>
     <div class="nav-bottom">
         <div class="menu">
