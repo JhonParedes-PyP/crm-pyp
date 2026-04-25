@@ -150,6 +150,17 @@ def subir_excel(request):
                             'fec_demanda': safe_date(row.get('FEC_DEMANDA', '')),
                             'monto_demanda': Decimal(str(row.get('MONTO_DEMANDA', '0')).strip()) if str(row.get('MONTO_DEMANDA', '0')).strip() not in ('', 'nan', 'None') else None,
                             'ingreso_judicial': safe_date(row.get('FEC_INGRESO_JUDICIAL', '')),
+                            # Campos requeridos por _CAMPO_MAP (app móvil)
+                            'producto': str(row.get('PRODUCTO', '')).strip(),
+                            'nmes': str(row.get('NMES', '')).strip(),
+                            'departamento': str(row.get('DEPARTAMENTO', '')).strip(),
+                            'provincia': str(row.get('PROVINCIA', '')).strip(),
+                            'dir_negocio': str(row.get('DIR_NEGOCIO', '')).strip(),
+                            'imp_recup': Decimal(str(row.get('IMP_RECUP', '0')).strip()) if str(row.get('IMP_RECUP', '0')).strip() not in ('', 'nan', 'None') else None,
+                            'imp_capital_rec': Decimal(str(row.get('IMP_CAPITAL_REC', '0')).strip()) if str(row.get('IMP_CAPITAL_REC', '0')).strip() not in ('', 'nan', 'None') else None,
+                            'num_doc_conyuge': str(row.get('NUM_DOC_CONYUGE', '')).strip(),
+                            'num_doc_aval': str(row.get('NUM_DOC_AVAL', '')).strip(),
+                            'zona': str(row.get('ZONA', '')).strip(),
                         }
                     )
 

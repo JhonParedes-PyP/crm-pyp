@@ -37,6 +37,18 @@ class Deudor(models.Model):
     aval_direccion = models.TextField(null=True, blank=True)
     aval_distrito = models.CharField(max_length=100, null=True, blank=True)
 
+    # CAMPOS REQUERIDOS POR APP MÓVIL (_CAMPO_MAP)
+    producto = models.CharField(max_length=100, null=True, blank=True)
+    nmes = models.CharField(max_length=20, null=True, blank=True)       # Número de meses mora
+    departamento = models.CharField(max_length=100, null=True, blank=True)
+    provincia = models.CharField(max_length=100, null=True, blank=True)
+    dir_negocio = models.TextField(null=True, blank=True)
+    imp_recup = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    imp_capital_rec = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    num_doc_conyuge = models.CharField(max_length=20, null=True, blank=True)
+    num_doc_aval = models.CharField(max_length=20, null=True, blank=True)
+    zona = models.CharField(max_length=100, null=True, blank=True)
+
     # CAMPOS APP MÓVIL (actualizables por gestores de campo)
     link_gps = models.CharField(max_length=500, null=True, blank=True)
     link_gps_aval = models.CharField(max_length=500, null=True, blank=True)
