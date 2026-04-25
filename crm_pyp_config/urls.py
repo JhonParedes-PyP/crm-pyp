@@ -27,6 +27,10 @@ urlpatterns = [
     path('dashboard/', dashboard_views.dashboard_gerente, name='dashboard_gerente'),
     path('exportar-gestiones/', dashboard_views.exportar_gestiones_excel, name='exportar_gestiones_excel'),
 
+    # Agenda Diaria
+    path('agenda/', dashboard_views.agenda_diaria, name='agenda_diaria'),
+    path('agenda/completar/<int:seguimiento_id>/', dashboard_views.marcar_seguimiento_completado, name='marcar_seguimiento_completado'),
+
     # Rutas Principales del CRM
     path('subir-excel/', views.subir_excel, name='subir_excel'),
     path('bandeja-gestor/', views.bandeja_gestor, name='bandeja_gestor'),

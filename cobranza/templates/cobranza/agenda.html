@@ -1,0 +1,396 @@
+{% extends 'cobranza/base.html' %}
+{% load humanize %}
+
+{% block content %}
+
+<style>
+    .agenda-header {
+        background: linear-gradient(135deg, #003366 0%, #005599 100%);
+        color: white;
+        padding: 20px 28px;
+        border-radius: 12px;
+        margin-bottom: 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .agenda-header h1 { margin: 0; font-size: 22px; }
+    .agenda-header .fecha { font-size: 14px; opacity: 0.85; margin-top: 4px; }
+    .badge-urgente {
+        background: #dc3545;
+        color: white;
+        border-radius: 20px;
+        padding: 6px 16px;
+        font-weight: bold;
+        font-size: 15px;
+    }
+    .seccion {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        margin-bottom: 24px;
+        overflow: hidden;
+    }
+    .seccion-header {
+        padding: 14px 20px;
+        font-weight: bold;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-bottom: 2px solid rgba(0,0,0,0.06);
+    }
+    .seccion-header .count {
+        background: rgba(0,0,0,0.12);
+        border-radius: 12px;
+        padding: 2px 10px;
+        font-size: 13px;
+        margin-left: auto;
+    }
+    .seccion-header.rojo  { background: #fff5f5; color: #c0392b; border-left: 5px solid #e74c3c; }
+    .seccion-header.naranja { background: #fff8f0; color: #e67e22; border-left: 5px solid #f39c12; }
+    .seccion-header.verde { background: #f0fff4; color: #27ae60; border-left: 5px solid #2ecc71; }
+    .seccion-header.azul  { background: #f0f8ff; color: #2980b9; border-left: 5px solid #3498db; }
+    .seccion-header.gris  { background: #f8f9fa; color: #555;    border-left: 5px solid #adb5bd; }
+
+    .card-item {
+        padding: 14px 20px;
+        border-bottom: 1px solid #f0f0f0;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+        transition: background 0.15s;
+    }
+    .card-item:hover { background: #f9fafc; }
+    .card-item:last-child { border-bottom: none; }
+    .card-nombre { font-weight: bold; font-size: 14px; color: #1a1a2e; }
+    .card-sub    { font-size: 12px; color: #666; margin-top: 3px; }
+    .card-sub span { display: inline-block; margin-right: 10px; }
+    .card-monto  { font-size: 16px; font-weight: 900; color: #c0392b; text-align: right; white-space: nowrap; }
+    .card-monto small { display: block; font-size: 10px; font-weight: normal; color: #999; }
+    .btn-ir {
+        display: inline-block;
+        background: #003366;
+        color: white;
+        padding: 5px 14px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: bold;
+        white-space: nowrap;
+    }
+    .btn-ir:hover { background: #0055a5; }
+    .btn-completar {
+        background: none;
+        border: 2px solid #27ae60;
+        color: #27ae60;
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-right: 6px;
+    }
+    .btn-completar:hover { background: #27ae60; color: white; }
+    .empty-state {
+        padding: 24px;
+        text-align: center;
+        color: #aaa;
+        font-size: 14px;
+    }
+    .dias-form {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255,255,255,0.15);
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 13px;
+    }
+    .dias-form input {
+        width: 48px;
+        padding: 3px 6px;
+        border-radius: 4px;
+        border: none;
+        font-weight: bold;
+        text-align: center;
+    }
+    .dias-form button {
+        background: #fab005;
+        border: none;
+        color: #003366;
+        font-weight: bold;
+        padding: 3px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .tag {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: bold;
+    }
+    .tag-promesa   { background: #fff3cd; color: #856404; }
+    .tag-vencida   { background: #f8d7da; color: #721c24; }
+    .tag-seguimiento { background: #d1ecf1; color: #0c5460; }
+    .tag-sin-contacto { background: #e2e3e5; color: #383d41; }
+</style>
+
+<!-- HEADER -->
+<div class="agenda-header">
+    <div>
+        <h1>📅 Agenda del Día</h1>
+        <div class="fecha">{{ hoy|date:"l d \d\e F \d\e Y"|title }}</div>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        {% if total_urgente > 0 %}
+            <span class="badge-urgente">🔴 {{ total_urgente }} pendiente{{ total_urgente|pluralize }}</span>
+        {% else %}
+            <span style="background: #27ae60; color: white; border-radius: 20px; padding: 6px 16px; font-weight: bold;">✅ Todo al día</span>
+        {% endif %}
+        <form method="GET" action="" class="dias-form">
+            <label>Sin contacto:</label>
+            <input type="number" name="dias" value="{{ dias_sin_contacto }}" min="1" max="30">
+            <span>días</span>
+            <button type="submit">↺</button>
+        </form>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+
+    <!-- COLUMNA IZQUIERDA: Promesas -->
+    <div>
+
+        <!-- Promesas vencidas (antes de hoy, sin pago) -->
+        {% if promesas_vencidas %}
+        <div class="seccion">
+            <div class="seccion-header rojo">
+                ⚠️ Promesas VENCIDAS (sin cobrar)
+                <span class="count">{{ promesas_vencidas.count }}</span>
+            </div>
+            {% for g in promesas_vencidas %}
+            <div class="card-item">
+                <div>
+                    <div class="card-nombre">{{ g.deudor.nombre_completo }}</div>
+                    <div class="card-sub">
+                        <span>📄 {{ g.deudor.documento }}</span>
+                        <span>📅 Prometió: <strong style="color:#c0392b;">{{ g.fecha_promesa|date:"d/m/Y" }}</strong></span>
+                        <span class="tag tag-vencida">VENCIDA</span>
+                        {% if es_gerente %}<span style="color:#888; font-size:11px;">👤 {{ g.gestor.username|upper }}</span>{% endif %}
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <div class="card-monto">S/ {{ g.deudor.saldo_deuda|floatformat:2|intcomma }}<small>deuda total</small></div>
+                    <a href="{% url 'registrar_gestion' g.deudor.id %}" class="btn-ir" style="margin-top:6px; display:inline-block;">Gestionar →</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Promesas que vencen HOY -->
+        <div class="seccion">
+            <div class="seccion-header naranja">
+                🤝 Promesas que vencen HOY
+                <span class="count">{{ promesas_hoy.count }}</span>
+            </div>
+            {% for g in promesas_hoy %}
+            <div class="card-item">
+                <div>
+                    <div class="card-nombre">{{ g.deudor.nombre_completo }}</div>
+                    <div class="card-sub">
+                        <span>📄 {{ g.deudor.documento }}</span>
+                        <span>📞 {{ g.deudor.telefono_principal }}</span>
+                        <span class="tag tag-promesa">PROMESA HOY</span>
+                        {% if es_gerente %}<span style="color:#888; font-size:11px;">👤 {{ g.gestor.username|upper }}</span>{% endif %}
+                    </div>
+                    {% if g.monto_pago %}<div class="card-sub" style="color:#27ae60; font-weight:bold;">💰 Prometió: S/ {{ g.monto_pago|floatformat:2|intcomma }}</div>{% endif %}
+                </div>
+                <div style="text-align:right;">
+                    <div class="card-monto">S/ {{ g.deudor.saldo_deuda|floatformat:2|intcomma }}<small>deuda total</small></div>
+                    <a href="{% url 'registrar_gestion' g.deudor.id %}" class="btn-ir" style="margin-top:6px; display:inline-block;">Gestionar →</a>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">✅ No hay promesas para hoy.</div>
+            {% endfor %}
+        </div>
+
+        <!-- Promesas de mañana (avance) -->
+        {% if promesas_manana %}
+        <div class="seccion">
+            <div class="seccion-header gris">
+                📆 Promesas de MAÑANA ({{ manana|date:"d/m" }})
+                <span class="count">{{ promesas_manana.count }}</span>
+            </div>
+            {% for g in promesas_manana %}
+            <div class="card-item">
+                <div>
+                    <div class="card-nombre">{{ g.deudor.nombre_completo }}</div>
+                    <div class="card-sub">
+                        <span>📄 {{ g.deudor.documento }}</span>
+                        {% if g.monto_pago %}<span style="color:#27ae60; font-weight:bold;">S/ {{ g.monto_pago|floatformat:2|intcomma }}</span>{% endif %}
+                        {% if es_gerente %}<span style="color:#888; font-size:11px;">👤 {{ g.gestor.username|upper }}</span>{% endif %}
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <div class="card-monto">S/ {{ g.deudor.saldo_deuda|floatformat:2|intcomma }}<small>deuda total</small></div>
+                    <a href="{% url 'registrar_gestion' g.deudor.id %}" class="btn-ir" style="margin-top:6px; display:inline-block;">Ver →</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- COLUMNA DERECHA: Seguimientos + Sin Contacto -->
+    <div>
+
+        <!-- Seguimientos vencidos -->
+        {% if seguimientos_vencidos %}
+        <div class="seccion">
+            <div class="seccion-header rojo">
+                ⏰ Seguimientos VENCIDOS
+                <span class="count">{{ seguimientos_vencidos.count }}</span>
+            </div>
+            {% for seg in seguimientos_vencidos %}
+            <div class="card-item" id="seg-{{ seg.id }}">
+                <div>
+                    <div class="card-nombre">{{ seg.deudor.nombre_completo }}</div>
+                    <div class="card-sub">
+                        <span>📅 Programado: <strong style="color:#c0392b;">{{ seg.fecha_programada|date:"d/m/Y" }}</strong></span>
+                        <span class="tag tag-vencida">VENCIDO</span>
+                        {% if es_gerente %}<span style="color:#888; font-size:11px;">👤 {{ seg.gestor.username|upper }}</span>{% endif %}
+                    </div>
+                    <div class="card-sub" style="font-style:italic; color:#555;">📝 {{ seg.motivo }}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div class="card-monto">S/ {{ seg.deudor.saldo_deuda|floatformat:2|intcomma }}<small>deuda total</small></div>
+                    <div style="margin-top:6px; display:flex; gap:5px; justify-content:flex-end; flex-wrap:wrap;">
+                        <button class="btn-completar" onclick="completarSeguimiento({{ seg.id }})">✔ Listo</button>
+                        <a href="{% url 'registrar_gestion' seg.deudor.id %}" class="btn-ir">Gestionar →</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Seguimientos de HOY -->
+        <div class="seccion">
+            <div class="seccion-header azul">
+                📌 Seguimientos programados HOY
+                <span class="count">{{ seguimientos_hoy.count }}</span>
+            </div>
+            {% for seg in seguimientos_hoy %}
+            <div class="card-item" id="seg-{{ seg.id }}">
+                <div>
+                    <div class="card-nombre">{{ seg.deudor.nombre_completo }}</div>
+                    <div class="card-sub">
+                        <span>📄 {{ seg.deudor.documento }}</span>
+                        <span>📞 {{ seg.deudor.telefono_principal }}</span>
+                        <span class="tag tag-seguimiento">HOY</span>
+                        {% if es_gerente %}<span style="color:#888; font-size:11px;">👤 {{ seg.gestor.username|upper }}</span>{% endif %}
+                    </div>
+                    <div class="card-sub" style="font-style:italic; color:#555;">📝 {{ seg.motivo }}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div class="card-monto">S/ {{ seg.deudor.saldo_deuda|floatformat:2|intcomma }}<small>deuda total</small></div>
+                    <div style="margin-top:6px; display:flex; gap:5px; justify-content:flex-end; flex-wrap:wrap;">
+                        <button class="btn-completar" onclick="completarSeguimiento({{ seg.id }})">✔ Listo</button>
+                        <a href="{% url 'registrar_gestion' seg.deudor.id %}" class="btn-ir">Gestionar →</a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">✅ No hay seguimientos para hoy.</div>
+            {% endfor %}
+        </div>
+
+        <!-- Seguimientos de mañana (preview) -->
+        {% if seguimientos_manana %}
+        <div class="seccion">
+            <div class="seccion-header gris">
+                📆 Seguimientos de MAÑANA ({{ manana|date:"d/m" }})
+                <span class="count">{{ seguimientos_manana.count }}</span>
+            </div>
+            {% for seg in seguimientos_manana %}
+            <div class="card-item">
+                <div>
+                    <div class="card-nombre">{{ seg.deudor.nombre_completo }}</div>
+                    <div class="card-sub">
+                        <span>📝 {{ seg.motivo }}</span>
+                        {% if es_gerente %}<span style="color:#888; font-size:11px;">👤 {{ seg.gestor.username|upper }}</span>{% endif %}
+                    </div>
+                </div>
+                <a href="{% url 'registrar_gestion' seg.deudor.id %}" class="btn-ir">Ver →</a>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Sin contacto en X días -->
+        <div class="seccion">
+            <div class="seccion-header gris">
+                😴 Sin contacto en +{{ dias_sin_contacto }} días
+                <span class="count">{{ sin_contacto|length }}</span>
+            </div>
+            {% for d in sin_contacto %}
+            <div class="card-item">
+                <div>
+                    <div class="card-nombre">{{ d.nombre_completo }}</div>
+                    <div class="card-sub">
+                        <span>📄 {{ d.documento }}</span>
+                        <span>📞 {{ d.telefono_principal }}</span>
+                        {% if d.ultima_gestion %}
+                            <span class="tag tag-sin-contacto">Ult. gestión: {{ d.ultima_gestion|date:"d/m/Y" }}</span>
+                        {% else %}
+                            <span class="tag tag-vencida">SIN GESTIONES</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <div class="card-monto">S/ {{ d.saldo_deuda|floatformat:2|intcomma }}<small>deuda total</small></div>
+                    <a href="{% url 'registrar_gestion' d.id %}" class="btn-ir" style="margin-top:6px; display:inline-block;">Llamar →</a>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">✅ Todos los clientes han sido contactados recientemente.</div>
+            {% endfor %}
+        </div>
+
+    </div>
+</div>
+
+<script>
+function completarSeguimiento(id) {
+    if (!confirm('¿Marcar este seguimiento como completado?')) return;
+    fetch('/agenda/completar/' + id + '/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.ok) {
+            var el = document.getElementById('seg-' + id);
+            if (el) {
+                el.style.transition = 'opacity 0.4s';
+                el.style.opacity = '0';
+                setTimeout(function() { el.remove(); }, 400);
+            }
+        }
+    })
+    .catch(function() { alert('Error al marcar. Intente de nuevo.'); });
+}
+</script>
+
+{% endblock %}

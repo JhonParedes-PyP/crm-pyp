@@ -186,7 +186,25 @@
                     <label style="font-size: 11px; font-weight: bold; color: #555;">Observación Final:</label>
                     <textarea name="observacion" rows="3" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px; resize: none;" required placeholder="Escriba los detalles de la negociación..."></textarea>
                 </div>
-                
+
+                <!-- PROGRAMAR SEGUIMIENTO -->
+                <div style="background: #e8f4fd; border: 1px dashed #3498db; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; font-weight: bold; color: #2980b9;">
+                        <input type="checkbox" id="chk_seguimiento" name="programar_seguimiento" onchange="toggleSeguimiento()" style="width:16px; height:16px;">
+                        📌 Programar seguimiento
+                    </label>
+                    <div id="div_seguimiento" style="display:none; margin-top: 8px; display: none; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div>
+                            <label style="font-size: 10px; font-weight: bold; color: #555;">Fecha del seguimiento:</label>
+                            <input type="date" name="fecha_seguimiento" id="fecha_seguimiento" style="width: 100%; padding: 7px; border-radius: 6px; border: 1px solid #3498db; font-size: 12px;">
+                        </div>
+                        <div>
+                            <label style="font-size: 10px; font-weight: bold; color: #555;">Motivo / Recordatorio:</label>
+                            <input type="text" name="motivo_seguimiento" id="motivo_seguimiento" placeholder="Ej: Confirmar pago, Rellamar..." style="width: 100%; padding: 7px; border-radius: 6px; border: 1px solid #3498db; font-size: 12px;">
+                        </div>
+                    </div>
+                </div>
+
                 <button type="submit" style="width: 100%; background: #28a745; color: white; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; text-transform: uppercase;">Guardar Gestión</button>
             </form>
 
@@ -371,5 +389,19 @@ function manejarMenuDinamico() {
 }
 
 // (función definida arriba)
+
+function toggleSeguimiento() {
+    var chk = document.getElementById('chk_seguimiento');
+    var div = document.getElementById('div_seguimiento');
+    if (chk.checked) {
+        div.style.display = 'grid';
+        document.getElementById('fecha_seguimiento').required = true;
+        document.getElementById('motivo_seguimiento').required = true;
+    } else {
+        div.style.display = 'none';
+        document.getElementById('fecha_seguimiento').required = false;
+        document.getElementById('motivo_seguimiento').required = false;
+    }
+}
 </script>
 {% endblock %}

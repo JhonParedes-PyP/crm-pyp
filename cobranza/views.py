@@ -18,7 +18,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 
 
 # --- AQUÍ ESTÁ LA LÍNEA ACTUALIZADA CON LAS CAMPAÑAS ---
-from .models import Deudor, Gestion, TelefonoExtra, AsignacionCartera, CampanaAsterisk, DetalleCampanaAsterisk
+from .models import Deudor, Gestion, TelefonoExtra, AsignacionCartera, CampanaAsterisk, DetalleCampanaAsterisk, SeguimientoProgramado
 
 from django.db import models
 from django.db.models import Q, Sum, Count, Max, OuterRef, Subquery, Case, When, Value, IntegerField, F
@@ -536,6 +536,21 @@ def registrar_gestion(request, deudor_id):
                     monto_decimal = deudor.saldo_deuda
                 deudor.saldo_deuda -= monto_decimal
                 deudor.save()
+
+            # --- GUARDAR SEGUIMIENTO PROGRAMADO (si el gestor lo marcó) ---
+            if request.POST.get('programar_seguimiento'):
+                fecha_seg_raw = request.POST.get('fecha_seguimiento', '').strip()
+                motivo_seg = request.POST.get('motivo_seguimiento', '').strip() or resultado_final
+                if fecha_seg_raw:
+                    from django.utils.dateparse import parse_date
+                    fecha_seg = parse_date(fecha_seg_raw)
+                    if fecha_seg:
+                        SeguimientoProgramado.objects.create(
+                            deudor=deudor,
+                            gestor=request.user,
+                            fecha_programada=fecha_seg,
+                            motivo=motivo_seg[:200],
+                        )
             
             # --- NUEVA LÓGICA DE REDIRECCIÓN AL SIGUIENTE ---
             siguiente_id_post = request.POST.get('siguiente_id')

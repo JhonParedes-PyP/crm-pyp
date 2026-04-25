@@ -125,3 +125,21 @@ class DetalleCampanaAsterisk(models.Model):
 
     def __str__(self):
         return f"Campaña {self.campana.id} - Tel: {self.telefono}"
+
+
+# --- AGENDA DIARIA: SEGUIMIENTOS PROGRAMADOS ---
+class SeguimientoProgramado(models.Model):
+    deudor = models.ForeignKey(Deudor, on_delete=models.CASCADE, related_name='seguimientos')
+    gestor = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='seguimientos')
+    fecha_programada = models.DateField()
+    motivo = models.CharField(max_length=200)
+    completado = models.BooleanField(default=False)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['fecha_programada']
+        verbose_name = "Seguimiento Programado"
+        verbose_name_plural = "Seguimientos Programados"
+
+    def __str__(self):
+        return f"{self.deudor.nombre_completo} — {self.fecha_programada} ({self.gestor.username})"

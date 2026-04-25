@@ -160,6 +160,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'crm_pyp_config.context_processors.zadarma_token',
+                'crm_pyp_config.context_processors.agenda_alertas',
             ],
         },
     },
