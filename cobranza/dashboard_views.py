@@ -93,80 +93,126 @@ def agenda_diaria(request):
     manana = hoy + timedelta(days=1)
     dias_sin_contacto = int(request.GET.get('dias', 3))
     es_gerente_flag = es_gerente(request.user)
+    agente_id = request.GET.get('agente')  # Gerente puede filtrar por agente
 
-    # --- Filtros de cartera para gestores no gerentes ---
-    def _get_cartera_filter(prefix='deudor__'):
-        """Devuelve un Q con la cartera/agencia del gestor, o None si es gerente."""
-        if es_gerente_flag:
-            return None
-        asignaciones = AsignacionCartera.objects.filter(gestor=request.user)
-        carteras = list(asignaciones.filter(tipo='cartera').values_list('valor', flat=True))
-        agencias = list(asignaciones.filter(tipo='agencia').values_list('valor', flat=True))
-        cond = Q()
-        if carteras:
-            cond |= Q(**{f'{prefix}cartera__in': carteras})
-        if agencias:
-            cond |= Q(**{f'{prefix}agencia__in': agencias})
-        return cond if cond else Q(pk__in=[])  # ninguna asignación → sin resultados
+    # ══════════════════════════════════════════════════════════════════════
+    # MODO SUPERVISIÓN — Gerente ve panel por agente (no clientes directos)
+    # ══════════════════════════════════════════════════════════════════════
+    if es_gerente_flag and not agente_id:
+        agentes = User.objects.exclude(
+            groups__name='GERENTE'
+        ).exclude(
+            is_superuser=True
+        ).annotate(
+            promesas_vencidas=Count('gestion', filter=Q(
+                gestion__resultado__icontains='PROMESA',
+                gestion__fecha_promesa__lt=hoy
+            )),
+            promesas_hoy=Count('gestion', filter=Q(
+                gestion__resultado__icontains='PROMESA',
+                gestion__fecha_promesa=hoy
+            )),
+            seguimientos_pendientes=Count('seguimientos', filter=Q(
+                seguimientos__completado=False,
+                seguimientos__fecha_programada__lte=hoy
+            )),
+            gestiones_hoy=Count('gestion', filter=Q(
+                gestion__fecha__date=hoy
+            )),
+            gestiones_semana=Count('gestion', filter=Q(
+                gestion__fecha__date__gte=hoy - timedelta(days=7)
+            )),
+            monto_semana=Sum('gestion__monto_pago', filter=Q(
+                gestion__fecha__date__gte=hoy - timedelta(days=7)
+            )),
+        ).order_by('-gestiones_hoy', 'username')
 
-    # ── 1. PROMESAS QUE VENCEN HOY ─────────────────────────────────────────
+        total_prom_vencidas = sum(a.promesas_vencidas for a in agentes)
+        total_prom_hoy = sum(a.promesas_hoy for a in agentes)
+        total_seg_pendientes = sum(a.seguimientos_pendientes for a in agentes)
+        total_alertas = total_prom_vencidas + total_prom_hoy + total_seg_pendientes
+
+        return render(request, 'cobranza/agenda.html', {
+            'modo': 'supervision',
+            'hoy': hoy,
+            'agentes': agentes,
+            'total_alertas': total_alertas,
+            'total_prom_vencidas': total_prom_vencidas,
+            'total_prom_hoy': total_prom_hoy,
+            'total_seg_pendientes': total_seg_pendientes,
+            'es_gerente': True,
+            'dias_sin_contacto': dias_sin_contacto,
+        })
+
+    # ══════════════════════════════════════════════════════════════════════
+    # MODO AGENDA PERSONAL — Agente ve SUS pendientes / Gerente filtra por agente
+    # ══════════════════════════════════════════════════════════════════════
+    usuario = request.user
+    agente_seleccionado = None
+
+    if es_gerente_flag and agente_id:
+        try:
+            agente_seleccionado = User.objects.get(id=agente_id)
+            usuario = agente_seleccionado
+        except User.DoesNotExist:
+            pass
+
+    # Cartera del usuario activo (agente o agente seleccionado por gerente)
+    asignaciones = AsignacionCartera.objects.filter(gestor=usuario)
+    carteras_u = list(asignaciones.filter(tipo='cartera').values_list('valor', flat=True))
+    agencias_u = list(asignaciones.filter(tipo='agencia').values_list('valor', flat=True))
+    cond_cartera = Q()
+    if carteras_u:
+        cond_cartera |= Q(deudor__cartera__in=carteras_u)
+    if agencias_u:
+        cond_cartera |= Q(deudor__agencia__in=agencias_u)
+
+    # ── Promesas ───────────────────────────────────────────────────────────
     base_promesas = Gestion.objects.filter(
+        gestor=usuario,
         resultado__icontains='PROMESA'
     ).select_related('deudor', 'gestor')
+    if cond_cartera:
+        base_promesas = base_promesas.filter(cond_cartera)
 
-    cartera_q = _get_cartera_filter(prefix='deudor__')
+    promesas_vencidas = base_promesas.filter(fecha_promesa__lt=hoy).order_by('fecha_promesa')
+    promesas_hoy      = base_promesas.filter(fecha_promesa=hoy).order_by('-deudor__saldo_deuda')
+    promesas_manana   = base_promesas.filter(fecha_promesa=manana).order_by('-deudor__saldo_deuda')
 
-    promesas_hoy = base_promesas.filter(fecha_promesa=hoy)
-    promesas_manana = base_promesas.filter(fecha_promesa=manana)
-    promesas_vencidas = base_promesas.filter(fecha_promesa__lt=hoy)
+    # ── Seguimientos ───────────────────────────────────────────────────────
+    base_seg = SeguimientoProgramado.objects.filter(
+        gestor=usuario,
+        completado=False
+    ).select_related('deudor', 'gestor')
 
-    if cartera_q is not None:
-        promesas_hoy = promesas_hoy.filter(cartera_q)
-        promesas_manana = promesas_manana.filter(cartera_q)
-        promesas_vencidas = promesas_vencidas.filter(cartera_q)
-
-    promesas_hoy = promesas_hoy.order_by('-deudor__saldo_deuda')
-    promesas_manana = promesas_manana.order_by('-deudor__saldo_deuda')
-    promesas_vencidas = promesas_vencidas.order_by('fecha_promesa')
-
-    # ── 2. SEGUIMIENTOS PROGRAMADOS ────────────────────────────────────────
-    base_seg = SeguimientoProgramado.objects.filter(completado=False).select_related('deudor', 'gestor')
-    if not es_gerente_flag:
-        base_seg = base_seg.filter(gestor=request.user)
-
-    seguimientos_hoy = base_seg.filter(fecha_programada=hoy).order_by('-deudor__saldo_deuda')
     seguimientos_vencidos = base_seg.filter(fecha_programada__lt=hoy).order_by('fecha_programada')
-    seguimientos_manana = base_seg.filter(fecha_programada=manana).order_by('-deudor__saldo_deuda')
+    seguimientos_hoy      = base_seg.filter(fecha_programada=hoy).order_by('-deudor__saldo_deuda')
+    seguimientos_manana   = base_seg.filter(fecha_programada=manana).order_by('-deudor__saldo_deuda')
 
-    # ── 3. DEUDORES SIN CONTACTO EN X DÍAS ────────────────────────────────
+    # ── Sin contacto ───────────────────────────────────────────────────────
     fecha_limite = hoy - timedelta(days=dias_sin_contacto)
+    cond_deudor = Q()
+    if carteras_u:
+        cond_deudor |= Q(cartera__in=carteras_u)
+    if agencias_u:
+        cond_deudor |= Q(agencia__in=agencias_u)
 
     deudores_base = Deudor.objects.annotate(ultima_gestion=Max('gestion__fecha'))
-
-    if not es_gerente_flag:
-        asignaciones = AsignacionCartera.objects.filter(gestor=request.user)
-        carteras = list(asignaciones.filter(tipo='cartera').values_list('valor', flat=True))
-        agencias = list(asignaciones.filter(tipo='agencia').values_list('valor', flat=True))
-        cond_deudor = Q()
-        if carteras:
-            cond_deudor |= Q(cartera__in=carteras)
-        if agencias:
-            cond_deudor |= Q(agencia__in=agencias)
-        deudores_base = deudores_base.filter(cond_deudor) if cond_deudor else Deudor.objects.none()
+    deudores_base = deudores_base.filter(cond_deudor) if cond_deudor else Deudor.objects.none()
 
     sin_contacto = deudores_base.filter(
         Q(ultima_gestion__date__lte=fecha_limite) | Q(ultima_gestion__isnull=True)
     ).order_by(F('ultima_gestion').asc(nulls_first=True))[:50]
 
-    # ── Totales de alertas urgentes ────────────────────────────────────────
     total_urgente = (
-        promesas_hoy.count()
-        + promesas_vencidas.count()
-        + seguimientos_hoy.count()
+        promesas_vencidas.count()
+        + promesas_hoy.count()
         + seguimientos_vencidos.count()
+        + seguimientos_hoy.count()
     )
 
     return render(request, 'cobranza/agenda.html', {
+        'modo': 'agenda',
         'hoy': hoy,
         'manana': manana,
         'promesas_hoy': promesas_hoy,
@@ -179,6 +225,7 @@ def agenda_diaria(request):
         'dias_sin_contacto': dias_sin_contacto,
         'es_gerente': es_gerente_flag,
         'total_urgente': total_urgente,
+        'agente_seleccionado': agente_seleccionado,
     })
 
 
