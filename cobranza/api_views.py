@@ -56,17 +56,18 @@ def api_recibir_gestion_campo(request):
 @require_http_methods(["GET"])
 def api_zadarma_webrtc_key(request):
     """Devuelve las credenciales SIP de forma segura al cliente autenticado"""
-    token = request.GET.get('token', '')
-    if not request.user.is_authenticated and token != getattr(settings, 'API_TOKEN_ZADARMA', ''):
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'No autorizado', 'message': 'Unauthorized'}, status=401)
 
-    # El WebRTC nativo de Zadarma (JsSIP) en este proyecto requiere la contraseña directa.
-    # En lugar de quemarla en el HTML, se devuelve por API segura.
-    return JsonResponse({
-        'status': 'success',
-        'sip': getattr(settings, 'ZADARMA_SIP', '398200-100'),
-        'key': getattr(settings, 'ZADARMA_SIP_PASS', 'EaU2huAPu4') 
-    })
+    try:
+        sip_profile = request.user.sip_profile
+        return JsonResponse({
+            'status': 'success',
+            'sip': sip_profile.anexo,
+            'key': sip_profile.clave
+        })
+    except Exception:
+        return JsonResponse({'error': 'Sin perfil SIP', 'message': 'No SIP profile found'}, status=404)
 
 @login_required
 def iniciar_callback(request, numero_cliente):
@@ -201,8 +202,22 @@ def api_cartera_lista(request):
 
             deudores = Deudor.objects.filter(filtro) if filtro else Deudor.objects.none()
 
+    # --- Paginación para evitar cargar toda la cartera en un solo JSON ---
+    total_count = deudores.count()
+    try:
+        page = max(1, int(request.GET.get('page', 1)))
+    except (ValueError, TypeError):
+        page = 1
+    try:
+        page_size = min(500, max(1, int(request.GET.get('page_size', 100))))
+    except (ValueError, TypeError):
+        page_size = 100
+
+    offset = (page - 1) * page_size
+    deudores_pagina = deudores[offset:offset + page_size]
+
     data = []
-    for d in deudores:
+    for d in deudores_pagina:
         data.append({
             'fila_id': d.id,
             'agencia': d.agencia or '',
@@ -252,7 +267,14 @@ def api_cartera_lista(request):
             'foto_evidencia': settings.SITE_URL + d.foto_evidencia.url if d.foto_evidencia else '',
         })
 
-    return JsonResponse({'success': True, 'data': data}, status=200)
+    return JsonResponse({
+        'success': True,
+        'data': data,
+        'total': total_count,
+        'page': page,
+        'page_size': page_size,
+        'has_more': (offset + page_size) < total_count,
+    }, status=200)
 
 @csrf_exempt
 @require_http_methods(["PATCH", "POST"])

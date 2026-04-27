@@ -155,3 +155,16 @@ class SeguimientoProgramado(models.Model):
 
     def __str__(self):
         return f"{self.deudor.nombre_completo} — {self.fecha_programada} ({self.gestor.username})"
+
+# --- CREDENCIALES SIP NATIVAS (JANUS WEBRTC) ---
+class AgenteSIP(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='sip_profile', verbose_name="Usuario")
+    anexo = models.CharField(max_length=20, verbose_name="Anexo SIP")
+    clave = models.CharField(max_length=200, verbose_name="Clave Secreta SIP")
+    
+    class Meta:
+        verbose_name = "Perfil SIP de Agente"
+        verbose_name_plural = "Perfiles SIP de Agentes"
+        
+    def __str__(self):
+        return f"{self.user.username} - Anexo {self.anexo}"

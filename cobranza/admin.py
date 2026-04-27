@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
+from django.db.models import Count
 from .models import Deudor, Gestion, TelefonoExtra, AsignacionCartera, CampanaAsterisk, DetalleCampanaAsterisk
 
 # ─── Títulos del panel administrativo ───────────────────────────────────────
@@ -122,7 +123,13 @@ class CampanaAsteriskAdmin(admin.ModelAdmin):
 
     @admin.display(description='Nº Teléfonos')
     def total_numeros(self, obj):
-        return obj.detalles.count()
+        # Usa la anotación de get_queryset en vez de una query extra por fila
+        return getattr(obj, '_total_numeros', obj.detalles.count())
+
+    def get_queryset(self, request):
+        # Resolver conteo de teléfonos en 1 sola query (evita N+1)
+        qs = super().get_queryset(request)
+        return qs.annotate(_total_numeros=Count('detalles'))
 
 
 # ─── DETALLE CAMPAÑA ASTERISK ───────────────────────────────────────────────

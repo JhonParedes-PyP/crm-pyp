@@ -69,30 +69,74 @@
         </div>
     </div>
 
-    <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; border-top: 4px solid #fab005; box-shadow: 0 4px 10px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; border-top: 4px solid #fab005; box-shadow: 0 4px 10px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; overflow-y: auto; max-height: 85vh;">
         <div>
             <h3 style="margin-top: 0; color: #333; font-size: 16px;">📄 Detalles del Crédito</h3>
             
             <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee;">
                 <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Cartera:</strong> <span style="color: #007bff; font-weight: bold;">{{ deudor.cartera }}</span></p>
+                <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Agencia:</strong> <span style="color: #8a5a00; font-weight: bold;">{{ deudor.agencia|default:"N/A" }}</span></p>
                 <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>DNI:</strong> {{ deudor.documento }}</p>
                 <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Cuenta:</strong> {{ deudor.cuenta }}</p>
+                {% if deudor.producto %}<p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Producto:</strong> {{ deudor.producto }}</p>{% endif %}
                 <p style="margin: 5px 0; font-size: 14px; color: #000; font-weight: 900;">Capital Base: S/ {{ deudor.monto_capital|floatformat:2|intcomma }}</p>
                 <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Últ. Día de Pago:</strong> {{ deudor.ultimo_dia_pago|date:"d/m/Y"|default:"Sin registro" }}</p>
+                {% if deudor.rango_dias_mora %}<p style="margin: 3px 0; font-size: 12px;"><strong>Mora:</strong> <span style="color: #dc3545; font-weight: bold;">{{ deudor.rango_dias_mora }}</span></p>{% endif %}
+                {% if deudor.nmes %}<p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Meses de mora:</strong> <span style="color: #dc3545; font-weight: bold;">{{ deudor.nmes }}</span></p>{% endif %}
             </div>
 
             <h4 style="color: #666; font-size: 11px; text-transform: uppercase; margin-bottom: 5px;">📍 Dirección del Titular</h4>
             <div style="background: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee; font-size: 12px; color: #444;">
                 {% if deudor.dir_casa %}{{ deudor.dir_casa }} - {{ deudor.distrito }}{% else %}No registrada{% endif %}
+                {% if deudor.departamento or deudor.provincia %}
+                <p style="margin: 4px 0 0 0; font-size: 11px; color: #888;">{{ deudor.departamento|default:"" }} {{ deudor.provincia|default:"" }} {% if deudor.zona %} — Zona: {{ deudor.zona }}{% endif %}</p>
+                {% endif %}
+                {% if deudor.link_gps %}
+                <p style="margin: 4px 0 0 0;"><a href="{{ deudor.link_gps }}" target="_blank" style="color: #007bff; font-size: 11px; text-decoration: none;">📌 Ver ubicación GPS</a></p>
+                {% endif %}
             </div>
+
+            {% if deudor.dir_negocio %}
+            <h4 style="color: #666; font-size: 11px; text-transform: uppercase; margin-bottom: 5px;">🏢 Dirección del Negocio</h4>
+            <div style="background: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee; font-size: 12px; color: #444;">
+                {{ deudor.dir_negocio }}
+            </div>
+            {% endif %}
 
             <h4 style="color: #666; font-size: 11px; text-transform: uppercase; margin-bottom: 5px;">🤝 Firmantes y Avales</h4>
             <div style="background: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee; font-size: 12px;">
                 <p style="margin: 3px 0; color: #444;"><strong>Cónyuge Titular:</strong><br> {% if deudor.nom_conyuge %}{{ deudor.nom_conyuge }}{% else %}--{% endif %}</p>
+                {% if deudor.num_doc_conyuge %}<p style="margin: 2px 0; font-size: 11px; color: #888;">DNI: {{ deudor.num_doc_conyuge }}</p>{% endif %}
                 <hr style="border-top: 1px dashed #ddd; margin: 8px 0;">
                 <p style="margin: 3px 0; color: #444;"><strong>Aval 1:</strong><br> {% if deudor.nom_aval %}{{ deudor.nom_aval }}{% else %}--{% endif %}</p>
+                {% if deudor.num_doc_aval %}<p style="margin: 2px 0; font-size: 11px; color: #888;">DNI: {{ deudor.num_doc_aval }}</p>{% endif %}
+                {% if deudor.aval_direccion %}<p style="margin: 2px 0; font-size: 11px; color: #888;">📍 {{ deudor.aval_direccion }} {% if deudor.aval_distrito %}- {{ deudor.aval_distrito }}{% endif %}</p>{% endif %}
+                {% if deudor.link_gps_aval %}<p style="margin: 2px 0;"><a href="{{ deudor.link_gps_aval }}" target="_blank" style="color: #007bff; font-size: 11px; text-decoration: none;">📌 GPS Aval</a></p>{% endif %}
                 <p style="margin: 3px 0; color: #444;"><strong>Cónyuge Aval 1:</strong><br> {% if deudor.nom_conyuge_aval %}{{ deudor.nom_conyuge_aval }}{% else %}--{% endif %}</p>
             </div>
+
+            {% if deudor.expediente or deudor.juzgado or deudor.condicion %}
+            <h4 style="color: #666; font-size: 11px; text-transform: uppercase; margin-bottom: 5px;">⚖️ Datos Judiciales</h4>
+            <div style="background: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee; font-size: 12px;">
+                {% if deudor.condicion %}<p style="margin: 3px 0; color: #444;"><strong>Condición:</strong> <span style="color: #8a3a00; font-weight: bold;">{{ deudor.condicion }}</span></p>{% endif %}
+                {% if deudor.expediente %}<p style="margin: 3px 0; color: #444;"><strong>Expediente:</strong> {{ deudor.expediente }}</p>{% endif %}
+                {% if deudor.juzgado %}<p style="margin: 3px 0; color: #444;"><strong>Juzgado:</strong> {{ deudor.juzgado }}</p>{% endif %}
+                {% if deudor.fec_demanda %}<p style="margin: 3px 0; color: #444;"><strong>Fecha Demanda:</strong> {{ deudor.fec_demanda|date:"d/m/Y" }}</p>{% endif %}
+                {% if deudor.monto_demanda %}<p style="margin: 3px 0; color: #444;"><strong>Monto Demanda:</strong> S/ {{ deudor.monto_demanda|floatformat:2|intcomma }}</p>{% endif %}
+                {% if deudor.ingreso_judicial %}<p style="margin: 3px 0; color: #444;"><strong>Ingreso Judicial:</strong> {{ deudor.ingreso_judicial|date:"d/m/Y" }}</p>{% endif %}
+                {% if deudor.referencia %}<p style="margin: 3px 0; color: #444;"><strong>Referencia:</strong> {{ deudor.referencia }}</p>{% endif %}
+                {% if deudor.proceso %}<p style="margin: 3px 0; color: #444;"><strong>Proceso:</strong> {{ deudor.proceso }}</p>{% endif %}
+            </div>
+            {% endif %}
+
+            {% if deudor.foto_evidencia %}
+            <h4 style="color: #666; font-size: 11px; text-transform: uppercase; margin-bottom: 5px;">📷 Evidencia de Campo</h4>
+            <div style="background: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee;">
+                <a href="{{ deudor.foto_evidencia.url }}" target="_blank">
+                    <img src="{{ deudor.foto_evidencia.url }}" alt="Evidencia" style="max-width: 100%; border-radius: 6px; max-height: 200px; object-fit: cover;">
+                </a>
+            </div>
+            {% endif %}
             
             {% if es_gerente %}
             <div style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #ccc; text-align: center;">
@@ -249,91 +293,24 @@
 </div>
 
 <script>
-/* ── LLAMADA SIP DIRECTA vía JsSIP (WebRTC) ───────────────────────────────────
-   - Se conecta a pbx.zadarma.com usando las credenciales SIP del agente
-   - Al presionar "Llamar" marca directamente sin salir del CRM
-   - Al presionar "🔴 Colgar" corta la llamada activa
+/* ── LLAMADA SIP DIRECTA vía Janus WebRTC (IPB) ───────────────────────────────────
+   - Se conecta al Webphone Nativo inyectado en base.html
+   - Al presionar "Llamar" abre el teclado e inyecta el número
    ─────────────────────────────────────────────────────────────────────────── */
 function realizarLlamada(numero, btnElement) {
-
-    /* Si hay llamada activa → colgar */
-    if (window.sipSession && !window.sipSession.isEnded()) {
-        window.sipSession.terminate();
-        return;
-    }
-
-    if (!window.sipUA) {
-        alert('El teléfono SIP no está disponible. Recarga la página.');
-        return;
-    }
-    if (!window.sipRegistered) {
-        alert('El teléfono SIP aún está conectando, espera unos segundos e intenta de nuevo.');
-        return;
-    }
-
     /* Normalizar número → solo dígitos */
     var limpio = numero.toString().replace(/[\s\-\(\)\+]/g, '');
-    /* Quitar código de país 51 si ya viene incluido */
+    
+    /* Quitar código de país 51 si ya viene incluido, ya que IPB enruta localmente */
     if (limpio.startsWith('51') && limpio.length >= 11) {
         limpio = limpio.substring(2);
     }
-    /* Formato internacional para marcar por la línea externa del PBX */
-    var destino = '0051' + limpio;
 
-    btnElement.innerText = '⏳ Marcando...';
-    btnElement.disabled  = true;
-    btnElement.style.background = '#fd7e14';
-
-    var btn = btnElement; /* captura para los callbacks */
-
-    var options = {
-        mediaConstraints : { audio: true, video: false },
-        rtcOfferConstraints: { offerToReceiveAudio: 1, offerToReceiveVideo: 0 },
-        eventHandlers: {
-            'progress': function() {
-                btn.innerText = '🔔 Timbrado...';
-            },
-            'confirmed': function() {
-                btn.innerText  = '🔴 Colgar';
-                btn.style.background = '#dc3545';
-                btn.disabled   = false;
-                /* Conectar audio remoto */
-                var audioEl = document.getElementById('sip-audio');
-                if (audioEl && window.sipSession && window.sipSession.connection) {
-                    window.sipSession.connection.addEventListener('track', function(e) {
-                        if (e.streams && e.streams[0]) { audioEl.srcObject = e.streams[0]; }
-                    });
-                }
-            },
-            'failed': function(e) {
-                var causa = (e.data && e.data.cause) ? e.data.cause : 'Error desconocido';
-                alert('La llamada falló: ' + causa);
-                _resetBtn(btn);
-                window.sipSession = null;
-            },
-            'ended': function() {
-                _resetBtn(btn);
-                window.sipSession = null;
-            }
-        }
-    };
-
-    try {
-        window.sipSession = window.sipUA.call(
-            'sip:' + destino + '@' + (window.SIP_DOMAIN || 'pbx.zadarma.com'),
-            options
-        );
-    } catch(err) {
-        alert('No se pudo iniciar la llamada: ' + err.message);
-        _resetBtn(btn);
-        window.sipSession = null;
+    if (typeof window.marcarTelefonoCrm === 'function') {
+        window.marcarTelefonoCrm(limpio);
+    } else {
+        alert("El teléfono WebRTC aún no ha cargado o no tienes permisos SIP configurados. Verifica tu conexión VPN y tu anexo.");
     }
-}
-
-function _resetBtn(btn) {
-    btn.innerText  = '📞 Llamar';
-    btn.style.background = '#007bff';
-    btn.disabled   = false;
 }
 
 

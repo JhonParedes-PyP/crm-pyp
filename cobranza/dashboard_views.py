@@ -71,12 +71,19 @@ def dashboard_gerente(request):
 def exportar_gestiones_excel(request):
     if not es_gerente(request.user):
         return HttpResponse("Acceso Denegado.", status=403)
-    gestiones = Gestion.objects.all().order_by('-fecha')
+    gestiones = Gestion.objects.select_related('gestor', 'deudor').all().order_by('-fecha')
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.append(['FECHA', 'GESTOR', 'DNI', 'CLIENTE', 'RESULTADO', 'MONTO'])
     for g in gestiones:
-        ws.append([g.fecha.strftime('%d/%m/%Y'), g.gestor.username, g.deudor.documento, g.deudor.nombre_completo, g.resultado, g.monto_pago])
+        ws.append([
+            g.fecha.strftime('%d/%m/%Y'),
+            g.gestor.username if g.gestor else 'Sin gestor',
+            g.deudor.documento if g.deudor else 'N/A',
+            g.deudor.nombre_completo if g.deudor else 'N/A',
+            g.resultado,
+            g.monto_pago,
+        ])
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename=Reporte_PP.xlsx'
     wb.save(response)
@@ -198,7 +205,10 @@ def agenda_diaria(request):
         cond_deudor |= Q(agencia__in=agencias_u)
 
     deudores_base = Deudor.objects.annotate(ultima_gestion=Max('gestion__fecha'))
-    deudores_base = deudores_base.filter(cond_deudor) if cond_deudor else Deudor.objects.none()
+    if cond_deudor:
+        deudores_base = deudores_base.filter(cond_deudor)
+    else:
+        deudores_base = deudores_base.none()
 
     sin_contacto = deudores_base.filter(
         Q(ultima_gestion__date__lte=fecha_limite) | Q(ultima_gestion__isnull=True)
