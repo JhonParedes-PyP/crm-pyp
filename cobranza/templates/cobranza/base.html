@@ -140,137 +140,14 @@
     {% block content %}
     {% endblock %}
 </div>
-<!-- Teléfono SIP vía JsSIP (WebRTC directo sin depender de la REST API) -->
-<audio id="sip-audio" autoplay style="display:none;"></audio>
-
-<div id="sip-status" style="position:fixed; bottom:14px; right:14px; padding:6px 14px; border-radius:20px; font-size:12px; font-weight:bold; z-index:9999; background:#6c757d; color:white; box-shadow:0 2px 6px rgba(0,0,0,0.3); transition: background 0.4s; cursor:pointer;" title="Haz clic para reconectar">
-    📞 SIP: Cargando...
+<!-- Teléfono SIP (Nuevo Proveedor IPB) -->
+<div id="webphone-container" style="position:fixed; bottom:14px; right:14px; z-index:9999; box-shadow:0 5px 15px rgba(0,0,0,0.4); border-radius:8px; overflow:hidden; background:white; border: 2px solid #003366;">
+    <!-- Barra superior para arrastrar o minimizar (opcional) -->
+    <div style="background:#003366; color:white; padding:5px 10px; font-size:12px; font-weight:bold; text-align:center;">
+        📞 Panel de Telefonía (Prueba)
+    </div>
+    <!-- El Iframe que carga la plataforma por VPN -->
+    <iframe src="https://pyp.ipb.pe/" width="350" height="500" frameborder="0" allow="microphone; camera" style="display:block;"></iframe>
 </div>
-
-{% load static %}
-<script src="https://cdn.jsdelivr.net/npm/jssip@3/dist/jssip.min.js"
-        onerror="document.getElementById('sip-status').innerText='📞 SIP: Sin librería'; document.getElementById('sip-status').style.background='#dc3545';"></script>
-<script>
-(function() {
-    var statusEl = document.getElementById('sip-status');
-
-    if (typeof JsSIP === 'undefined') {
-        statusEl.innerText = '📞 SIP: Error carga JS';
-        statusEl.style.background = '#dc3545';
-        console.error('[SIP] JsSIP no cargó desde CDN');
-        return;
-    }
-
-    /* Activar logs en consola para diagnóstico */
-    JsSIP.debug.enable('JsSIP:*');
-
-    var SIP_DOMAIN = 'pbx.zadarma.com';
-
-    /* Zadarma PBX WebSocket — probamos primero :4443, luego :443 */
-    var WS_URLS = [
-        'wss://pbx.zadarma.com:4443',
-        'wss://pbx.zadarma.com:443',
-        'wss://sip.zadarma.com:4443'
-    ];
-
-    function initSIP() {
-        fetch('/api/webrtc-key/')
-            .then(res => res.json())
-            .then(data => {
-                if (data.status !== 'success' || !data.key || !data.sip) {
-                    statusEl.innerText = '📞 SIP: Auth Falló';
-                    statusEl.style.background = '#dc3545';
-                    return;
-                }
-                crearUA(WS_URLS[0], data.sip, data.key);
-            })
-            .catch(err => {
-                console.error('[SIP] Error obteniendo token:', err);
-                statusEl.innerText = '📞 SIP: Auth Falló';
-                statusEl.style.background = '#dc3545';
-            });
-    }
-
-    function crearUA(wsUrl, sipUser, sipPass) {
-        console.log('[SIP] Intentando conexión a:', wsUrl);
-        statusEl.innerText = '📞 SIP: Conectando...';
-        statusEl.style.background = '#6c757d';
-
-        var socket = new JsSIP.WebSocketInterface(wsUrl);
-        var ua;
-        try {
-            ua = new JsSIP.UA({
-                sockets        : [socket],
-                uri            : 'sip:' + sipUser + '@' + SIP_DOMAIN,
-                password       : sipPass,
-                register       : true,
-                session_timers : false,
-                connection_recovery_min_interval : 4,
-                connection_recovery_max_interval : 32
-            });
-        } catch(err) {
-            console.error('[SIP] Error creando UA:', err);
-            statusEl.innerText = '📞 SIP: Error config';
-            statusEl.style.background = '#dc3545';
-            return null;
-        }
-
-        /* ── Eventos de conexión ── */
-        ua.on('connected', function() {
-            console.log('[SIP] WebSocket conectado a', wsUrl);
-            statusEl.innerText = '📞 SIP: Registrando...';
-            statusEl.style.background = '#17a2b8';
-        });
-
-        ua.on('disconnected', function(e) {
-            console.warn('[SIP] WebSocket desconectado:', e.cause || e);
-            statusEl.innerText = '📞 SIP: Sin conexión';
-            statusEl.style.background = '#6c757d';
-            window.sipRegistered = false;
-        });
-
-        ua.on('registered', function() {
-            console.log('[SIP] Registrado correctamente como', sipUser);
-            statusEl.innerText = '📞 SIP: Listo ✓';
-            statusEl.style.background = '#28a745';
-            window.sipRegistered = true;
-        });
-
-        ua.on('unregistered', function() {
-            console.warn('[SIP] Desregistrado');
-            statusEl.innerText = '📞 SIP: Desregistrado';
-            statusEl.style.background = '#fd7e14';
-            window.sipRegistered = false;
-        });
-
-        ua.on('registrationFailed', function(e) {
-            console.error('[SIP] Registro fallido — causa:', e.cause, '| response:', e.response);
-            statusEl.innerText = '📞 SIP: ❌ ' + (e.cause || 'Error');
-            statusEl.style.background = '#dc3545';
-            window.sipRegistered = false;
-        });
-
-        /* Asignar ANTES de start() para que esté disponible de inmediato */
-        window.sipUA         = ua;
-        window.sipSession    = null;
-        window.sipRegistered = false;
-        window.SIP_DOMAIN    = SIP_DOMAIN;
-
-        ua.start();
-        return ua;
-    }
-
-    /* Iniciar pidiendo llave al backend */
-    initSIP();
-
-    /* Reconectar haciendo clic en el indicador */
-    statusEl.addEventListener('click', function() {
-        if (window.sipUA) { try { window.sipUA.stop(); } catch(e) {} }
-        window.sipUA = null;
-        window.sipRegistered = false;
-        initSIP();
-    });
-})();
-</script>
 </body>
 </html>
