@@ -122,7 +122,6 @@
             <a href="{% url 'bandeja_gestor' %}">📞 Supervisión</a>
             {% if puede_modo_agente %}
             <a href="{% url 'agenda_diaria' %}?modo=agente">📅 Mi Agenda</a>
-            <a href="{% url 'bandeja_gestor' %}?modo=agente">📞 Mi Bandeja</a>
             {% endif %}
             {% else %}
             <a href="{% url 'bandeja_gestor' %}">📞 Bandeja</a>
