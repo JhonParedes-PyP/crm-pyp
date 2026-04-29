@@ -35,3 +35,10 @@ Para que el archivo `sip.js` local (o remoto de IPB) funcione correctamente, en 
 4. El frontend (`base.html`) toma los primeros 20 caracteres como `service_account_email` y el `sip.js` recorta 22 caracteres en total, revelando la contraseña real limpia para enviarla a Asterisk.
 
 Con esto, el sistema es agnóstico: permite a cualquier agente loguearse y automáticamente descifra y re-empaca su contraseña de anexo sin intervención manual.
+
+## 4. Próximos Pasos: Llamadas Progresivas y Screen Pop (CTI)
+Está planificado para el futuro implementar el **Screen Pop** para el motor de campañas progresivas de Asterisk. El flujo acordado será:
+1. Al subir el CSV de campaña, Asterisk guardará el `TELEFONO` y `COD_CLIENTE`.
+2. Cuando el cliente conteste y Asterisk asigne la llamada al Webphone del agente, IPBusiness inyectará el `COD_CLIENTE` o Caller ID en los **Headers SIP** de la llamada.
+3. El archivo `sip.js` local deberá ser modificado en la sección de "incoming call" para extraer ese Header SIP.
+4. Una vez extraído el código, Javascript hará un redireccionamiento automático (ej. `window.location.href = ...` o abrirá un modal) a la vista de gestión correspondiente para que el agente vea los datos del cliente al instante.
