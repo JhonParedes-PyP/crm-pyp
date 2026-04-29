@@ -22,7 +22,7 @@ def agenda_alertas(request):
     Usado para el badge rojo en el menú de navegación.
     """
     if not request.user.is_authenticated:
-        return {'agenda_alertas_count': 0}
+        return {'agenda_alertas_count': 0, 'puede_modo_agente': False}
 
     try:
         from cobranza.models import Gestion, SeguimientoProgramado, AsignacionCartera
@@ -64,8 +64,14 @@ def agenda_alertas(request):
             seg_q = seg_q.filter(gestor=request.user)
 
         total = promesas_q.count() + seg_q.count()
-        return {'agenda_alertas_count': total}
+        return {
+            'agenda_alertas_count': total,
+            'puede_modo_agente': request.user.username.upper() == 'JPAREDES',
+        }
 
     except Exception:
-        return {'agenda_alertas_count': 0}
+        return {
+            'agenda_alertas_count': 0,
+            'puede_modo_agente': request.user.username.upper() == 'JPAREDES',
+        }
 

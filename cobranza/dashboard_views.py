@@ -1,5 +1,5 @@
 from .models import *
-from .views import es_gerente
+from .views import SUPERVISORES_CON_BANDEJA_AGENTE, es_gerente, puede_usar_modo_agente
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum, Q, Max, F
@@ -101,16 +101,15 @@ def agenda_diaria(request):
     dias_sin_contacto = int(request.GET.get('dias', 3))
     es_gerente_flag = es_gerente(request.user)
     agente_id = request.GET.get('agente')  # Gerente puede filtrar por agente
+    modo_agente = es_gerente_flag and puede_usar_modo_agente(request.user) and request.GET.get('modo') == 'agente'
 
     # ══════════════════════════════════════════════════════════════════════
     # MODO SUPERVISIÓN — Gerente ve panel por agente (no clientes directos)
     # ══════════════════════════════════════════════════════════════════════
-    if es_gerente_flag and not agente_id:
-        agentes = User.objects.exclude(
-            groups__name='GERENTE'
-        ).exclude(
-            is_superuser=True
-        ).annotate(
+    if es_gerente_flag and not agente_id and not modo_agente:
+        gestores_base = User.objects.exclude(groups__name='GERENTE').exclude(is_superuser=True)
+        supervisores_agentes = User.objects.filter(username__in=SUPERVISORES_CON_BANDEJA_AGENTE)
+        agentes = (gestores_base | supervisores_agentes).distinct().annotate(
             promesas_vencidas=Count('gestion', filter=Q(
                 gestion__resultado__icontains='PROMESA',
                 gestion__fecha_promesa__lt=hoy
@@ -236,6 +235,7 @@ def agenda_diaria(request):
         'es_gerente': es_gerente_flag,
         'total_urgente': total_urgente,
         'agente_seleccionado': agente_seleccionado,
+        'modo_agente': modo_agente,
     })
 
 

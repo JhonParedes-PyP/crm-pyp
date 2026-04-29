@@ -118,7 +118,15 @@
                 <span style="position:absolute; top:-8px; right:-10px; background:#dc3545; color:white; border-radius:50%; width:18px; height:18px; font-size:10px; font-weight:bold; display:flex; align-items:center; justify-content:center; line-height:1;">{{ agenda_alertas_count }}</span>
                 {% endif %}
             </a>
+            {% if es_gerente %}
+            <a href="{% url 'bandeja_gestor' %}">📞 Supervisión</a>
+            {% if puede_modo_agente %}
+            <a href="{% url 'agenda_diaria' %}?modo=agente">📅 Mi Agenda</a>
+            <a href="{% url 'bandeja_gestor' %}?modo=agente">📞 Mi Bandeja</a>
+            {% endif %}
+            {% else %}
             <a href="{% url 'bandeja_gestor' %}">📞 Bandeja</a>
+            {% endif %}
             <a href="{% url 'subir_excel' %}">📁 Cargar Cartera</a>
             {% if es_gerente %}
             <a href="{% url 'asignar_carteras' %}" style="background: #28a745; padding: 5px 12px; border-radius: 4px;">👥 Asignar Carteras</a>

@@ -38,6 +38,27 @@ from django.urls import reverse
 def es_gerente(user):
     return user.groups.filter(name='GERENTE').exists() or user.is_superuser
 
+SUPERVISORES_CON_BANDEJA_AGENTE = {'JPAREDES'}
+
+def puede_usar_modo_agente(user):
+    return (not es_gerente(user)) or user.username.upper() in SUPERVISORES_CON_BANDEJA_AGENTE
+
+def modo_agente_ve_todos_los_clientes(user):
+    return user.is_superuser and user.username.upper() in SUPERVISORES_CON_BANDEJA_AGENTE
+
+def aplicar_asignaciones_de_gestor(queryset, usuario):
+    asignaciones = AsignacionCartera.objects.filter(gestor=usuario)
+    carteras_asignadas = asignaciones.filter(tipo='cartera').values_list('valor', flat=True)
+    agencias_asignadas = asignaciones.filter(tipo='agencia').values_list('valor', flat=True)
+
+    condiciones = Q()
+    if carteras_asignadas.exists():
+        condiciones |= Q(cartera__in=carteras_asignadas)
+    if agencias_asignadas.exists():
+        condiciones |= Q(agencia__in=agencias_asignadas)
+
+    return queryset.filter(condiciones) if condiciones else queryset.none()
+
 # --- FUNCIÓN AUXILIAR PARA ENCRIPTAR (Asterisk - Formato Kubo) ---
 def encode_md5_base64(valor):
     """
@@ -180,7 +201,7 @@ def subir_excel(request):
     return render(request, 'cobranza/subir_excel.html', {'mensajes': mensajes, 'columnas_detectadas': columnas_detectadas})
 
 # --- FUNCIÓN BASE: OBTENER QUERYSET UNIFICADO PARA BANDEJA ---
-def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False):
+def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False, forzar_asignaciones=False):
     q = request.GET.get('q', '') 
     cartera_filtro = request.GET.get('cartera', '')
     agencia_filtro = request.GET.get('agencia', '')
@@ -201,21 +222,8 @@ def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False):
 
     deudores = Deudor.objects.annotate(ultima_llamada=Max('gestion__fecha'))
 
-    if not es_gerente(usuario):
-        asignaciones = AsignacionCartera.objects.filter(gestor=usuario)
-        carteras_asignadas = asignaciones.filter(tipo='cartera').values_list('valor', flat=True)
-        agencias_asignadas = asignaciones.filter(tipo='agencia').values_list('valor', flat=True)
-        
-        condiciones = Q()
-        if carteras_asignadas.exists():
-            condiciones |= Q(cartera__in=carteras_asignadas)
-        if agencias_asignadas.exists():
-            condiciones |= Q(agencia__in=agencias_asignadas)
-        
-        if condiciones:
-            deudores = deudores.filter(condiciones)
-        else:
-            deudores = deudores.none()
+    if forzar_asignaciones or not es_gerente(usuario):
+        deudores = aplicar_asignaciones_de_gestor(deudores, usuario)
 
     if q: 
         deudores = deudores.filter(
@@ -330,21 +338,21 @@ def obtener_lista_deudores_filtrados(request, usuario=None, ids_seleccionados=No
 @login_required
 def bandeja_gestor(request):
     es_gerente_flag = es_gerente(request.user)
+    modo_agente = es_gerente_flag and puede_usar_modo_agente(request.user) and request.GET.get('modo') == 'agente'
     
     # 1. Obtener el QuerySet delegado a Base de Datos
-    deudores, filtros = obtener_queryset_bandeja(request, request.user, usar_sesion_fallback=False)
+    deudores, filtros = obtener_queryset_bandeja(
+        request,
+        request.user,
+        usar_sesion_fallback=False,
+        forzar_asignaciones=modo_agente and not modo_agente_ve_todos_los_clientes(request.user)
+    )
     
     # 2. Obtener opciones para los Combos (filtros visuales)
-    if es_gerente_flag:
+    if (es_gerente_flag and not modo_agente) or (modo_agente and modo_agente_ve_todos_los_clientes(request.user)):
         deudores_base = Deudor.objects.all()
     else:
-        asignaciones = AsignacionCartera.objects.filter(gestor=request.user)
-        carteras_asignadas = asignaciones.filter(tipo='cartera').values_list('valor', flat=True)
-        agencias_asignadas = asignaciones.filter(tipo='agencia').values_list('valor', flat=True)
-        cond = Q()
-        if carteras_asignadas.exists(): cond |= Q(cartera__in=carteras_asignadas)
-        if agencias_asignadas.exists(): cond |= Q(agencia__in=agencias_asignadas)
-        deudores_base = Deudor.objects.filter(cond) if cond else Deudor.objects.none()
+        deudores_base = aplicar_asignaciones_de_gestor(Deudor.objects.all(), request.user)
 
     carteras_crudas = deudores_base.values_list('cartera', flat=True).distinct()
     agencias_crudas = deudores_base.values_list('agencia', flat=True).distinct()
@@ -390,6 +398,7 @@ def bandeja_gestor(request):
     request.session['lista_ids_navegacion'] = lista_ids_filtrados
     
     filtros['page'] = page_number
+    filtros['modo'] = 'agente' if modo_agente else ''
     request.session['filtros_bandeja'] = filtros
     
     return render(request, 'cobranza/bandeja.html', {
@@ -405,6 +414,8 @@ def bandeja_gestor(request):
         'rango_deuda': filtros['rango_deuda'],
         'orden_actual': filtros['orden'],
         'es_gerente': es_gerente_flag,
+        'modo_bandeja_agente': modo_agente,
+        'puede_modo_agente': puede_usar_modo_agente(request.user),
     })
 
 
@@ -413,6 +424,8 @@ def bandeja_gestor(request):
 @user_passes_test(es_gerente)
 def asignar_carteras(request):
     gestores = User.objects.exclude(groups__name='GERENTE').exclude(is_superuser=True)
+    supervisores_agentes = User.objects.filter(username__in=SUPERVISORES_CON_BANDEJA_AGENTE)
+    gestores = (gestores | supervisores_agentes).distinct().order_by('username')
     
     todas_carteras = Deudor.objects.values_list('cartera', flat=True).distinct()
     todas_carteras = sorted([c for c in todas_carteras if c and str(c).strip() != ''])
@@ -496,6 +509,7 @@ def registrar_gestion(request, deudor_id):
     if filtros.get('rango_deuda'): params.append(f"rango_deuda={filtros['rango_deuda']}")
     if filtros.get('page'): params.append(f"page={filtros['page']}")
     if filtros.get('orden'): params.append(f"orden={filtros['orden']}")
+    if filtros.get('modo'): params.append(f"modo={filtros['modo']}")
     
     parametros_url = '&'.join(params) if params else ''
     
@@ -637,6 +651,7 @@ def eliminar_cliente(request, deudor_id):
         if filtros.get('agencia'): params.append(f"agencia={filtros['agencia']}")
         if filtros.get('mora'): params.append(f"rango_dias_mora={filtros['mora']}")
         if filtros.get('orden'): params.append(f"orden={filtros['orden']}")
+        if filtros.get('modo'): params.append(f"modo={filtros['modo']}")
         
         if params:
             url = f"{url}?{'&'.join(params)}"
