@@ -61,13 +61,20 @@ def api_zadarma_webrtc_key(request):
 
     try:
         sip_profile = request.user.sip_profile
-        # sip.js espera que la clave venga ofuscada:
-        # Extrae los primeros 20 caracteres como 'service_account_email'
-        # Luego hace clave.replace(service_account_email, "")
-        # Luego hace un substring(2) para saltarse 2 caracteres extra.
-        # Por lo tanto, enviamos 22 caracteres basura + la clave real.
+        
+        # Las claves importadas del Excel de IPBusiness ya vienen ofuscadas con su formato antiguo:
+        # "0b" + CONTRASEÑA_REAL + 20_caracteres_random
+        # Primero extraemos la contraseña real limpia:
+        clave_db = sip_profile.clave
+        if clave_db.startswith("0b") and len(clave_db) > 22:
+            real_password = clave_db[2:-20]
+        else:
+            real_password = clave_db
+            
+        # Ahora aplicamos nuestra propia ofuscación esperada por el frontend (sip.js local/remoto):
+        # sip.js extrae los primeros 20 caracteres y luego salta 2 más.
         basura = "ABCDEFGHIJKLMNOPQRSTUV" # 22 caracteres
-        clave_ofuscada = basura + sip_profile.clave
+        clave_ofuscada = basura + real_password
 
         return JsonResponse({
             'status': 'success',
