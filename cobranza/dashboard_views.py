@@ -27,25 +27,30 @@ def dashboard_gerente(request):
         fecha_inicio = hoy
         periodo_texto = "Hoy"
     
+    filtro_periodo = Q(fecha__date=hoy) if periodo == 'hoy' else Q(fecha__date__gte=fecha_inicio)
+    filtro_periodo_gestion = Q(gestion__fecha__date=hoy) if periodo == 'hoy' else Q(gestion__fecha__date__gte=fecha_inicio)
+    
     total_deudores = Deudor.objects.count()
     total_cartera = Deudor.objects.aggregate(Sum('saldo_deuda'))['saldo_deuda__sum'] or 0
     total_recuperado = Gestion.objects.aggregate(Sum('monto_pago'))['monto_pago__sum'] or 0
     
     stats_pago = Gestion.objects.filter(
         resultado__icontains='PAGO',
-        fecha__date__gte=fecha_inicio
+    ).filter(
+        filtro_periodo
     ).count()
     
     stats_promesa = Gestion.objects.filter(
         resultado__icontains='PROMESA',
-        fecha__date__gte=fecha_inicio
+    ).filter(
+        filtro_periodo
     ).count()
     
     productividad = User.objects.annotate(
-        total_gestiones=Count('gestion', filter=Q(gestion__fecha__date__gte=fecha_inicio)),
-        total_pagos=Count('gestion', filter=Q(gestion__fecha__date__gte=fecha_inicio, gestion__resultado__icontains='PAGO')),
-        total_promesas=Count('gestion', filter=Q(gestion__fecha__date__gte=fecha_inicio, gestion__resultado__icontains='PROMESA')),
-        monto_recuperado=Sum('gestion__monto_pago', filter=Q(gestion__fecha__date__gte=fecha_inicio))
+        total_gestiones=Count('gestion', filter=filtro_periodo_gestion),
+        total_pagos=Count('gestion', filter=filtro_periodo_gestion & Q(gestion__resultado__icontains='PAGO')),
+        total_promesas=Count('gestion', filter=filtro_periodo_gestion & Q(gestion__resultado__icontains='PROMESA')),
+        monto_recuperado=Sum('gestion__monto_pago', filter=filtro_periodo_gestion)
     ).filter(total_gestiones__gt=0).order_by('-total_gestiones')
     
     gestores_nombres = [g.username.upper() for g in productividad]
