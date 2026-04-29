@@ -50,6 +50,11 @@ try:
         print("Subiendo import_sip.py y Excel al servidor...")
         sftp.put('import_sip.py', f"{project_dir}/import_sip.py")
         sftp.put('ANEXOS Y CLAVES.xlsx', f"{project_dir}/ANEXOS Y CLAVES.xlsx")
+        
+        print("Subiendo archivos de la bandeja (vistas y plantillas)...")
+        sftp.put('cobranza/views.py', f"{project_dir}/cobranza/views.py")
+        sftp.put('cobranza/templates/cobranza/bandeja.html', f"{project_dir}/cobranza/templates/cobranza/bandeja.html")
+        
         sftp.close()
         print("Ejecutando import_sip.py en el servidor...")
         run_cmd(ssh, f"cd {project_dir} && {project_dir}/venv/bin/python import_sip.py")

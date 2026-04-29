@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Informe Técnico - Migración IPBusiness</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+            background-color: #fff;
+        }
+        .header {
+            text-align: right;
+            margin-bottom: 40px;
+            font-size: 14px;
+            color: #555;
+        }
+        .title {
+            text-align: center;
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: #003366;
+            text-transform: uppercase;
+            border-bottom: 2px solid #003366;
+            padding-bottom: 10px;
+        }
+        .content {
+            text-align: justify;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #003366;
+            margin-top: 25px;
+            margin-bottom: 10px;
+        }
+        .technical-block {
+            background-color: #f4f7f6;
+            border-left: 4px solid #003366;
+            padding: 15px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        .highlight {
+            font-weight: bold;
+            color: #d9534f;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: left;
+            font-weight: bold;
+        }
+        .signature {
+            margin-top: 10px;
+            font-weight: normal;
+            font-style: italic;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <strong>Fecha:</strong> 27 de Abril de 2026<br>
+        <strong>Para:</strong> Área de Soporte Técnico y Desarrollo - IPBusiness<br>
+        <strong>De:</strong> Equipo de Tecnología - P&amp;P Soluciones Jurídicas Empresariales
+    </div>
+
+    <div class="title">
+        INFORME TÉCNICO: REQUERIMIENTO DE ACCESO CORS PARA INTEGRACIÓN WEBRTC
+    </div>
+
+    <div class="content">
+        <p>Estimado equipo de IPBusiness,</p>
+
+        <p>Por medio del presente documento, nos dirigimos a ustedes para informarles que hemos completado satisfactoriamente la fase de modernización de nuestro CRM interno. Como parte de este proceso, hemos reemplazado la integración anterior basada en <code>&lt;iframe&gt;</code> por una integración nativa de sus librerías <code>janus.js</code> y <code>sip.js</code>, alojada bajo nuestro propio dominio oficial: <span class="highlight">https://crm.pypsolucionesjuridicas.com</span>.</p>
+
+        <div class="section-title">1. Contexto Técnico de la Integración Actual</div>
+        <p>Nuestro equipo de desarrollo ha analizado y replicado exitosamente la lógica de autenticación SIP provista originalmente en su plataforma (<code>pyp.ipb.pe/wphone</code>). Hemos logrado lo siguiente:</p>
+        <ul>
+            <li><strong>Desofuscación de Credenciales:</strong> Se analizó la lógica de encriptación del frontend (extracción de los primeros 20 caracteres como <code>service_account_email</code> y truncado de variables) para asegurar que el motor <code>sip.js</code> empaquete la contraseña real del anexo SIP (ej. anexo 1000) hacia el servidor de autenticación.</li>
+            <li><strong>Manejo de VPN:</strong> Se mantiene la arquitectura de conexión a través de la VPN dedicada (<code>PYP-IPB</code>), apuntando exitosamente al proxy SIP interno <code>192.168.199.129</code>.</li>
+            <li><strong>Certificados de Seguridad:</strong> El nuevo CRM cuenta con certificados SSL/TLS (Let's Encrypt) debidamente configurados, garantizando la interoperabilidad con las políticas de permisos de micrófono del estándar WebRTC.</li>
+        </ul>
+
+        <div class="section-title">2. Descripción del Problema (Bloqueo de Origen)</div>
+        <p>Al momento de inicializar la conexión WebSocket desde nuestro nuevo dominio hacia su servidor Janus, estamos experimentando un rechazo inmediato de la capa de transporte.</p>
+        
+        <p><strong>Detalle del error reportado por el navegador:</strong></p>
+        <div class="technical-block">
+            Request URL: wss://wrtc2.ipb.com.pe:8989/janus<br>
+            Request Method: GET<br>
+            Status Code: 403 Forbidden<br>
+            Origin: https://crm.pypsolucionesjuridicas.com
+        </div>
+
+        <p>Al tratarse de un error <code>403 Forbidden</code> en el "Handshake" del WebSocket, esto confirma que el problema no reside en las credenciales SIP (las cuales devolverían un SIP 401 o 403 a través de la consola de Janus), sino en una restricción de políticas <strong>CORS (Cross-Origin Resource Sharing)</strong> o <strong>Allowed Origins</strong> directamente en la configuración de Nginx/Janus en su servidor.</p>
+
+        <p>Actualmente, el servidor <code>wrtc2.ipb.com.pe</code> está configurado para aceptar peticiones WebSocket provenientes exclusivamente del dominio anterior (<code>https://pyp.ipb.pe</code>) y está bloqueando nuestra nueva URL corporativa.</p>
+
+        <div class="section-title">3. Requerimiento Técnico Solicitado</div>
+        <p>Para poder finalizar la migración y restablecer la operatividad de nuestros agentes telefónicos, solicitamos de manera formal la siguiente acción sobre su servidor Janus:</p>
+        
+        <div class="technical-block">
+            <strong>Acción requerida:</strong> Agregar nuestro dominio a la lista blanca de orígenes permitidos (CORS/Origins).<br>
+            <strong>Dominio a autorizar:</strong> https://crm.pypsolucionesjuridicas.com
+        </div>
+
+        <p>Una vez aplicada esta configuración en sus servidores, nuestra integración nativa se registrará automáticamente sin requerir ajustes adicionales de nuestra parte.</p>
+
+        <p>Agradecemos de antemano su colaboración técnica y quedamos a la espera de su confirmación para proceder con las pruebas finales en producción.</p>
+
+    </div>
+
+    <div class="footer">
+        Atentamente,<br>
+        <div class="signature">
+            <strong>Área de Tecnología y Desarrollo</strong><br>
+            P&amp;P Soluciones Jurídicas Empresariales<br>
+            <a style="color: #003366;" href="https://crm.pypsolucionesjuridicas.com">crm.pypsolucionesjuridicas.com</a>
+        </div>
+    </div>
+
+    <script>
+        // Imprimir automáticamente al abrir (opcional, pero útil)
+        // window.onload = function() { window.print(); }
+    </script>
+</body>
+</html>

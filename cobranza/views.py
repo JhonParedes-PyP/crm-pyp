@@ -218,7 +218,13 @@ def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False):
             deudores = deudores.none()
 
     if q: 
-        deudores = deudores.filter(Q(documento__icontains=q) | Q(nombre_completo__icontains=q))
+        deudores = deudores.filter(
+            Q(documento__icontains=q) | 
+            Q(nombre_completo__icontains=q) |
+            Q(telefono_principal__icontains=q) |
+            Q(tlf_celular_aval__icontains=q) |
+            Q(telefonoextra__numero__icontains=q)
+        ).distinct()
     if cartera_filtro: 
         deudores = deudores.filter(cartera=cartera_filtro)
     if agencia_filtro: 
