@@ -2,7 +2,7 @@ from .models import *
 from .views import SUPERVISORES_CON_BANDEJA_AGENTE, es_gerente, puede_usar_modo_agente
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Sum, Q, Max, F
+from django.db.models import Count, Sum, Q, Max, F, OuterRef, Subquery, DecimalField
 from django.utils import timezone
 from datetime import timedelta
 from django.http import HttpResponse, JsonResponse
@@ -114,28 +114,33 @@ def agenda_diaria(request):
     if es_gerente_flag and not agente_id and not modo_agente:
         gestores_base = User.objects.exclude(groups__name='GERENTE').exclude(is_superuser=True)
         supervisores_agentes = User.objects.filter(username__in=SUPERVISORES_CON_BANDEJA_AGENTE)
+        monto_semana_subquery = Gestion.objects.filter(
+            gestor=OuterRef('pk'),
+            fecha__date__gte=hoy - timedelta(days=7)
+        ).values('gestor').annotate(
+            total=Sum('monto_pago')
+        ).values('total')[:1]
+
         agentes = (gestores_base | supervisores_agentes).distinct().annotate(
             promesas_vencidas=Count('gestion', filter=Q(
                 gestion__resultado__icontains='PROMESA',
                 gestion__fecha_promesa__lt=hoy
-            )),
+            ), distinct=True),
             promesas_hoy=Count('gestion', filter=Q(
                 gestion__resultado__icontains='PROMESA',
                 gestion__fecha_promesa=hoy
-            )),
+            ), distinct=True),
             seguimientos_pendientes=Count('seguimientos', filter=Q(
                 seguimientos__completado=False,
                 seguimientos__fecha_programada__lte=hoy
-            )),
+            ), distinct=True),
             gestiones_hoy=Count('gestion', filter=Q(
                 gestion__fecha__date=hoy
-            )),
+            ), distinct=True),
             gestiones_semana=Count('gestion', filter=Q(
                 gestion__fecha__date__gte=hoy - timedelta(days=7)
-            )),
-            monto_semana=Sum('gestion__monto_pago', filter=Q(
-                gestion__fecha__date__gte=hoy - timedelta(days=7)
-            )),
+            ), distinct=True),
+            monto_semana=Subquery(monto_semana_subquery, output_field=DecimalField()),
         ).order_by('-gestiones_hoy', 'username')
 
         total_prom_vencidas = sum(a.promesas_vencidas for a in agentes)
