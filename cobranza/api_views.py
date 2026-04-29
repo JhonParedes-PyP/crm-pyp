@@ -61,10 +61,18 @@ def api_zadarma_webrtc_key(request):
 
     try:
         sip_profile = request.user.sip_profile
+        # sip.js espera que la clave venga ofuscada:
+        # Extrae los primeros 20 caracteres como 'service_account_email'
+        # Luego hace clave.replace(service_account_email, "")
+        # Luego hace un substring(2) para saltarse 2 caracteres extra.
+        # Por lo tanto, enviamos 22 caracteres basura + la clave real.
+        basura = "ABCDEFGHIJKLMNOPQRSTUV" # 22 caracteres
+        clave_ofuscada = basura + sip_profile.clave
+
         return JsonResponse({
             'status': 'success',
             'sip': sip_profile.anexo,
-            'key': sip_profile.clave
+            'key': clave_ofuscada
         })
     except Exception:
         return JsonResponse({'error': 'Sin perfil SIP', 'message': 'No SIP profile found'}, status=404)
