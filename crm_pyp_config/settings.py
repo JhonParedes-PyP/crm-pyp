@@ -28,6 +28,7 @@ JAZZMIN_SETTINGS = {
     "site_title":        "CRM P&P",
     "site_header":       "P&P Soluciones Jurídicas",
     "site_brand":        "P&P Cobranza",
+    "site_icon":         "cobranza/favicon.png",
     "welcome_sign":      "Bienvenido al Panel Administrativo",
     "copyright":         "P&P Soluciones Jurídicas © 2026",
 
