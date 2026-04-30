@@ -12,6 +12,9 @@
             background-color: #f4f7f6; 
             margin: 0; 
             padding: 0; 
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
         nav { 
             background-color: #003366; 
@@ -83,6 +86,21 @@
             max-width: 1200px; 
             margin: 30px auto; 
             padding: 20px; 
+            flex: 1;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        footer {
+            background-color: #001a33;
+            color: rgba(255,255,255,0.7);
+            text-align: center;
+            padding: 20px;
+            font-size: 13px;
+            border-top: 2px solid #fab005;
+            width: 100%;
+        }
+        footer p {
+            margin: 0;
         }
         @media (max-width: 768px) {
             .nav-bottom {
@@ -149,6 +167,9 @@
     {% block content %}
     {% endblock %}
 </div>
+<footer>
+    <p>&copy; 2026 Prada & Paredes Soluciones Jurídico Empresariales. Todos los derechos reservados. | Desarrollado por Jhon Paredes G</p>
+</footer>
 <!-- Teléfono SIP Nativo (Janus) -->
 <link href="https://pyp.ipb.pe/wphone/css/materialdesignicons/css/materialdesignicons.min.css" rel="stylesheet">
 <style>
@@ -202,7 +223,6 @@
                 <label id="auto-answer-status"></label>
                 <label id="estatus">No Registrado</label>
             </div>
-            <label id="sip-estatus" class="info"></label>
             <div class="card-body" id="videoright"></div>
         </div>
     </div>
@@ -224,11 +244,10 @@
     function pressKey(e){var a=document.getElementById("keypress-sound");a&&(a.currentTime=0,a.play()),document.getElementById("txtnumeroallama").value+=e,"En Llamada"===$("#estatus").text()&&sipcall.dtmf({dtmf:{tones:e}}),updateCallButtonState()}
     function mute(){if("En Llamada"==$("#estatus").text()){let e=sipcall.isAudioMuted();Janus.log((e?"Unmuting":"Muting")+" local stream..."),e?(sipcall.unmuteAudio(),$("#mute").html('<i class="mdi mdi-microphone"></i> Silenciar'),$("#mute").removeClass("btn-secondary").addClass("btn-secondary")):(sipcall.muteAudio(),$("#mute").html('<i class="mdi mdi-microphone-off"></i> Dejar de Silenciar'),$("#mute").removeClass("btn-secondary").addClass("btn-info"))}}
     function redial(){""!==typeof lastNumber && lastNumber!==""?(document.getElementById("txtnumeroallama").value=lastNumber,updateCallButtonState(),dollamar()):console.log("No hay numero anterior para rellamar.")}
-    function clearNumber(){document.getElementById("txtnumeroallama").value="",updateCallButtonState()}
+    function clearNumber(){document.getElementById("txtnumeroallama").value="",updateCallNumberState()}
     function requestMicrophoneAccess(){navigator.mediaDevices.getUserMedia({audio:!0}).then(function(e){console.log("Acceso al microfono concedido."),e.getTracks().forEach(t=>t.stop())}).catch(function(e){console.error("Error al acceder al microfono:",e),alert("Se necesita acceso al microfono para realizar llamadas.")})}
-    function updateCallButtonState(){} // Definido dummy por si sip.js lo usa
+    function updateCallButtonState(){} 
     
-    // Configurar API para que el CRM pueda invocar al teléfono
     window.marcarTelefonoCrm = function(numero) {
         document.getElementById('webphone-interface').style.display = 'block';
         document.getElementById('txtnumeroallama').value = numero;

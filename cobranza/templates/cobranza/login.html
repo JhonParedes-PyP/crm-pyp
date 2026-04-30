@@ -12,9 +12,28 @@
             background-color: #f4f7f6; 
             margin: 0; 
             display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .login-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+        footer {
+            background-color: #001a33;
+            color: rgba(255,255,255,0.7);
+            text-align: center;
+            padding: 20px;
+            font-size: 13px;
+            border-top: 2px solid #fab005;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        footer p {
+            margin: 0;
         }
         .login-box {
             background: white;
@@ -81,28 +100,34 @@
 </head>
 <body>
 
-    <div class="login-box">
-        <img src="{% static 'cobranza/logo_pyp.jpeg' %}" alt="P&P Soluciones" style="width:140px; height:auto; margin-bottom:12px; border-radius:8px;">
-        <h2>P&P Soluciones Jurídicas Empresariales</h2>
-        <p>Sistema Integrado de Cobranza</p>
+    <div class="login-container">
+        <div class="login-box">
+            <img src="{% static 'cobranza/logo_pyp.jpeg' %}" alt="P&P Soluciones" style="width:140px; height:auto; margin-bottom:12px; border-radius:8px;">
+            <h2>P&P Soluciones Jurídicas Empresariales</h2>
+            <p>Sistema Integrado de Cobranza</p>
 
-        {% if form.errors %}
-            <div class="error-msg">Usuario o contraseña incorrectos. Por favor, intente de nuevo.</div>
-        {% endif %}
+            {% if form.errors %}
+                <div class="error-msg">Usuario o contraseña incorrectos. Por favor, intente de nuevo.</div>
+            {% endif %}
 
-        <form method="post" action="{% url 'login' %}">
-            {% csrf_token %}
-            <div class="form-group">
-                <label for="id_username">👤 Usuario:</label>
-                <input type="text" name="username" id="id_username" required autofocus>
-            </div>
-            <div class="form-group">
-                <label for="id_password">🔒 Contraseña:</label>
-                <input type="password" name="password" id="id_password" required>
-            </div>
-            <button type="submit" class="btn-login">INGRESAR AL SISTEMA</button>
-        </form>
+            <form method="post" action="{% url 'login' %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="id_username">👤 Usuario:</label>
+                    <input type="text" name="username" id="id_username" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label for="id_password">🔒 Contraseña:</label>
+                    <input type="password" name="password" id="id_password" required>
+                </div>
+                <button type="submit" class="btn-login">INGRESAR AL SISTEMA</button>
+            </form>
+        </div>
     </div>
+
+    <footer>
+        <p>&copy; 2026 Prada & Paredes Soluciones Jurídico Empresariales. Todos los derechos reservados. | Desarrollado por Jhon Paredes G</p>
+    </footer>
 
 </body>
 </html>
