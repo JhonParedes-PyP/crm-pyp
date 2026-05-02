@@ -256,42 +256,36 @@ def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False, forza
 
     hoy = timezone.now().date()
 
-    # Subquery: ¿Existe algún PAGO posterior a esta promesa para el mismo deudor?
-    pago_posterior = Gestion.objects.filter(
-        deudor=OuterRef(OuterRef('pk')),
-        resultado__icontains='PAGÓ',
-        fecha__gt=OuterRef('fecha'),
-    )
-
     ultima_promesa_subquery = Gestion.objects.filter(
         deudor=OuterRef('pk'),
         resultado__icontains='PROMESA',
         fecha_promesa__gte=hoy,
-    ).exclude(
-        id__in=Gestion.objects.filter(
-            deudor=OuterRef('deudor'),
-            resultado__icontains='PROMESA',
-            fecha_promesa__gte=hoy,
-        ).filter(
-            deudor__gestion__resultado__icontains='PAGÓ',
-            deudor__gestion__fecha__gte=models.F('fecha'),
-        ).values('id')
     ).order_by('-fecha_promesa').values('fecha_promesa')[:1]
 
-    # Simplificación pragmática: una promesa vencida existe si hay una promesa
-    # con fecha_promesa < hoy y NO hay ningún PAGO posterior del mismo deudor
-    promesa_vencida_subquery = Gestion.objects.filter(
+    # Fecha de creación de la promesa vencida más reciente del deudor
+    ultima_promesa_vencida_fecha_subq = Gestion.objects.filter(
         deudor=OuterRef('pk'),
         resultado__icontains='PROMESA',
         fecha_promesa__lt=hoy,
-    ).exclude(
-        deudor__gestion__resultado__icontains='PAGÓ',
-        deudor__gestion__fecha__gte=models.F('fecha'),
+    ).order_by('-fecha').values('fecha')[:1]
+
+    # ¿Existe un PAGÓ registrado después de esa promesa vencida?
+    pago_tras_promesa_subq = Gestion.objects.filter(
+        deudor=OuterRef('pk'),
+        resultado__icontains='PAGÓ',
+        fecha__gt=Subquery(
+            Gestion.objects.filter(
+                deudor=OuterRef(OuterRef('pk')),
+                resultado__icontains='PROMESA',
+                fecha_promesa__lt=hoy,
+            ).order_by('-fecha').values('fecha')[:1]
+        ),
     ).values('id')[:1]
-    
+
     deudores = deudores.annotate(
         ultima_promesa_fecha=Subquery(ultima_promesa_subquery),
-        tiene_promesa_vencida=Subquery(promesa_vencida_subquery)
+        ultima_promesa_vencida_fecha=Subquery(ultima_promesa_vencida_fecha_subq),
+        pago_tras_promesa=Subquery(pago_tras_promesa_subq),
     )
 
     hoy_datetime = timezone.now()
@@ -299,7 +293,7 @@ def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False, forza
     hace_1_dia = hoy_datetime - timedelta(days=1)
 
     prioridad_annotation = Case(
-        When(tiene_promesa_vencida__isnull=False, then=Value(0)),
+        When(ultima_promesa_vencida_fecha__isnull=False, pago_tras_promesa__isnull=True, then=Value(0)),
         When(ultima_llamada__isnull=True, then=Value(1)),
         When(ultima_llamada__lte=hace_3_dias, then=Value(1)),
         When(ultima_llamada__lte=hace_1_dia, then=Value(2)),
@@ -388,7 +382,7 @@ def bandeja_gestor(request):
                 dias = (timezone.now() - d.ultima_llamada).days
                 d.color = "rojo" if dias >= 3 else ("amarillo" if dias >= 1 else "verde")
         
-        d.alerta_promesa = d.tiene_promesa_vencida is not None
+        d.alerta_promesa = d.ultima_promesa_vencida_fecha is not None and d.pago_tras_promesa is None
         d.proxima_promesa = d.ultima_promesa_fecha
 
     # 5. Guardar sesión para navegación (< Anterior / Siguiente >)
