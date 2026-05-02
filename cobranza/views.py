@@ -259,7 +259,7 @@ def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False, forza
     # Subquery: ¿Existe algún PAGO posterior a esta promesa para el mismo deudor?
     pago_posterior = Gestion.objects.filter(
         deudor=OuterRef(OuterRef('pk')),
-        resultado__icontains='PAGO',
+        resultado__icontains='PAGÓ',
         fecha__gt=OuterRef('fecha'),
     )
 
@@ -273,7 +273,7 @@ def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False, forza
             resultado__icontains='PROMESA',
             fecha_promesa__gte=hoy,
         ).filter(
-            deudor__gestion__resultado__icontains='PAGO',
+            deudor__gestion__resultado__icontains='PAGÓ',
             deudor__gestion__fecha__gte=models.F('fecha'),
         ).values('id')
     ).order_by('-fecha_promesa').values('fecha_promesa')[:1]
@@ -285,7 +285,7 @@ def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False, forza
         resultado__icontains='PROMESA',
         fecha_promesa__lt=hoy,
     ).exclude(
-        deudor__gestion__resultado__icontains='PAGO',
+        deudor__gestion__resultado__icontains='PAGÓ',
         deudor__gestion__fecha__gte=models.F('fecha'),
     ).values('id')[:1]
     

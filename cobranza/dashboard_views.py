@@ -35,7 +35,7 @@ def dashboard_gerente(request):
     total_recuperado = Gestion.objects.aggregate(Sum('monto_pago'))['monto_pago__sum'] or 0
     
     stats_pago = Gestion.objects.filter(
-        resultado__icontains='PAGO',
+        resultado__icontains='PAGÓ',
     ).filter(
         filtro_periodo
     ).count()
@@ -48,7 +48,7 @@ def dashboard_gerente(request):
     
     productividad = User.objects.annotate(
         total_gestiones=Count('gestion', filter=filtro_periodo_gestion),
-        total_pagos=Count('gestion', filter=filtro_periodo_gestion & Q(gestion__resultado__icontains='PAGO')),
+        total_pagos=Count('gestion', filter=filtro_periodo_gestion & Q(gestion__resultado__icontains='PAGÓ')),
         total_promesas=Count('gestion', filter=filtro_periodo_gestion & Q(gestion__resultado__icontains='PROMESA')),
         monto_recuperado=Sum('gestion__monto_pago', filter=filtro_periodo_gestion)
     ).filter(total_gestiones__gt=0).order_by('-total_gestiones')

@@ -257,7 +257,7 @@
                 {% for g in historial %}
                     <div style="padding: 10px; border-bottom: 1px solid #eee; font-size: 12px;">
                         <span style="font-size: 16px;">
-                            {% if 'PAGO' in g.resultado %}💰
+                            {% if 'PAGÓ' in g.resultado %}💰
                             {% elif 'PROMESA' in g.resultado %}🤝
                             {% elif 'VOLVER A LLAMAR' in g.resultado %}📅
                             {% elif 'NUEVO TELÉFONO' in g.resultado %}📱
@@ -268,7 +268,7 @@
                             {% else %}📝{% endif %}
                         </span>
                         <strong style="color: #007bff;">{{ g.fecha|date:"d/m/y H:i" }}</strong> - 
-                        <span style="color: {% if 'PAGO' in g.resultado %}#28a745{% elif 'PROMESA' in g.resultado %}#ffc107{% elif 'NUEVO TELÉFONO' in g.resultado %}#17a2b8{% else %}#dc3545{% endif %}; font-weight: bold;">{{ g.resultado }}</span>
+                        <span style="color: {% if 'PAGÓ' in g.resultado %}#28a745{% elif 'PROMESA' in g.resultado %}#ffc107{% elif 'NUEVO TELÉFONO' in g.resultado %}#17a2b8{% else %}#dc3545{% endif %}; font-weight: bold;">{{ g.resultado }}</span>
                         <p style="margin: 5px 0; color: #555;">{{ g.observacion }}</p>
                         
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
