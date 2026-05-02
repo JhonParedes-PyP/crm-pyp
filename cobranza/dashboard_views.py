@@ -2,7 +2,7 @@ from .models import *
 from .views import SUPERVISORES_CON_BANDEJA_AGENTE, es_gerente, puede_usar_modo_agente
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Sum, Q, Max, F, OuterRef, Subquery, DecimalField
+from django.db.models import Count, Sum, Q, Max, F, OuterRef, Subquery, DecimalField, Exists
 from django.utils import timezone
 from datetime import timedelta
 from django.http import HttpResponse, JsonResponse
@@ -121,11 +121,22 @@ def agenda_diaria(request):
             total=Sum('monto_pago')
         ).values('total')[:1]
 
+        promesas_vencidas_subq = Gestion.objects.filter(
+            gestor=OuterRef('pk'),
+            resultado__icontains='PROMESA',
+            fecha_promesa__lt=hoy
+        ).annotate(
+            tiene_pago=Exists(
+                Gestion.objects.filter(
+                    deudor=OuterRef('deudor'),
+                    resultado__icontains='PAGÓ',
+                    fecha__gt=OuterRef('fecha')
+                )
+            )
+        ).filter(tiene_pago=False).values('gestor').annotate(total=Count('id')).values('total')
+        
         agentes = (gestores_base | supervisores_agentes).distinct().annotate(
-            promesas_vencidas=Count('gestion', filter=Q(
-                gestion__resultado__icontains='PROMESA',
-                gestion__fecha_promesa__lt=hoy
-            ), distinct=True),
+            promesas_vencidas=Subquery(promesas_vencidas_subq, output_field=DecimalField()),
             promesas_hoy=Count('gestion', filter=Q(
                 gestion__resultado__icontains='PROMESA',
                 gestion__fecha_promesa=hoy
@@ -143,9 +154,9 @@ def agenda_diaria(request):
             monto_semana=Subquery(monto_semana_subquery, output_field=DecimalField()),
         ).order_by('-gestiones_hoy', 'username')
 
-        total_prom_vencidas = sum(a.promesas_vencidas for a in agentes)
-        total_prom_hoy = sum(a.promesas_hoy for a in agentes)
-        total_seg_pendientes = sum(a.seguimientos_pendientes for a in agentes)
+        total_prom_vencidas = sum((a.promesas_vencidas or 0) for a in agentes)
+        total_prom_hoy = sum((a.promesas_hoy or 0) for a in agentes)
+        total_seg_pendientes = sum((a.seguimientos_pendientes or 0) for a in agentes)
         total_alertas = total_prom_vencidas + total_prom_hoy + total_seg_pendientes
 
         return render(request, 'cobranza/agenda.html', {
@@ -191,9 +202,41 @@ def agenda_diaria(request):
     if cond_cartera:
         base_promesas = base_promesas.filter(cond_cartera)
 
-    promesas_vencidas = base_promesas.filter(fecha_promesa__lt=hoy).order_by('fecha_promesa')
-    promesas_hoy      = base_promesas.filter(fecha_promesa=hoy).order_by('-deudor__saldo_deuda')
-    promesas_manana   = base_promesas.filter(fecha_promesa=manana).order_by('-deudor__saldo_deuda')
+    promesas_vencidas_q = base_promesas.filter(
+        fecha_promesa__lt=hoy
+    ).annotate(
+        tiene_pago=Exists(
+            Gestion.objects.filter(
+                deudor=OuterRef('deudor'),
+                resultado__icontains='PAGÓ',
+                fecha__gt=OuterRef('fecha')
+            )
+        )
+    ).filter(tiene_pago=False).order_by('fecha_promesa')
+    
+    promesas_hoy = base_promesas.filter(
+        fecha_promesa=hoy
+    ).annotate(
+        tiene_pago=Exists(
+            Gestion.objects.filter(
+                deudor=OuterRef('deudor'),
+                resultado__icontains='PAGÓ',
+                fecha__gt=OuterRef('fecha')
+            )
+        )
+    ).filter(tiene_pago=False).order_by('-deudor__saldo_deuda')
+    
+    promesas_manana = base_promesas.filter(
+        fecha_promesa=manana
+    ).annotate(
+        tiene_pago=Exists(
+            Gestion.objects.filter(
+                deudor=OuterRef('deudor'),
+                resultado__icontains='PAGÓ',
+                fecha__gt=OuterRef('fecha')
+            )
+        )
+    ).filter(tiene_pago=False).order_by('-deudor__saldo_deuda')
 
     # ── Seguimientos ───────────────────────────────────────────────────────
     base_seg = SeguimientoProgramado.objects.filter(
@@ -224,7 +267,7 @@ def agenda_diaria(request):
     ).order_by(F('ultima_gestion').asc(nulls_first=True))[:50]
 
     total_urgente = (
-        promesas_vencidas.count()
+        promesas_vencidas_q.count()
         + promesas_hoy.count()
         + seguimientos_vencidos.count()
         + seguimientos_hoy.count()
@@ -236,7 +279,7 @@ def agenda_diaria(request):
         'manana': manana,
         'promesas_hoy': promesas_hoy,
         'promesas_manana': promesas_manana,
-        'promesas_vencidas': promesas_vencidas,
+        'promesas_vencidas': promesas_vencidas_q,
         'seguimientos_hoy': seguimientos_hoy,
         'seguimientos_vencidos': seguimientos_vencidos,
         'seguimientos_manana': seguimientos_manana,
