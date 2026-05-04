@@ -18,7 +18,7 @@
         </div>
         {% endif %}
 
-        <form method="GET" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 18px;">
+        <form method="GET" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px;">
             <div>
                 <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">Fecha</label>
                 <input type="date" name="fecha" value="{{ fecha_seleccionada|date:'Y-m-d' }}" style="width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px;">
@@ -54,6 +54,22 @@
                     {% endfor %}
                 </select>
             </div>
+            <div>
+                <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">Último pago desde</label>
+                <input type="date" name="fecha_pago_desde" value="{{ fecha_pago_desde }}" style="width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px;">
+            </div>
+            <div>
+                <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">Último pago hasta</label>
+                <input type="date" name="fecha_pago_hasta" value="{{ fecha_pago_hasta }}" style="width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px;">
+            </div>
+            <div>
+                <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">Condición negociación</label>
+                <select name="condicion_negociacion" style="width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px;">
+                    <option value="" {% if not condicion_negociacion %}selected{% endif %}>Todas</option>
+                    <option value="si" {% if condicion_negociacion == 'si' %}selected{% endif %}>Con condición</option>
+                    <option value="no" {% if condicion_negociacion == 'no' %}selected{% endif %}>Sin condición</option>
+                </select>
+            </div>
             <div style="grid-column: 1 / -1; display: flex; gap: 10px;">
                 <button type="submit" style="background: #003366; color: white; border: none; border-radius: 8px; padding: 10px 18px; font-weight: bold; cursor: pointer;">Filtrar</button>
                 <a href="{% url 'asignaciones_diarias' %}" style="background: #e9ecef; color: #333; text-decoration: none; border-radius: 8px; padding: 10px 18px; font-weight: bold;">Limpiar</a>
@@ -68,6 +84,9 @@
             <input type="hidden" name="q" value="{{ q }}">
             <input type="hidden" name="cartera" value="{{ cartera_filtro }}">
             <input type="hidden" name="agencia" value="{{ agencia_filtro }}">
+            <input type="hidden" name="fecha_pago_desde" value="{{ fecha_pago_desde }}">
+            <input type="hidden" name="fecha_pago_hasta" value="{{ fecha_pago_hasta }}">
+            <input type="hidden" name="condicion_negociacion" value="{{ condicion_negociacion }}">
 
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <div style="color: #555; font-size: 14px;">
@@ -89,6 +108,8 @@
                             <th style="padding: 10px; text-align: left;">Cliente</th>
                             <th style="padding: 10px; text-align: left;">Cartera</th>
                             <th style="padding: 10px; text-align: left;">Agencia</th>
+                            <th style="padding: 10px; text-align: left;">Último pago</th>
+                            <th style="padding: 10px; text-align: left;">Condición</th>
                             <th style="padding: 10px; text-align: right;">Deuda</th>
                         </tr>
                     </thead>
@@ -100,11 +121,13 @@
                             <td style="padding: 10px;">{{ d.nombre_completo }}</td>
                             <td style="padding: 10px;">{{ d.cartera }}</td>
                             <td style="padding: 10px;">{{ d.agencia }}</td>
+                            <td style="padding: 10px;">{{ d.ultimo_dia_pago|date:'d/m/Y'|default:'-' }}</td>
+                            <td style="padding: 10px;">{{ d.condicion|default:'-' }}</td>
                             <td style="padding: 10px; text-align: right;">S/ {{ d.saldo_deuda|floatformat:0|intcomma }}</td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" style="padding: 24px; text-align: center; color: #777;">No se encontraron clientes con esos filtros.</td>
+                            <td colspan="8" style="padding: 24px; text-align: center; color: #777;">No se encontraron clientes con esos filtros.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -115,11 +138,11 @@
         {% if deudores.paginator.num_pages > 1 %}
         <div style="display: flex; justify-content: center; gap: 10px; margin-top: 16px;">
             {% if deudores.has_previous %}
-            <a href="?fecha={{ fecha_seleccionada|date:'Y-m-d' }}&gestor={{ gestor_id }}&q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&page={{ deudores.previous_page_number }}" style="padding: 8px 12px; background: #e9ecef; color: #333; text-decoration: none; border-radius: 8px;">Anterior</a>
+            <a href="?fecha={{ fecha_seleccionada|date:'Y-m-d' }}&gestor={{ gestor_id }}&q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&fecha_pago_desde={{ fecha_pago_desde }}&fecha_pago_hasta={{ fecha_pago_hasta }}&condicion_negociacion={{ condicion_negociacion }}&page={{ deudores.previous_page_number }}" style="padding: 8px 12px; background: #e9ecef; color: #333; text-decoration: none; border-radius: 8px;">Anterior</a>
             {% endif %}
             <span style="padding: 8px 12px; background: #003366; color: white; border-radius: 8px;">Página {{ deudores.number }} de {{ deudores.paginator.num_pages }}</span>
             {% if deudores.has_next %}
-            <a href="?fecha={{ fecha_seleccionada|date:'Y-m-d' }}&gestor={{ gestor_id }}&q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&page={{ deudores.next_page_number }}" style="padding: 8px 12px; background: #e9ecef; color: #333; text-decoration: none; border-radius: 8px;">Siguiente</a>
+            <a href="?fecha={{ fecha_seleccionada|date:'Y-m-d' }}&gestor={{ gestor_id }}&q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&fecha_pago_desde={{ fecha_pago_desde }}&fecha_pago_hasta={{ fecha_pago_hasta }}&condicion_negociacion={{ condicion_negociacion }}&page={{ deudores.next_page_number }}" style="padding: 8px 12px; background: #e9ecef; color: #333; text-decoration: none; border-radius: 8px;">Siguiente</a>
             {% endif %}
         </div>
         {% endif %}
@@ -159,8 +182,14 @@
                             <input type="hidden" name="q" value="{{ q }}">
                             <input type="hidden" name="cartera" value="{{ cartera_filtro }}">
                             <input type="hidden" name="agencia" value="{{ agencia_filtro }}">
+                            <input type="hidden" name="fecha_pago_desde" value="{{ fecha_pago_desde }}">
+                            <input type="hidden" name="fecha_pago_hasta" value="{{ fecha_pago_hasta }}">
+                            <input type="hidden" name="condicion_negociacion" value="{{ condicion_negociacion }}">
                             <button type="submit" style="background: #dc3545; color: white; border: none; border-radius: 8px; padding: 8px 10px; cursor: pointer;">Quitar</button>
                         </form>
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-top: 8px;">
+                        Último pago: {{ item.deudor.ultimo_dia_pago|date:'d/m/Y'|default:'-' }} | Condición: {{ item.deudor.condicion|default:'-' }}
                     </div>
                 </div>
                 {% empty %}

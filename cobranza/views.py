@@ -479,6 +479,9 @@ def asignaciones_diarias(request):
     q = (request.GET.get('q') or '').strip()
     cartera = (request.GET.get('cartera') or '').strip()
     agencia = (request.GET.get('agencia') or '').strip()
+    fecha_pago_desde = (request.GET.get('fecha_pago_desde') or '').strip()
+    fecha_pago_hasta = (request.GET.get('fecha_pago_hasta') or '').strip()
+    condicion_negociacion = (request.GET.get('condicion_negociacion') or '').strip()
     mensaje = request.session.pop('asignaciones_diarias_msg', '')
     tipo_mensaje = request.session.pop('asignaciones_diarias_msg_tipo', 'ok')
 
@@ -492,6 +495,9 @@ def asignaciones_diarias(request):
             'q': request.POST.get('q', '').strip(),
             'cartera': request.POST.get('cartera', '').strip(),
             'agencia': request.POST.get('agencia', '').strip(),
+            'fecha_pago_desde': request.POST.get('fecha_pago_desde', '').strip(),
+            'fecha_pago_hasta': request.POST.get('fecha_pago_hasta', '').strip(),
+            'condicion_negociacion': request.POST.get('condicion_negociacion', '').strip(),
         })
 
         if accion == 'asignar':
@@ -543,6 +549,18 @@ def asignaciones_diarias(request):
         deudores = deudores.filter(cartera=cartera)
     if agencia:
         deudores = deudores.filter(agencia=agencia)
+    if fecha_pago_desde:
+        fecha_pago_desde_val = parse_date(fecha_pago_desde)
+        if fecha_pago_desde_val:
+            deudores = deudores.filter(ultimo_dia_pago__gte=fecha_pago_desde_val)
+    if fecha_pago_hasta:
+        fecha_pago_hasta_val = parse_date(fecha_pago_hasta)
+        if fecha_pago_hasta_val:
+            deudores = deudores.filter(ultimo_dia_pago__lte=fecha_pago_hasta_val)
+    if condicion_negociacion == 'si':
+        deudores = deudores.exclude(condicion__isnull=True).exclude(condicion__exact='')
+    elif condicion_negociacion == 'no':
+        deudores = deudores.filter(Q(condicion__isnull=True) | Q(condicion__exact=''))
     deudores = deudores.order_by('-saldo_deuda', 'nombre_completo')
 
     paginator = Paginator(deudores, 30)
@@ -580,6 +598,9 @@ def asignaciones_diarias(request):
         'q': q,
         'cartera_filtro': cartera,
         'agencia_filtro': agencia,
+        'fecha_pago_desde': fecha_pago_desde,
+        'fecha_pago_hasta': fecha_pago_hasta,
+        'condicion_negociacion': condicion_negociacion,
         'todas_carteras': todas_carteras,
         'todas_agencias': todas_agencias,
         'deudores': deudores_paginados,

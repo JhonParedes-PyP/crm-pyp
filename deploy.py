@@ -50,11 +50,25 @@ try:
         print("Subiendo import_sip.py y Excel al servidor...")
         sftp.put('import_sip.py', f"{project_dir}/import_sip.py")
         sftp.put('ANEXOS Y CLAVES.xlsx', f"{project_dir}/ANEXOS Y CLAVES.xlsx")
-        
-        print("Subiendo archivos de la bandeja (vistas y plantillas)...")
-        sftp.put('cobranza/views.py', f"{project_dir}/cobranza/views.py")
-        sftp.put('cobranza/templates/cobranza/bandeja.html', f"{project_dir}/cobranza/templates/cobranza/bandeja.html")
-        
+
+        print("Subiendo archivos actualizados del CRM...")
+        archivos_a_subir = [
+            ('cobranza/views.py', f"{project_dir}/cobranza/views.py"),
+            ('cobranza/models.py', f"{project_dir}/cobranza/models.py"),
+            ('cobranza/admin.py', f"{project_dir}/cobranza/admin.py"),
+            ('cobranza/api_views.py', f"{project_dir}/cobranza/api_views.py"),
+            ('cobranza/dashboard_views.py', f"{project_dir}/cobranza/dashboard_views.py"),
+            ('cobranza/asignaciones.py', f"{project_dir}/cobranza/asignaciones.py"),
+            ('cobranza/migrations/0017_asignaciondiaria.py', f"{project_dir}/cobranza/migrations/0017_asignaciondiaria.py"),
+            ('cobranza/templates/cobranza/bandeja.html', f"{project_dir}/cobranza/templates/cobranza/bandeja.html"),
+            ('cobranza/templates/cobranza/base.html', f"{project_dir}/cobranza/templates/cobranza/base.html"),
+            ('cobranza/templates/cobranza/asignaciones_diarias.html', f"{project_dir}/cobranza/templates/cobranza/asignaciones_diarias.html"),
+            ('crm_pyp_config/context_processors.py', f"{project_dir}/crm_pyp_config/context_processors.py"),
+            ('crm_pyp_config/urls.py', f"{project_dir}/crm_pyp_config/urls.py"),
+        ]
+        for origen, destino in archivos_a_subir:
+            sftp.put(origen, destino)
+
         sftp.close()
         print("Ejecutando import_sip.py en el servidor...")
         run_cmd(ssh, f"cd {project_dir} && {project_dir}/venv/bin/python import_sip.py")
