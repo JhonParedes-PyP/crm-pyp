@@ -255,6 +255,9 @@ def agenda_diaria(request):
     asignaciones_del_dia = AsignacionDiaria.objects.filter(
         gestor=usuario,
         fecha_asignada=hoy,
+    ).exclude(
+        deudor__gestion__gestor=usuario,
+        deudor__gestion__fecha__date=hoy
     ).select_related('deudor', 'gestor').order_by('-deudor__saldo_deuda', 'deudor__nombre_completo')
 
     deudores_ya_visibles = set()
