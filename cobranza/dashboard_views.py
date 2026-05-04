@@ -9,6 +9,7 @@ from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_http_methods
 import csv
 import openpyxl
+from .asignaciones import aplicar_visibilidad_por_asignaciones
 
 @login_required
 def dashboard_gerente(request):
@@ -189,23 +190,12 @@ def agenda_diaria(request):
         except User.DoesNotExist:
             pass
 
-    # Cartera del usuario activo (agente o agente seleccionado por gerente)
-    asignaciones = AsignacionCartera.objects.filter(gestor=usuario)
-    carteras_u = list(asignaciones.filter(tipo='cartera').values_list('valor', flat=True))
-    agencias_u = list(asignaciones.filter(tipo='agencia').values_list('valor', flat=True))
-    cond_cartera = Q()
-    if carteras_u:
-        cond_cartera |= Q(deudor__cartera__in=carteras_u)
-    if agencias_u:
-        cond_cartera |= Q(deudor__agencia__in=agencias_u)
-
     # ── Promesas ───────────────────────────────────────────────────────────
     base_promesas = Gestion.objects.filter(
         gestor=usuario,
         resultado__icontains='PROMESA'
     ).select_related('deudor', 'gestor')
-    if cond_cartera:
-        base_promesas = base_promesas.filter(cond_cartera)
+    base_promesas = aplicar_visibilidad_por_asignaciones(base_promesas, usuario, related_prefix='deudor__')
 
     promesas_vencidas_q = base_promesas.filter(
         fecha_promesa__lt=hoy
@@ -255,17 +245,8 @@ def agenda_diaria(request):
 
     # ── Sin contacto ───────────────────────────────────────────────────────
     fecha_limite = hoy - timedelta(days=dias_sin_contacto)
-    cond_deudor = Q()
-    if carteras_u:
-        cond_deudor |= Q(cartera__in=carteras_u)
-    if agencias_u:
-        cond_deudor |= Q(agencia__in=agencias_u)
-
     deudores_base = Deudor.objects.annotate(ultima_gestion=Max('gestion__fecha'))
-    if cond_deudor:
-        deudores_base = deudores_base.filter(cond_deudor)
-    else:
-        deudores_base = deudores_base.none()
+    deudores_base = aplicar_visibilidad_por_asignaciones(deudores_base, usuario)
 
     sin_contacto = deudores_base.filter(
         Q(ultima_gestion__date__lte=fecha_limite) | Q(ultima_gestion__isnull=True)

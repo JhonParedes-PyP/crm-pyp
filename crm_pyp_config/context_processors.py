@@ -25,8 +25,8 @@ def agenda_alertas(request):
         return {'agenda_alertas_count': 0, 'puede_modo_agente': False}
 
     try:
-        from cobranza.models import Gestion, SeguimientoProgramado, AsignacionCartera
-        from django.db.models import Q
+        from cobranza.models import Gestion, SeguimientoProgramado
+        from cobranza.asignaciones import aplicar_visibilidad_por_asignaciones
 
         hoy = timezone.now().date()
 
@@ -42,18 +42,7 @@ def agenda_alertas(request):
             resultado__icontains='PROMESA'
         )
         if not es_gerente_flag:
-            asignaciones = AsignacionCartera.objects.filter(gestor=request.user)
-            carteras = asignaciones.filter(tipo='cartera').values_list('valor', flat=True)
-            agencias = asignaciones.filter(tipo='agencia').values_list('valor', flat=True)
-            cond = Q()
-            if carteras.exists():
-                cond |= Q(deudor__cartera__in=carteras)
-            if agencias.exists():
-                cond |= Q(deudor__agencia__in=agencias)
-            if cond:
-                promesas_q = promesas_q.filter(cond)
-            else:
-                promesas_q = promesas_q.none()
+            promesas_q = aplicar_visibilidad_por_asignaciones(promesas_q, request.user, related_prefix='deudor__')
 
         # --- Seguimientos pendientes (hoy o vencidos) ---
         seg_q = SeguimientoProgramado.objects.filter(

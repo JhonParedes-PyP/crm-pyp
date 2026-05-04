@@ -10,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from urllib.parse import urlencode
 from decimal import Decimal
+from .asignaciones import aplicar_visibilidad_por_asignaciones
 
 @csrf_exempt 
 @require_http_methods(["POST"])
@@ -205,17 +206,7 @@ def api_cartera_lista(request):
         if usuario and (usuario.is_superuser or usuario.groups.filter(name='GERENTE').exists()):
             deudores = Deudor.objects.all()
         else:
-            asignaciones = AsignacionCartera.objects.filter(gestor__username=agente).values('tipo', 'valor')
-            carteras = [a['valor'] for a in asignaciones if a['tipo'] == 'cartera']
-            agencias = [a['valor'] for a in asignaciones if a['tipo'] == 'agencia']
-
-            filtro = Q()
-            if carteras:
-                filtro |= Q(cartera__in=carteras)
-            if agencias:
-                filtro |= Q(agencia__in=agencias)
-
-            deudores = Deudor.objects.filter(filtro) if filtro else Deudor.objects.none()
+            deudores = aplicar_visibilidad_por_asignaciones(Deudor.objects.all(), usuario) if usuario else Deudor.objects.none()
 
     # --- Paginación para evitar cargar toda la cartera en un solo JSON ---
     total_count = deudores.count()

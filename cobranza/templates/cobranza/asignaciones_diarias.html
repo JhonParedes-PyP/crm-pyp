@@ -1,0 +1,184 @@
+{% extends 'cobranza/base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 22px;">
+    <div style="background: white; padding: 24px; border-radius: 14px; box-shadow: 0 4px 14px rgba(0,0,0,0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px;">
+            <div>
+                <h2 style="margin: 0; color: #003366;">Asignación Diaria de Clientes</h2>
+                <p style="margin: 6px 0 0; color: #666;">Este módulo suma clientes al gestor por fecha, sin reemplazar su asignación fija por cartera o agencia.</p>
+            </div>
+            <a href="{% url 'asignar_carteras' %}" style="background: #6c757d; color: white; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-weight: bold;">Ver asignación fija</a>
+        </div>
+
+        {% if mensaje %}
+        <div style="margin-bottom: 16px; padding: 12px 14px; border-radius: 10px; background: {% if tipo_mensaje == 'error' %}#fdeaea{% else %}#eaf7ee{% endif %}; color: {% if tipo_mensaje == 'error' %}#8a1f1f{% else %}#1f6b35{% endif %};">
+            {{ mensaje }}
+        </div>
+        {% endif %}
+
+        <form method="GET" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 18px;">
+            <div>
+                <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">Fecha</label>
+                <input type="date" name="fecha" value="{{ fecha_seleccionada|date:'Y-m-d' }}" style="width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px;">
+            </div>
+            <div>
+                <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">Gestor destino</label>
+                <select name="gestor" style="width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px;">
+                    <option value="">Todos</option>
+                    {% for gestor in gestores %}
+                    <option value="{{ gestor.id }}" {% if gestor_id == gestor.id|stringformat:'s' %}selected{% endif %}>{{ gestor.username|upper }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">Buscar</label>
+                <input type="text" name="q" value="{{ q }}" placeholder="DNI, nombre o teléfono" style="width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px;">
+            </div>
+            <div>
+                <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">Cartera</label>
+                <select name="cartera" style="width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px;">
+                    <option value="">Todas</option>
+                    {% for item in todas_carteras %}
+                    <option value="{{ item }}" {% if cartera_filtro == item %}selected{% endif %}>{{ item }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">Agencia</label>
+                <select name="agencia" style="width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px;">
+                    <option value="">Todas</option>
+                    {% for item in todas_agencias %}
+                    <option value="{{ item }}" {% if agencia_filtro == item %}selected{% endif %}>{{ item }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="grid-column: 1 / -1; display: flex; gap: 10px;">
+                <button type="submit" style="background: #003366; color: white; border: none; border-radius: 8px; padding: 10px 18px; font-weight: bold; cursor: pointer;">Filtrar</button>
+                <a href="{% url 'asignaciones_diarias' %}" style="background: #e9ecef; color: #333; text-decoration: none; border-radius: 8px; padding: 10px 18px; font-weight: bold;">Limpiar</a>
+            </div>
+        </form>
+
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="asignar">
+            <input type="hidden" name="fecha" value="{{ fecha_seleccionada|date:'Y-m-d' }}">
+            <input type="hidden" name="gestor" value="{{ gestor_id }}">
+            <input type="hidden" name="q" value="{{ q }}">
+            <input type="hidden" name="cartera" value="{{ cartera_filtro }}">
+            <input type="hidden" name="agencia" value="{{ agencia_filtro }}">
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div style="color: #555; font-size: 14px;">
+                    {% if gestor_id %}
+                    Los clientes marcados se asignarán al gestor seleccionado para el día {{ fecha_seleccionada|date:'d/m/Y' }}.
+                    {% else %}
+                    Selecciona un gestor arriba y luego marca clientes para asignarlos.
+                    {% endif %}
+                </div>
+                <button type="submit" style="background: #28a745; color: white; border: none; border-radius: 8px; padding: 10px 16px; font-weight: bold; cursor: pointer;">Guardar asignación diaria</button>
+            </div>
+
+            <div style="overflow-x: auto; border: 1px solid #e9ecef; border-radius: 12px;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead style="background: #f8f9fa;">
+                        <tr>
+                            <th style="padding: 10px; text-align: center; width: 42px;"><input type="checkbox" id="marcar-todos"></th>
+                            <th style="padding: 10px; text-align: left;">DNI</th>
+                            <th style="padding: 10px; text-align: left;">Cliente</th>
+                            <th style="padding: 10px; text-align: left;">Cartera</th>
+                            <th style="padding: 10px; text-align: left;">Agencia</th>
+                            <th style="padding: 10px; text-align: right;">Deuda</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in deudores %}
+                        <tr style="border-top: 1px solid #eee; {% if d.id in ids_asignados_actuales %}background: #eef8f0;{% endif %}">
+                            <td style="padding: 10px; text-align: center;"><input type="checkbox" class="check-deudor" name="deudor_ids" value="{{ d.id }}" {% if d.id in ids_asignados_actuales %}checked{% endif %}></td>
+                            <td style="padding: 10px;">{{ d.documento }}</td>
+                            <td style="padding: 10px;">{{ d.nombre_completo }}</td>
+                            <td style="padding: 10px;">{{ d.cartera }}</td>
+                            <td style="padding: 10px;">{{ d.agencia }}</td>
+                            <td style="padding: 10px; text-align: right;">S/ {{ d.saldo_deuda|floatformat:0|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" style="padding: 24px; text-align: center; color: #777;">No se encontraron clientes con esos filtros.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </form>
+
+        {% if deudores.paginator.num_pages > 1 %}
+        <div style="display: flex; justify-content: center; gap: 10px; margin-top: 16px;">
+            {% if deudores.has_previous %}
+            <a href="?fecha={{ fecha_seleccionada|date:'Y-m-d' }}&gestor={{ gestor_id }}&q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&page={{ deudores.previous_page_number }}" style="padding: 8px 12px; background: #e9ecef; color: #333; text-decoration: none; border-radius: 8px;">Anterior</a>
+            {% endif %}
+            <span style="padding: 8px 12px; background: #003366; color: white; border-radius: 8px;">Página {{ deudores.number }} de {{ deudores.paginator.num_pages }}</span>
+            {% if deudores.has_next %}
+            <a href="?fecha={{ fecha_seleccionada|date:'Y-m-d' }}&gestor={{ gestor_id }}&q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&page={{ deudores.next_page_number }}" style="padding: 8px 12px; background: #e9ecef; color: #333; text-decoration: none; border-radius: 8px;">Siguiente</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div style="display: grid; gap: 20px;">
+        <div style="background: white; padding: 24px; border-radius: 14px; box-shadow: 0 4px 14px rgba(0,0,0,0.05);">
+            <h3 style="margin-top: 0; color: #003366;">Resumen del día</h3>
+            <p style="color: #666; margin-top: 6px;">Asignaciones para {{ fecha_seleccionada|date:'d/m/Y' }}{% if gestor_id %} del gestor seleccionado{% endif %}.</p>
+            {% for item in resumen_por_gestor %}
+            <div style="display: flex; justify-content: space-between; padding: 10px 0; border-top: 1px solid #eee;">
+                <strong>{{ item.gestor__username|upper }}</strong>
+                <span>{{ item.total }} clientes</span>
+            </div>
+            {% empty %}
+            <p style="color: #777; margin-bottom: 0;">Todavía no hay asignaciones diarias para esa fecha.</p>
+            {% endfor %}
+        </div>
+
+        <div style="background: white; padding: 24px; border-radius: 14px; box-shadow: 0 4px 14px rgba(0,0,0,0.05);">
+            <h3 style="margin-top: 0; color: #003366;">Detalle asignado</h3>
+            <div style="display: grid; gap: 12px; max-height: 650px; overflow-y: auto;">
+                {% for item in asignaciones_del_dia %}
+                <div style="border: 1px solid #e9ecef; border-radius: 12px; padding: 14px;">
+                    <div style="display: flex; justify-content: space-between; gap: 10px; align-items: start;">
+                        <div>
+                            <div style="font-weight: bold; color: #003366;">{{ item.deudor.nombre_completo }}</div>
+                            <div style="font-size: 13px; color: #666; margin-top: 4px;">{{ item.deudor.documento }} | {{ item.gestor.username|upper }}</div>
+                            <div style="font-size: 12px; color: #888; margin-top: 4px;">{{ item.deudor.cartera }} | {{ item.deudor.agencia }}</div>
+                        </div>
+                        <form method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="accion" value="eliminar">
+                            <input type="hidden" name="asignacion_id" value="{{ item.id }}">
+                            <input type="hidden" name="fecha" value="{{ fecha_seleccionada|date:'Y-m-d' }}">
+                            <input type="hidden" name="gestor" value="{{ gestor_id }}">
+                            <input type="hidden" name="q" value="{{ q }}">
+                            <input type="hidden" name="cartera" value="{{ cartera_filtro }}">
+                            <input type="hidden" name="agencia" value="{{ agencia_filtro }}">
+                            <button type="submit" style="background: #dc3545; color: white; border: none; border-radius: 8px; padding: 8px 10px; cursor: pointer;">Quitar</button>
+                        </form>
+                    </div>
+                </div>
+                {% empty %}
+                <p style="color: #777; margin-bottom: 0;">No hay clientes asignados todavía en esta vista.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const marcarTodos = document.getElementById('marcar-todos');
+    if (marcarTodos) {
+        marcarTodos.addEventListener('change', function () {
+            document.querySelectorAll('.check-deudor').forEach(function (item) {
+                item.checked = marcarTodos.checked;
+            });
+        });
+    }
+</script>
+{% endblock %}

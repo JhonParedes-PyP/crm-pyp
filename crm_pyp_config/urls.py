@@ -46,6 +46,7 @@ urlpatterns = [
 
     # Asignación de Carteras (solo gerentes)
     path('asignar-carteras/', views.asignar_carteras, name='asignar_carteras'),
+    path('asignaciones-diarias/', views.asignaciones_diarias, name='asignaciones_diarias'),
 
     # Carga masiva de teléfonos (solo gerentes)
     path('cargar-telefonos/', views.cargar_telefonos, name='cargar_telefonos'),

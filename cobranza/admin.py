@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.db.models import Count
-from .models import Deudor, Gestion, TelefonoExtra, AsignacionCartera, CampanaAsterisk, DetalleCampanaAsterisk
+from .models import Deudor, Gestion, TelefonoExtra, AsignacionCartera, AsignacionDiaria, CampanaAsterisk, DetalleCampanaAsterisk
 
 # ─── Títulos del panel administrativo ───────────────────────────────────────
 admin.site.site_header  = "P&P Soluciones Jurídicas — Administración"
@@ -100,6 +100,15 @@ class AsignacionCarteraAdmin(admin.ModelAdmin):
         return format_html('<span style="background:{};color:white;padding:2px 8px;'
                            'border-radius:10px;font-size:11px;">{}</span>',
                            color, obj.tipo.upper())
+
+
+@admin.register(AsignacionDiaria)
+class AsignacionDiariaAdmin(admin.ModelAdmin):
+    list_display = ('fecha_asignada', 'gestor', 'deudor', 'fecha_creacion')
+    list_filter = ('fecha_asignada', 'gestor')
+    search_fields = ('gestor__username', 'deudor__documento', 'deudor__nombre_completo')
+    ordering = ('-fecha_asignada', 'gestor__username', 'deudor__nombre_completo')
+    list_per_page = 50
 
 
 # ─── CAMPAÑA ASTERISK ───────────────────────────────────────────────────────

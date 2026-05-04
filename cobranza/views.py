@@ -18,7 +18,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 
 
 # --- AQUÍ ESTÁ LA LÍNEA ACTUALIZADA CON LAS CAMPAÑAS ---
-from .models import Deudor, Gestion, TelefonoExtra, AsignacionCartera, CampanaAsterisk, DetalleCampanaAsterisk, SeguimientoProgramado
+from .models import Deudor, Gestion, TelefonoExtra, AsignacionCartera, AsignacionDiaria, CampanaAsterisk, DetalleCampanaAsterisk, SeguimientoProgramado
+from .asignaciones import aplicar_visibilidad_por_asignaciones
 
 from django.db import models, transaction
 from django.db.models import Q, Sum, Count, Max, OuterRef, Subquery, Case, When, Value, IntegerField, F
@@ -47,17 +48,7 @@ def modo_agente_ve_todos_los_clientes(user):
     return user.is_superuser and user.username.upper() in SUPERVISORES_CON_BANDEJA_AGENTE
 
 def aplicar_asignaciones_de_gestor(queryset, usuario):
-    asignaciones = AsignacionCartera.objects.filter(gestor=usuario)
-    carteras_asignadas = asignaciones.filter(tipo='cartera').values_list('valor', flat=True)
-    agencias_asignadas = asignaciones.filter(tipo='agencia').values_list('valor', flat=True)
-
-    condiciones = Q()
-    if carteras_asignadas.exists():
-        condiciones |= Q(cartera__in=carteras_asignadas)
-    if agencias_asignadas.exists():
-        condiciones |= Q(agencia__in=agencias_asignadas)
-
-    return queryset.filter(condiciones) if condiciones else queryset.none()
+    return aplicar_visibilidad_por_asignaciones(queryset, usuario)
 
 # --- FUNCIÓN AUXILIAR PARA ENCRIPTAR (Asterisk - Formato Kubo) ---
 def encode_md5_base64(valor):
@@ -470,6 +461,133 @@ def asignar_carteras(request):
         'todas_agencias': todas_agencias,
         'carteras_por_gestor': carteras_por_gestor,
         'agencias_por_gestor': agencias_por_gestor,
+    })
+
+@login_required
+@user_passes_test(es_gerente)
+def asignaciones_diarias(request):
+    from django.utils.dateparse import parse_date
+
+    gestores = User.objects.exclude(groups__name='GERENTE').exclude(is_superuser=True)
+    supervisores_agentes = User.objects.filter(username__in=SUPERVISORES_CON_BANDEJA_AGENTE)
+    gestores = (gestores | supervisores_agentes).distinct().order_by('username')
+
+    hoy = timezone.now().date()
+    fecha_texto = request.GET.get('fecha') or request.POST.get('fecha') or hoy.isoformat()
+    fecha_seleccionada = parse_date(fecha_texto) or hoy
+    gestor_id = request.GET.get('gestor') or request.POST.get('gestor') or ''
+    q = (request.GET.get('q') or '').strip()
+    cartera = (request.GET.get('cartera') or '').strip()
+    agencia = (request.GET.get('agencia') or '').strip()
+    mensaje = request.session.pop('asignaciones_diarias_msg', '')
+    tipo_mensaje = request.session.pop('asignaciones_diarias_msg_tipo', 'ok')
+
+    if request.method == 'POST':
+        accion = request.POST.get('accion')
+        fecha_post = parse_date(request.POST.get('fecha', '')) or hoy
+        gestor_post = request.POST.get('gestor', '').strip()
+        redirect_params = urlencode({
+            'fecha': fecha_post.isoformat(),
+            'gestor': gestor_post,
+            'q': request.POST.get('q', '').strip(),
+            'cartera': request.POST.get('cartera', '').strip(),
+            'agencia': request.POST.get('agencia', '').strip(),
+        })
+
+        if accion == 'asignar':
+            ids_deudores = [int(i) for i in request.POST.getlist('deudor_ids') if str(i).isdigit()]
+            gestor_obj = User.objects.filter(id=gestor_post).first() if gestor_post else None
+
+            if not gestor_obj:
+                request.session['asignaciones_diarias_msg'] = 'Seleccione un gestor antes de asignar.'
+                request.session['asignaciones_diarias_msg_tipo'] = 'error'
+            elif not ids_deudores:
+                request.session['asignaciones_diarias_msg'] = 'Seleccione al menos un cliente para la asignacion diaria.'
+                request.session['asignaciones_diarias_msg_tipo'] = 'error'
+            else:
+                existentes = set(
+                    AsignacionDiaria.objects.filter(
+                        gestor=gestor_obj,
+                        fecha_asignada=fecha_post,
+                        deudor_id__in=ids_deudores,
+                    ).values_list('deudor_id', flat=True)
+                )
+                nuevos = [
+                    AsignacionDiaria(gestor=gestor_obj, deudor_id=deudor_id, fecha_asignada=fecha_post)
+                    for deudor_id in ids_deudores
+                    if deudor_id not in existentes
+                ]
+                AsignacionDiaria.objects.bulk_create(nuevos)
+                request.session['asignaciones_diarias_msg'] = f'{len(nuevos)} clientes asignados para {gestor_obj.username.upper()} el {fecha_post.strftime("%d/%m/%Y")}.'
+                request.session['asignaciones_diarias_msg_tipo'] = 'ok'
+        elif accion == 'eliminar':
+            asignacion_id = request.POST.get('asignacion_id', '').strip()
+            asignacion = AsignacionDiaria.objects.filter(id=asignacion_id).first() if asignacion_id.isdigit() else None
+            if asignacion:
+                gestor_nombre = asignacion.gestor.username.upper()
+                cliente_nombre = asignacion.deudor.nombre_completo
+                asignacion.delete()
+                request.session['asignaciones_diarias_msg'] = f'Se quito la asignacion diaria de {cliente_nombre} para {gestor_nombre}.'
+                request.session['asignaciones_diarias_msg_tipo'] = 'ok'
+
+        return redirect(f"{reverse('asignaciones_diarias')}?{redirect_params}")
+
+    deudores = Deudor.objects.all()
+    if q:
+        deudores = deudores.filter(
+            Q(documento__icontains=q) |
+            Q(nombre_completo__icontains=q) |
+            Q(telefono_principal__icontains=q)
+        )
+    if cartera:
+        deudores = deudores.filter(cartera=cartera)
+    if agencia:
+        deudores = deudores.filter(agencia=agencia)
+    deudores = deudores.order_by('-saldo_deuda', 'nombre_completo')
+
+    paginator = Paginator(deudores, 30)
+    page_number = request.GET.get('page')
+    deudores_paginados = paginator.get_page(page_number)
+
+    gestor_actual = User.objects.filter(id=gestor_id).first() if gestor_id else None
+    ids_asignados_actuales = set()
+    if gestor_actual:
+        ids_asignados_actuales = set(
+            AsignacionDiaria.objects.filter(
+                gestor=gestor_actual,
+                fecha_asignada=fecha_seleccionada,
+            ).values_list('deudor_id', flat=True)
+        )
+
+    asignaciones_del_dia = AsignacionDiaria.objects.filter(
+        fecha_asignada=fecha_seleccionada
+    ).select_related('gestor', 'deudor')
+    if gestor_actual:
+        asignaciones_del_dia = asignaciones_del_dia.filter(gestor=gestor_actual)
+
+    todas_carteras = Deudor.objects.values_list('cartera', flat=True).distinct()
+    todas_carteras = sorted([c for c in todas_carteras if c and str(c).strip() != ''])
+    todas_agencias = Deudor.objects.values_list('agencia', flat=True).distinct()
+    todas_agencias = sorted([a for a in todas_agencias if a and str(a).strip() != ''])
+
+    resumen_por_gestor = asignaciones_del_dia.values('gestor__username').annotate(total=Count('id')).order_by('-total', 'gestor__username')
+
+    return render(request, 'cobranza/asignaciones_diarias.html', {
+        'es_gerente': True,
+        'gestores': gestores,
+        'fecha_seleccionada': fecha_seleccionada,
+        'gestor_id': gestor_id,
+        'q': q,
+        'cartera_filtro': cartera,
+        'agencia_filtro': agencia,
+        'todas_carteras': todas_carteras,
+        'todas_agencias': todas_agencias,
+        'deudores': deudores_paginados,
+        'ids_asignados_actuales': ids_asignados_actuales,
+        'asignaciones_del_dia': asignaciones_del_dia,
+        'resumen_por_gestor': resumen_por_gestor,
+        'mensaje': mensaje,
+        'tipo_mensaje': tipo_mensaje,
     })
 
 # --- FICHA DE GESTIÓN CON NAVEGACIÓN ---

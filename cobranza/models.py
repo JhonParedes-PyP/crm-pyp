@@ -98,6 +98,22 @@ class AsignacionCartera(models.Model):
         return f"{self.gestor.username} - {self.get_tipo_display()}: {self.valor}"
 
 
+class AsignacionDiaria(models.Model):
+    gestor = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='asignaciones_diarias')
+    deudor = models.ForeignKey(Deudor, on_delete=models.CASCADE, related_name='asignaciones_diarias')
+    fecha_asignada = models.DateField()
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['gestor', 'deudor', 'fecha_asignada']
+        ordering = ['-fecha_asignada', 'gestor__username', 'deudor__nombre_completo']
+        verbose_name = "Asignacion Diaria"
+        verbose_name_plural = "Asignaciones Diarias"
+
+    def __str__(self):
+        return f"{self.fecha_asignada} - {self.gestor.username} - {self.deudor.nombre_completo}"
+
+
 # --- NUEVO MÓDULO: CAMPAÑAS ASTERISK ---
 class CampanaAsterisk(models.Model):
     PROVEEDORES_CHOICES = [
