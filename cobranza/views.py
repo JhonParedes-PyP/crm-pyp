@@ -482,6 +482,7 @@ def asignaciones_diarias(request):
     fecha_pago_desde = (request.GET.get('fecha_pago_desde') or '').strip()
     fecha_pago_hasta = (request.GET.get('fecha_pago_hasta') or '').strip()
     condicion_negociacion = (request.GET.get('condicion_negociacion') or '').strip()
+    orden = (request.GET.get('orden') or '').strip()
     mensaje = request.session.pop('asignaciones_diarias_msg', '')
     tipo_mensaje = request.session.pop('asignaciones_diarias_msg_tipo', 'ok')
 
@@ -498,6 +499,7 @@ def asignaciones_diarias(request):
             'fecha_pago_desde': request.POST.get('fecha_pago_desde', '').strip(),
             'fecha_pago_hasta': request.POST.get('fecha_pago_hasta', '').strip(),
             'condicion_negociacion': request.POST.get('condicion_negociacion', '').strip(),
+            'orden': request.POST.get('orden', '').strip(),
         })
 
         if accion == 'asignar':
@@ -561,7 +563,16 @@ def asignaciones_diarias(request):
         deudores = deudores.exclude(condicion__isnull=True).exclude(condicion__exact='')
     elif condicion_negociacion == 'no':
         deudores = deudores.filter(Q(condicion__isnull=True) | Q(condicion__exact=''))
-    deudores = deudores.order_by('-saldo_deuda', 'nombre_completo')
+    if orden == 'nombre':
+        deudores = deudores.order_by('nombre_completo')
+    elif orden == '-nombre':
+        deudores = deudores.order_by('-nombre_completo')
+    elif orden == 'ultimo_pago':
+        deudores = deudores.order_by(F('ultimo_dia_pago').asc(nulls_last=True), 'nombre_completo')
+    elif orden == '-ultimo_pago':
+        deudores = deudores.order_by(F('ultimo_dia_pago').desc(nulls_last=True), 'nombre_completo')
+    else:
+        deudores = deudores.order_by('-saldo_deuda', 'nombre_completo')
 
     paginator = Paginator(deudores, 30)
     page_number = request.GET.get('page')
@@ -601,6 +612,7 @@ def asignaciones_diarias(request):
         'fecha_pago_desde': fecha_pago_desde,
         'fecha_pago_hasta': fecha_pago_hasta,
         'condicion_negociacion': condicion_negociacion,
+        'orden_actual': orden,
         'todas_carteras': todas_carteras,
         'todas_agencias': todas_agencias,
         'deudores': deudores_paginados,
