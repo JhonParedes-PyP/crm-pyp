@@ -81,6 +81,7 @@
                 {% if deudor.producto %}<p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Producto:</strong> {{ deudor.producto }}</p>{% endif %}
                 <p style="margin: 5px 0; font-size: 14px; color: #000; font-weight: 900;">Capital Base: S/ {{ deudor.monto_capital|floatformat:2|intcomma }}</p>
                 <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Últ. Día de Pago:</strong> {{ deudor.ultimo_dia_pago|date:"d/m/Y"|default:"Sin registro" }}</p>
+                {% if deudor.negociacion %}<p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Negociación:</strong> {{ deudor.negociacion }}</p>{% endif %}
                 {% if deudor.rango_dias_mora %}<p style="margin: 3px 0; font-size: 12px;"><strong>Mora:</strong> <span style="color: #dc3545; font-weight: bold;">{{ deudor.rango_dias_mora }}</span></p>{% endif %}
                 {% if deudor.nmes %}<p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Meses de mora:</strong> <span style="color: #dc3545; font-weight: bold;">{{ deudor.nmes }}</span></p>{% endif %}
             </div>

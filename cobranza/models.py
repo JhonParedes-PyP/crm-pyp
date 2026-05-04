@@ -48,6 +48,7 @@ class Deudor(models.Model):
     num_doc_conyuge = models.CharField(max_length=20, null=True, blank=True)
     num_doc_aval = models.CharField(max_length=20, null=True, blank=True)
     zona = models.CharField(max_length=100, null=True, blank=True)
+    negociacion = models.TextField(null=True, blank=True)
 
     # CAMPOS APP MÓVIL (actualizables por gestores de campo)
     link_gps = models.CharField(max_length=500, null=True, blank=True)

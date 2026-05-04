@@ -176,6 +176,7 @@ def subir_excel(request):
                               'num_doc_conyuge': str(row.get('NUM_DOC_CONYUGE', '')).strip(),
                               'num_doc_aval': str(row.get('NUM_DOC_AVAL', '')).strip(),
                               'zona': str(row.get('ZONA', '')).strip(),
+                              'negociacion': str(row.get('NEGOCIACION', '')).strip(),
                           }
                       )
 
