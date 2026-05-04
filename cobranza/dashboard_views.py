@@ -13,6 +13,7 @@ import openpyxl
 @login_required
 def dashboard_gerente(request):
     hoy = timezone.now().date()
+    inicio_mes_actual = hoy.replace(day=1)
     es_gerente_flag = es_gerente(request.user)
     
     periodo = request.GET.get('periodo', 'hoy')
@@ -32,7 +33,10 @@ def dashboard_gerente(request):
     
     total_deudores = Deudor.objects.count()
     total_cartera = Deudor.objects.aggregate(Sum('saldo_deuda'))['saldo_deuda__sum'] or 0
-    total_recuperado = Gestion.objects.aggregate(Sum('monto_pago'))['monto_pago__sum'] or 0
+    total_recuperado = Gestion.objects.filter(
+        fecha__date__gte=inicio_mes_actual,
+        fecha__date__lte=hoy,
+    ).aggregate(Sum('monto_pago'))['monto_pago__sum'] or 0
     
     stats_pago = Gestion.objects.filter(
         resultado__icontains='PAGÓ',
@@ -61,6 +65,7 @@ def dashboard_gerente(request):
         'es_gerente': es_gerente_flag,
         'total_cartera': total_cartera,
         'total_recuperado': total_recuperado,
+        'inicio_mes_actual': inicio_mes_actual,
         'total_deudores': total_deudores,
         'productividad': productividad,
         'grafico_labels': ['Pagos', 'Promesas'],
