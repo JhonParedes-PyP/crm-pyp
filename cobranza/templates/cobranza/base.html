@@ -130,7 +130,7 @@
     <div class="nav-bottom">
         <div class="menu">
             <a href="{% url 'dashboard_gerente' %}">📊 Dashboard</a>
-            <a href="{% url 'agenda_diaria' %}" style="position:relative;">
+            <a id="agenda-link" href="{% url 'agenda_diaria' %}{% if es_gerente and puede_modo_agente and not user.is_superuser %}?modo=agente{% endif %}" style="position:relative;">
                 📅 Agenda de Supervisión
                 {% if agenda_alertas_count > 0 %}
                 <span style="position:absolute; top:-8px; right:-10px; background:#dc3545; color:white; border-radius:50%; width:18px; height:18px; font-size:10px; font-weight:bold; display:flex; align-items:center; justify-content:center; line-height:1;">{{ agenda_alertas_count }}</span>
@@ -164,6 +164,16 @@
         {% endif %}
     </div>
 </nav>
+<script>
+    (function () {
+        var agendaLink = document.getElementById('agenda-link');
+        if (!agendaLink) return;
+        var texto = {{ user.is_superuser|yesno:"'📆 Agenda de Supervisión','📆 Agenda Diaria'"|safe }};
+        if (agendaLink.firstChild && agendaLink.firstChild.nodeType === Node.TEXT_NODE) {
+            agendaLink.firstChild.textContent = "\n                " + texto + "\n                ";
+        }
+    })();
+</script>
 <div class="container">
     {% block content %}
     {% endblock %}

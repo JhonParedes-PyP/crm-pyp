@@ -203,6 +203,33 @@
 
 <div class="agenda-grid">
 
+    <!-- Asignaciones del día -->
+    <div class="seccion">
+        <div class="sh azul">📋 Clientes asignados HOY <span class="cnt">{{ asignaciones_restantes.count }}</span></div>
+        {% for item in asignaciones_restantes %}
+        <div class="ci">
+            <div>
+                <div class="ci-nom">{{ item.deudor.nombre_completo }}</div>
+                <div class="ci-sub">
+                    <span>📄 {{ item.deudor.documento }}</span>
+                    <span>📞 {{ item.deudor.telefono_principal }}</span>
+                    <span class="tag t-s">ASIGNADO</span>
+                </div>
+                <div class="ci-sub">
+                    <span>{{ item.deudor.cartera }}</span>
+                    <span>{{ item.deudor.agencia }}</span>
+                </div>
+            </div>
+            <div style="text-align:right;">
+                <div class="ci-monto">S/ {{ item.deudor.saldo_deuda|floatformat:2|intcomma }}<small>deuda</small></div>
+                <a href="{% url 'registrar_gestion' item.deudor.id %}" class="btn-ir">Gestionar →</a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty">✅ Sin clientes asignados adicionales para hoy.</div>
+        {% endfor %}
+    </div>
+
     <!-- Promesas VENCIDAS -->
     {% if promesas_vencidas %}
     <div class="seccion">

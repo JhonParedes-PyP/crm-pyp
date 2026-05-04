@@ -117,7 +117,7 @@ def agenda_diaria(request):
     # ══════════════════════════════════════════════════════════════════════
     # MODO SUPERVISIÓN — Gerente ve panel por agente (no clientes directos)
     # ══════════════════════════════════════════════════════════════════════
-    if es_gerente_flag and not agente_id and not modo_agente:
+    if request.user.is_superuser and not agente_id and not modo_agente:
         gestores_base = User.objects.exclude(groups__name='GERENTE').exclude(is_superuser=True)
         supervisores_agentes = User.objects.filter(username__in=SUPERVISORES_CON_BANDEJA_AGENTE)
         monto_semana_subquery = Gestion.objects.filter(
@@ -252,6 +252,20 @@ def agenda_diaria(request):
         Q(ultima_gestion__date__lte=fecha_limite) | Q(ultima_gestion__isnull=True)
     ).order_by(F('ultima_gestion').asc(nulls_first=True))[:50]
 
+    asignaciones_del_dia = AsignacionDiaria.objects.filter(
+        gestor=usuario,
+        fecha_asignada=hoy,
+    ).select_related('deudor', 'gestor').order_by('-deudor__saldo_deuda', 'deudor__nombre_completo')
+
+    deudores_ya_visibles = set()
+    for grupo in (promesas_vencidas_q, promesas_hoy, promesas_manana):
+        deudores_ya_visibles.update(grupo.values_list('deudor_id', flat=True))
+    for grupo in (seguimientos_vencidos, seguimientos_hoy, seguimientos_manana):
+        deudores_ya_visibles.update(grupo.values_list('deudor_id', flat=True))
+    deudores_ya_visibles.update(sin_contacto.values_list('id', flat=True))
+
+    asignaciones_restantes = asignaciones_del_dia.exclude(deudor_id__in=deudores_ya_visibles)
+
     total_urgente = (
         promesas_vencidas_q.count()
         + promesas_hoy.count()
@@ -270,6 +284,8 @@ def agenda_diaria(request):
         'seguimientos_vencidos': seguimientos_vencidos,
         'seguimientos_manana': seguimientos_manana,
         'sin_contacto': sin_contacto,
+        'asignaciones_del_dia': asignaciones_del_dia,
+        'asignaciones_restantes': asignaciones_restantes,
         'dias_sin_contacto': dias_sin_contacto,
         'es_gerente': es_gerente_flag,
         'total_urgente': total_urgente,
