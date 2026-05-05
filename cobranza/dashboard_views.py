@@ -83,19 +83,43 @@ def dashboard_gerente(request):
 def exportar_gestiones_excel(request):
     if not es_gerente(request.user):
         return HttpResponse("Acceso Denegado.", status=403)
-    gestiones = Gestion.objects.select_related('gestor', 'deudor').all().order_by('-fecha')
+
+    gestiones_todas = Gestion.objects.select_related('gestor', 'deudor').all().order_by('-fecha')
+
     wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.append(['FECHA', 'GESTOR', 'DNI', 'CLIENTE', 'RESULTADO', 'MONTO'])
-    for g in gestiones:
-        ws.append([
+
+    # ── Hoja 1: GESTIONES (monto = 0) ──────────────────────────────────────
+    ws_gestiones = wb.active
+    ws_gestiones.title = 'GESTIONES'
+    ws_gestiones.append(['CARTERA', 'AGENCIA', 'CUENTA', 'CLIENTE', 'RESULTADO DE GESTION'])
+    for g in gestiones_todas:
+        if g.monto_pago and g.monto_pago > 0:
+            continue
+        deudor = g.deudor
+        resultado_gestion = f'CON FECHA {g.fecha.strftime("%d/%m/%Y")} "{g.observacion}"'
+        ws_gestiones.append([
+            deudor.cartera if deudor else 'N/A',
+            deudor.agencia if deudor else 'N/A',
+            deudor.cuenta if deudor else 'N/A',
+            deudor.nombre_completo if deudor else 'N/A',
+            resultado_gestion,
+        ])
+
+    # ── Hoja 2: PAGOS (monto > 0) ──────────────────────────────────────────
+    ws_pagos = wb.create_sheet(title='PAGOS')
+    ws_pagos.append(['FECHA', 'GESTOR', 'DNI', 'CLIENTE', 'RESULTADO', 'MONTO'])
+    for g in gestiones_todas:
+        if not g.monto_pago or g.monto_pago <= 0:
+            continue
+        ws_pagos.append([
             g.fecha.strftime('%d/%m/%Y'),
-            g.gestor.username if g.gestor else 'Sin gestor',
+            g.gestor.username.upper() if g.gestor else 'Sin gestor',
             g.deudor.documento if g.deudor else 'N/A',
             g.deudor.nombre_completo if g.deudor else 'N/A',
             g.resultado,
-            g.monto_pago,
+            float(g.monto_pago),
         ])
+
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename=Reporte_PP.xlsx'
     wb.save(response)
