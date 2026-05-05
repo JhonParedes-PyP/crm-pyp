@@ -76,7 +76,11 @@ def agenda_alertas(request):
             gestion__gestor=request.user,
             gestion__fecha__date=hoy
         )
-        pagos_proximos_count = deudores_visibles.count()
+        from cobranza.views import USUARIOS_SIN_ALERTA_PAGO_PROXIMO
+        if request.user.username.upper() in USUARIOS_SIN_ALERTA_PAGO_PROXIMO:
+            pagos_proximos_count = 0
+        else:
+            pagos_proximos_count = deudores_visibles.count()
 
         total = promesas_q.count() + seg_q.count()
         return {

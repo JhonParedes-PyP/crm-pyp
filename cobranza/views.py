@@ -50,8 +50,13 @@ def modo_agente_ve_todos_los_clientes(user):
 def aplicar_asignaciones_de_gestor(queryset, usuario):
     return aplicar_visibilidad_por_asignaciones(queryset, usuario)
 
+# Usuarios con la notificación flotante de pagos próximos desactivada
+USUARIOS_SIN_ALERTA_PAGO_PROXIMO = {'ASAAVEDRA'}
+
 def obtener_alertas_pago_proximo(usuario):
     if not usuario or not usuario.is_authenticated:
+        return []
+    if usuario.username.upper() in USUARIOS_SIN_ALERTA_PAGO_PROXIMO:
         return []
 
     hoy = timezone.now().date()
