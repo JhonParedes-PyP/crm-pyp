@@ -22,7 +22,7 @@ def agenda_alertas(request):
     Usado para el badge rojo en el menú de navegación.
     """
     if not request.user.is_authenticated:
-        return {'agenda_alertas_count': 0, 'puede_modo_agente': False}
+        return {'agenda_alertas_count': 0, 'pagos_proximos_count': 0, 'puede_modo_agente': False}
 
     try:
         from cobranza.models import Gestion, SeguimientoProgramado
@@ -52,15 +52,43 @@ def agenda_alertas(request):
         if not es_gerente_flag:
             seg_q = seg_q.filter(gestor=request.user)
 
+        # --- Pagos Próximos a Vencer (2 días) ---
+        from cobranza.models import Deudor
+        from django.db.models import F, Value, DateField, ExpressionWrapper
+        from datetime import timedelta
+        
+        fecha_tope = hoy + timedelta(days=2)
+        deudores_base = Deudor.objects.filter(ultimo_dia_pago__isnull=False).annotate(
+            fecha_pago_calc=ExpressionWrapper(
+                F('ultimo_dia_pago') + Value(timedelta(days=30)),
+                output_field=DateField()
+            )
+        ).filter(
+            fecha_pago_calc__range=(hoy, fecha_tope)
+        )
+
+        if request.user.is_superuser and request.user.username.upper() == 'JPAREDES':
+            deudores_visibles = deudores_base
+        else:
+            deudores_visibles = aplicar_visibilidad_por_asignaciones(deudores_base, request.user)
+
+        deudores_visibles = deudores_visibles.exclude(
+            gestion__gestor=request.user,
+            gestion__fecha__date=hoy
+        )
+        pagos_proximos_count = deudores_visibles.count()
+
         total = promesas_q.count() + seg_q.count()
         return {
             'agenda_alertas_count': total,
+            'pagos_proximos_count': pagos_proximos_count,
             'puede_modo_agente': request.user.username.upper() == 'JPAREDES',
         }
 
     except Exception:
         return {
             'agenda_alertas_count': 0,
+            'pagos_proximos_count': 0,
             'puede_modo_agente': request.user.username.upper() == 'JPAREDES',
         }
 
