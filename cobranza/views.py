@@ -22,7 +22,7 @@ from .models import Deudor, Gestion, TelefonoExtra, AsignacionCartera, Asignacio
 from .asignaciones import aplicar_visibilidad_por_asignaciones
 
 from django.db import models, transaction
-from django.db.models import Q, Sum, Count, Max, OuterRef, Subquery, Case, When, Value, IntegerField, F
+from django.db.models import Q, Sum, Count, Max, OuterRef, Subquery, Case, When, Value, IntegerField, F, DateField, ExpressionWrapper
 from django.db.models.expressions import RawSQL
 from django.utils import timezone
 from django.contrib.auth.models import User
@@ -49,6 +49,34 @@ def modo_agente_ve_todos_los_clientes(user):
 
 def aplicar_asignaciones_de_gestor(queryset, usuario):
     return aplicar_visibilidad_por_asignaciones(queryset, usuario)
+
+def obtener_alertas_pago_proximo(usuario):
+    if not usuario or not usuario.is_authenticated:
+        return []
+
+    hoy = timezone.now().date()
+    fecha_tope = hoy + timedelta(days=2)
+
+    deudores_base = Deudor.objects.filter(ultimo_dia_pago__isnull=False).annotate(
+        fecha_pago_calc=ExpressionWrapper(
+            F('ultimo_dia_pago') + Value(timedelta(days=30)),
+            output_field=DateField()
+        )
+    ).filter(
+        fecha_pago_calc__range=(hoy, fecha_tope)
+    )
+
+    if usuario.is_superuser and usuario.username.upper() == 'JPAREDES':
+        deudores_visibles = deudores_base
+    else:
+        deudores_visibles = aplicar_visibilidad_por_asignaciones(deudores_base, usuario)
+
+    deudores_visibles = deudores_visibles.exclude(
+        gestion__gestor=usuario,
+        gestion__fecha__date=hoy
+    ).order_by('fecha_pago_calc', 'nombre_completo')
+
+    return list(deudores_visibles)
 
 # --- FUNCIÓN AUXILIAR PARA ENCRIPTAR (Asterisk - Formato Kubo) ---
 def encode_md5_base64(valor):
@@ -394,10 +422,14 @@ def bandeja_gestor(request):
     filtros['modo'] = 'agente' if modo_agente else ''
     request.session['filtros_bandeja'] = filtros
     
+    alerta_pago_proximo = obtener_alertas_pago_proximo(request.user)
+
     return render(request, 'cobranza/bandeja.html', {
         'deudores': deudores_paginados,
         'lista_carteras': lista_carteras,
         'lista_agencias': lista_agencias,
+        'alerta_pago_proximo': alerta_pago_proximo,
+        'alerta_pago_proximo_count': len(alerta_pago_proximo),
         'mapa_cartera_agencias': json.dumps(mapa_cartera_agencias),
         'q': filtros['q'],
         'cartera_filtro': filtros['cartera'],

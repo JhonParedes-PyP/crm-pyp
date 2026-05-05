@@ -1,5 +1,6 @@
 from .models import *
 from .views import SUPERVISORES_CON_BANDEJA_AGENTE, es_gerente, puede_usar_modo_agente
+from .views import obtener_alertas_pago_proximo
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum, Q, Max, F, OuterRef, Subquery, DecimalField, Exists
@@ -165,6 +166,8 @@ def agenda_diaria(request):
         total_seg_pendientes = sum((a.seguimientos_pendientes or 0) for a in agentes)
         total_alertas = total_prom_vencidas + total_prom_hoy + total_seg_pendientes
 
+        alerta_pago_proximo = obtener_alertas_pago_proximo(request.user)
+
         return render(request, 'cobranza/agenda.html', {
             'modo': 'supervision',
             'hoy': hoy,
@@ -175,6 +178,8 @@ def agenda_diaria(request):
             'total_seg_pendientes': total_seg_pendientes,
             'es_gerente': True,
             'dias_sin_contacto': dias_sin_contacto,
+            'alerta_pago_proximo': alerta_pago_proximo,
+            'alerta_pago_proximo_count': len(alerta_pago_proximo),
         })
 
     # ══════════════════════════════════════════════════════════════════════
@@ -182,6 +187,7 @@ def agenda_diaria(request):
     # ══════════════════════════════════════════════════════════════════════
     usuario = request.user
     agente_seleccionado = None
+    alerta_pago_proximo = obtener_alertas_pago_proximo(request.user)
 
     if es_gerente_flag and agente_id:
         try:
@@ -292,6 +298,8 @@ def agenda_diaria(request):
         'dias_sin_contacto': dias_sin_contacto,
         'es_gerente': es_gerente_flag,
         'total_urgente': total_urgente,
+        'alerta_pago_proximo': alerta_pago_proximo,
+        'alerta_pago_proximo_count': len(alerta_pago_proximo),
         'agente_seleccionado': agente_seleccionado,
         'modo_agente': modo_agente,
     })
