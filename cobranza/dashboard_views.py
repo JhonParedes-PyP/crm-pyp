@@ -1,3 +1,4 @@
+import re
 from .models import *
 from .views import SUPERVISORES_CON_BANDEJA_AGENTE, es_gerente, puede_usar_modo_agente
 from .views import obtener_alertas_pago_proximo
@@ -96,7 +97,8 @@ def exportar_gestiones_excel(request):
         if g.monto_pago and g.monto_pago > 0:
             continue
         deudor = g.deudor
-        resultado_gestion = f'CON FECHA {g.fecha.strftime("%d/%m/%Y")} "{g.observacion}"'
+        obs_limpia = re.sub(r'^\[.*?\]\s*', '', g.observacion or '').strip()
+        resultado_gestion = f'CON FECHA {g.fecha.strftime("%d/%m/%Y")} "{obs_limpia}"'
         ws_gestiones.append([
             deudor.cartera if deudor else 'N/A',
             deudor.agencia if deudor else 'N/A',
