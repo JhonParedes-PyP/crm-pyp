@@ -62,6 +62,10 @@ def agenda_alertas(request):
             fecha_pago_calc=ExpressionWrapper(
                 F('ultimo_dia_pago') + Value(timedelta(days=30)),
                 output_field=DateField()
+            ),
+            fecha_inicio_alerta=ExpressionWrapper(
+                F('ultimo_dia_pago') + Value(timedelta(days=28)),
+                output_field=DateField()
             )
         ).filter(
             fecha_pago_calc__range=(hoy, fecha_tope)
@@ -74,7 +78,7 @@ def agenda_alertas(request):
 
         deudores_visibles = deudores_visibles.exclude(
             gestion__gestor=request.user,
-            gestion__fecha__date=hoy
+            gestion__fecha__date__gte=F('fecha_inicio_alerta')
         )
         from cobranza.views import USUARIOS_SIN_ALERTA_PAGO_PROXIMO
         if request.user.username.upper() in USUARIOS_SIN_ALERTA_PAGO_PROXIMO:

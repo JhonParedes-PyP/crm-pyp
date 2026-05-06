@@ -29,7 +29,7 @@ try:
     print(f"Ruta del proyecto: {project_dir}")
     
     # 2. Descargar código
-    run_cmd(ssh, f"cd {project_dir} && git config --global --add safe.directory {project_dir} && git pull origin main")
+    run_cmd(ssh, f"cd {project_dir} && git config --global --add safe.directory {project_dir} && git fetch origin && git reset --hard origin/main")
 
     # 3. Leer el .env local y subirlo
     print("Subiendo .env al servidor...")

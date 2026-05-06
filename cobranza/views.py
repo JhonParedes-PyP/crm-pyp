@@ -66,6 +66,10 @@ def obtener_alertas_pago_proximo(usuario):
         fecha_pago_calc=ExpressionWrapper(
             F('ultimo_dia_pago') + Value(timedelta(days=30)),
             output_field=DateField()
+        ),
+        fecha_inicio_alerta=ExpressionWrapper(
+            F('ultimo_dia_pago') + Value(timedelta(days=28)),
+            output_field=DateField()
         )
     ).filter(
         fecha_pago_calc__range=(hoy, fecha_tope)
@@ -78,7 +82,7 @@ def obtener_alertas_pago_proximo(usuario):
 
     deudores_visibles = deudores_visibles.exclude(
         gestion__gestor=usuario,
-        gestion__fecha__date=hoy
+        gestion__fecha__date__gte=F('fecha_inicio_alerta')
     ).order_by('fecha_pago_calc', 'nombre_completo')
 
     return list(deudores_visibles)
@@ -117,7 +121,11 @@ def safe_date(valor):
 # --- SEGURIDAD ---
 @require_http_methods(["POST"])
 def salir_sistema(request):
-    logout(request)
+    try:
+        logout(request)
+        request.session.flush()
+    except Exception:
+        pass
     return redirect('login')
 
 # --- CARGA DE CARTERA ---
@@ -427,7 +435,11 @@ def bandeja_gestor(request):
     filtros['modo'] = 'agente' if modo_agente else ''
     request.session['filtros_bandeja'] = filtros
     
-    alerta_pago_proximo = obtener_alertas_pago_proximo(request.user)
+    if request.session.get('alerta_pago_mostrada', False):
+        alerta_pago_proximo = []
+    else:
+        alerta_pago_proximo = obtener_alertas_pago_proximo(request.user)
+        request.session['alerta_pago_mostrada'] = True
 
     return render(request, 'cobranza/bandeja.html', {
         'deudores': deudores_paginados,

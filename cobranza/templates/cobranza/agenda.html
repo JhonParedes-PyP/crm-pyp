@@ -2,37 +2,6 @@
 {% load humanize %}
 
 {% block content %}
-{% if alerta_pago_proximo_count > 0 %}
-<div id="modal-pago" style="position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 9999; display: flex; align-items: center; justify-content: center;">
-    <div style="background: white; width: min(900px, 95%); max-height: 85vh; overflow: auto; border-radius: 12px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); position: relative;">
-        {% if user.is_superuser and user.username == 'JPAREDES' %}
-        <button onclick="document.getElementById('modal-pago').style.display='none'; document.body.style.overflow='auto';" style="position: absolute; top: 15px; right: 15px; background: #dc3545; color: white; border: none; border-radius: 5px; padding: 5px 10px; cursor: pointer; font-weight: bold; font-size: 12px;">Cerrar (JPAREDES)</button>
-        {% endif %}
-        <h2 style="margin: 0 0 8px 0; color: #003366;">⏰ Pagos por vencer (2 dias)</h2>
-        <p style="margin: 0 0 15px 0; color: #555; font-size: 13px;">Debe gestionar estos clientes para continuar.</p>
-        <div style="display: grid; gap: 10px;">
-            {% for d in alerta_pago_proximo %}
-            <div style="border: 1px solid #eee; border-radius: 10px; padding: 10px; display: grid; grid-template-columns: 1.4fr 1fr auto; gap: 10px; align-items: center;">
-                <div>
-                    <div style="font-weight: bold; color: #003366;">{{ d.nombre_completo }}</div>
-                    <div style="font-size: 12px; color: #666;">DNI: {{ d.documento }} | Cartera: {{ d.cartera }} | Agencia: {{ d.agencia }}</div>
-                </div>
-                <div style="font-size: 12px; color: #444;">
-                    Ult. pago: {{ d.ultimo_dia_pago|date:"d/m/Y" }}<br>
-                    Prox. pago: <strong>{{ d.fecha_pago_calc|date:"d/m/Y" }}</strong>
-                </div>
-                <div style="text-align: right;">
-                    <a href="{% url 'registrar_gestion' d.id %}" style="background: #28a745; color: white; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 12px;">Gestionar</a>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-</div>
-<script>
-    document.body.style.overflow = 'hidden';
-</script>
-{% endif %}
 
 <style>
 /* ── Comunes ──────────────────────────────────────────────────────── */
