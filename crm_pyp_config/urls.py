@@ -61,4 +61,10 @@ urlpatterns = [
     # --- ZADARMA WebRTC / Callback ---
     path('api/webrtc-key/', api_views.api_zadarma_webrtc_key, name='api_zadarma_webrtc_key'),
     path('iniciar-llamada/<str:numero_cliente>/', api_views.iniciar_callback, name='iniciar_callback'),
+
+    # --- 🤖 DEEPSEEK AI ASSISTANT ---
+    path('api/ai/resumen/<int:deudor_id>/', api_views.api_ai_resumen, name='api_ai_resumen'),
+    path('api/ai/guion/<int:deudor_id>/', api_views.api_ai_guion, name='api_ai_guion'),
+    path('api/ai/chat/<int:deudor_id>/', api_views.api_ai_chat, name='api_ai_chat'),
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

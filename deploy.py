@@ -65,12 +65,21 @@ try:
             ('cobranza/templates/cobranza/asignaciones_diarias.html', f"{project_dir}/cobranza/templates/cobranza/asignaciones_diarias.html"),
             ('crm_pyp_config/context_processors.py', f"{project_dir}/crm_pyp_config/context_processors.py"),
             ('crm_pyp_config/urls.py', f"{project_dir}/crm_pyp_config/urls.py"),
+            # ── 🤖 DEEPSEEK AI ──────────────────────────────────────────────────────
+            ('cobranza/ai_service.py', f"{project_dir}/cobranza/ai_service.py"),
+            ('cobranza/templates/cobranza/gestionar.html', f"{project_dir}/cobranza/templates/cobranza/gestionar.html"),
         ]
         for origen, destino in archivos_a_subir:
             sftp.put(origen, destino)
 
         sftp.close()
-        print("Ejecutando import_sip.py en el servidor...")
+        print("[OK] Archivos subidos al servidor")
+
+        # ── Instalar openai en el venv del servidor ──────────────────────────────
+        print("Instalando openai en el servidor...")
+        run_cmd(ssh, f"{project_dir}/venv/bin/pip install openai -q")
+
+
         run_cmd(ssh, f"cd {project_dir} && {project_dir}/venv/bin/python import_sip.py")
         
         sftp = ssh.open_sftp()

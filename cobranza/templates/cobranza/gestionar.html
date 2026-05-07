@@ -293,7 +293,90 @@
     </div>
 </div>
 
-<script>
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- 🤖  PANEL IA — DEEPSEEK ASSISTANT                                      -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div id="panel-ia" style="margin-top: 20px; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); border-radius: 16px; padding: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);">
+
+    <!-- Header del panel -->
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="background: linear-gradient(135deg, #667eea, #764ba2); width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(102,126,234,0.5);">🤖</div>
+            <div>
+                <h3 style="margin: 0; color: white; font-size: 18px; font-weight: 700;">ARIA — Asistente IA de Cobranza</h3>
+                <p style="margin: 0; color: rgba(255,255,255,0.5); font-size: 12px;">Powered by DeepSeek V4 Pro · Análisis inteligente del caso</p>
+            </div>
+        </div>
+        <button onclick="togglePanelIA()" id="btn-toggle-ia" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 12px; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">
+            ▼ Minimizar
+        </button>
+    </div>
+
+    <div id="ia-body">
+        <!-- FILA 1: Dos botones de análisis -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+
+            <!-- CARD: Resumen IA -->
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                    <span style="font-size: 20px;">📋</span>
+                    <div>
+                        <p style="margin: 0; color: white; font-weight: 700; font-size: 14px;">Resumen del Caso</p>
+                        <p style="margin: 0; color: rgba(255,255,255,0.5); font-size: 11px;">Análisis ejecutivo del historial</p>
+                    </div>
+                </div>
+                <button id="btn-resumen" onclick="generarResumen()" style="width: 100%; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                    ✨ Generar Resumen IA
+                </button>
+                <div id="resultado-resumen" style="display: none; margin-top: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 12px; color: rgba(255,255,255,0.9); font-size: 13px; line-height: 1.6; max-height: 200px; overflow-y: auto; white-space: pre-wrap;"></div>
+            </div>
+
+            <!-- CARD: Guión de llamada -->
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                    <span style="font-size: 20px;">📞</span>
+                    <div>
+                        <p style="margin: 0; color: white; font-weight: 700; font-size: 14px;">Guión de Llamada</p>
+                        <p style="margin: 0; color: rgba(255,255,255,0.5); font-size: 11px;">Script personalizado para negociar</p>
+                    </div>
+                </div>
+                <button id="btn-guion" onclick="generarGuion()" style="width: 100%; background: linear-gradient(135deg, #f093fb, #f5576c); color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                    🎯 Generar Guión de Llamada
+                </button>
+                <div id="resultado-guion" style="display: none; margin-top: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 12px; color: rgba(255,255,255,0.9); font-size: 13px; line-height: 1.6; max-height: 200px; overflow-y: auto; white-space: pre-wrap;"></div>
+            </div>
+        </div>
+
+        <!-- CARD: Chat IA en tiempo real -->
+        <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                <span style="font-size: 20px;">💬</span>
+                <div>
+                    <p style="margin: 0; color: white; font-weight: 700; font-size: 14px;">Chat con ARIA</p>
+                    <p style="margin: 0; color: rgba(255,255,255,0.5); font-size: 11px;">Pregunta cualquier cosa sobre este caso o técnicas de cobranza</p>
+                </div>
+            </div>
+
+            <!-- Historial del chat -->
+            <div id="chat-historial" style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 12px; min-height: 80px; max-height: 280px; overflow-y: auto; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px;">
+                <div style="text-align: center; color: rgba(255,255,255,0.3); font-size: 12px; padding: 20px 0;">
+                    Escribe tu consulta y ARIA responderá con información del caso...
+                </div>
+            </div>
+
+            <!-- Input del chat -->
+            <div style="display: flex; gap: 10px; align-items: flex-end;">
+                <textarea id="chat-input" placeholder="Ej: ¿Cómo abordo a este cliente si promete pagar pero no lo hace?..." rows="2" style="flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; padding: 10px; font-size: 13px; resize: none; outline: none; font-family: inherit;" onkeydown="handleChatKeydown(event)"></textarea>
+                <button id="btn-chat-enviar" onclick="enviarChat()" style="background: linear-gradient(135deg, #4facfe, #00f2fe); color: #0f0c29; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13px; white-space: nowrap; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                    Enviar ➤
+                </button>
+            </div>
+            <p style="color: rgba(255,255,255,0.3); font-size: 10px; margin: 6px 0 0 0;">💡 Tip: Presiona Ctrl+Enter para enviar rápido</p>
+        </div>
+    </div>
+</div>
+
+
 /* ── LLAMADA SIP DIRECTA vía Janus WebRTC (IPB) ───────────────────────────────────
    - Se conecta al Webphone Nativo inyectado en base.html
    - Al presionar "Llamar" abre el teclado e inyecta el número
@@ -381,5 +464,222 @@ function toggleSeguimiento() {
         document.getElementById('motivo_seguimiento').required = false;
     }
 }
+
+// ══════════════════════════════════════════════════════════════════
+// 🤖  ARIA — DEEPSEEK AI ASSISTANT JAVASCRIPT
+// ══════════════════════════════════════════════════════════════════
+
+const DEUDOR_ID = {{ deudor.id }};
+let chatHistorial = [];  // Guarda el contexto del chat en memoria
+let iaMinimizado = false;
+
+function togglePanelIA() {
+    const body = document.getElementById('ia-body');
+    const btn = document.getElementById('btn-toggle-ia');
+    iaMinimizado = !iaMinimizado;
+    body.style.display = iaMinimizado ? 'none' : 'block';
+    btn.innerHTML = iaMinimizado ? '▶ Expandir' : '▼ Minimizar';
+}
+
+// ── SPINNER helper ──────────────────────────────────────────────
+function setLoadingBtn(btnId, loading, textoOriginal) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.disabled = loading;
+    btn.style.opacity = loading ? '0.6' : '1';
+    btn.style.cursor = loading ? 'wait' : 'pointer';
+    btn.innerHTML = loading
+        ? '<span style="animation: spin 1s linear infinite; display:inline-block;">⟳</span> Analizando con IA...'
+        : textoOriginal;
+}
+
+// ── GENERAR RESUMEN ─────────────────────────────────────────────
+async function generarResumen() {
+    setLoadingBtn('btn-resumen', true, '✨ Generar Resumen IA');
+    const div = document.getElementById('resultado-resumen');
+    div.style.display = 'block';
+    div.innerHTML = '<span style="color:rgba(255,255,255,0.4); font-style:italic;">🤖 DeepSeek está analizando el historial completo...</span>';
+
+    try {
+        const resp = await fetch(`/api/ai/resumen/${DEUDOR_ID}/`, {
+            method: 'GET',
+            headers: {'X-CSRFToken': getCsrf()}
+        });
+        const data = await resp.json();
+        if (data.success) {
+            div.innerHTML = formatearTextoIA(data.resumen);
+        } else {
+            div.innerHTML = `<span style="color:#f5576c;">❌ Error: ${data.error}</span>`;
+        }
+    } catch(e) {
+        div.innerHTML = `<span style="color:#f5576c;">❌ Error de conexión: ${e.message}</span>`;
+    } finally {
+        setLoadingBtn('btn-resumen', false, '✨ Generar Resumen IA');
+    }
+}
+
+// ── GENERAR GUIÓN ───────────────────────────────────────────────
+async function generarGuion() {
+    setLoadingBtn('btn-guion', true, '🎯 Generar Guión de Llamada');
+    const div = document.getElementById('resultado-guion');
+    div.style.display = 'block';
+    div.innerHTML = '<span style="color:rgba(255,255,255,0.4); font-style:italic;">🤖 DeepSeek está construyendo el guión personalizado...</span>';
+
+    try {
+        const resp = await fetch(`/api/ai/guion/${DEUDOR_ID}/`, {
+            method: 'GET',
+            headers: {'X-CSRFToken': getCsrf()}
+        });
+        const data = await resp.json();
+        if (data.success) {
+            div.innerHTML = formatearTextoIA(data.guion);
+        } else {
+            div.innerHTML = `<span style="color:#f5576c;">❌ Error: ${data.error}</span>`;
+        }
+    } catch(e) {
+        div.innerHTML = `<span style="color:#f5576c;">❌ Error de conexión: ${e.message}</span>`;
+    } finally {
+        setLoadingBtn('btn-guion', false, '🎯 Generar Guión de Llamada');
+    }
+}
+
+// ── CHAT CON STREAMING SSE ──────────────────────────────────────
+async function enviarChat() {
+    const input = document.getElementById('chat-input');
+    const mensaje = input.value.trim();
+    if (!mensaje) return;
+
+    input.value = '';
+    const historial = document.getElementById('chat-historial');
+
+    // Limpiar placeholder inicial
+    const placeholder = historial.querySelector('[data-placeholder]');
+    if (placeholder) placeholder.remove();
+
+    // Agregar burbuja del usuario
+    historial.innerHTML += `
+        <div style="display:flex; justify-content:flex-end;">
+            <div style="background:linear-gradient(135deg,#667eea,#764ba2); color:white; padding:10px 14px; border-radius:12px 12px 4px 12px; max-width:80%; font-size:13px; line-height:1.5;">
+                ${escapeHtml(mensaje)}
+            </div>
+        </div>`;
+
+    // Agregar burbuja de respuesta vacía (streaming)
+    const respId = 'resp-' + Date.now();
+    historial.innerHTML += `
+        <div style="display:flex; justify-content:flex-start;">
+            <div style="background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.9); padding:10px 14px; border-radius:12px 12px 12px 4px; max-width:85%; font-size:13px; line-height:1.6; white-space:pre-wrap;" id="${respId}">
+                <span style="color:rgba(255,255,255,0.35); animation: blink 1s infinite;">▌</span>
+            </div>
+        </div>`;
+    historial.scrollTop = historial.scrollHeight;
+
+    // Deshabilitar botón durante streaming
+    const btnEnviar = document.getElementById('btn-chat-enviar');
+    btnEnviar.disabled = true;
+    btnEnviar.innerHTML = '⟳ Procesando';
+
+    // Guardar mensaje en historial local
+    chatHistorial.push({role: 'user', content: mensaje});
+
+    let textoAcumulado = '';
+
+    try {
+        const resp = await fetch(`/api/ai/chat/${DEUDOR_ID}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrf()
+            },
+            body: JSON.stringify({
+                mensaje: mensaje,
+                historial: chatHistorial.slice(-10)
+            })
+        });
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        const respDiv = document.getElementById(respId);
+
+        while (true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+
+            const lines = decoder.decode(value).split('\n');
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                const data = line.slice(6).trim();
+                if (data === '[DONE]') break;
+                try {
+                    const parsed = JSON.parse(data);
+                    if (parsed.chunk) {
+                        textoAcumulado += parsed.chunk;
+                        respDiv.innerHTML = formatearTextoIA(textoAcumulado) + '<span style="color:rgba(255,255,255,0.35);">▌</span>';
+                        historial.scrollTop = historial.scrollHeight;
+                    } else if (parsed.error) {
+                        respDiv.innerHTML = `<span style="color:#f5576c;">❌ ${parsed.error}</span>`;
+                    }
+                } catch(e) { /* ignorar chunks incompletos */ }
+            }
+        }
+
+        // Limpiar cursor al terminar
+        const respDivFinal = document.getElementById(respId);
+        if (respDivFinal) respDivFinal.innerHTML = formatearTextoIA(textoAcumulado);
+
+        // Guardar respuesta en historial local
+        chatHistorial.push({role: 'assistant', content: textoAcumulado});
+
+    } catch(e) {
+        const respDiv = document.getElementById(respId);
+        if (respDiv) respDiv.innerHTML = `<span style="color:#f5576c;">❌ Error: ${e.message}</span>`;
+    } finally {
+        btnEnviar.disabled = false;
+        btnEnviar.innerHTML = 'Enviar ➤';
+        historial.scrollTop = historial.scrollHeight;
+    }
+}
+
+// ── HELPERS ─────────────────────────────────────────────────────
+function handleChatKeydown(e) {
+    if (e.key === 'Enter' && e.ctrlKey) {
+        e.preventDefault();
+        enviarChat();
+    }
+}
+
+function getCsrf() {
+    const cookie = document.cookie.split(';').find(c => c.trim().startsWith('csrftoken='));
+    return cookie ? cookie.trim().split('=')[1] : '';
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(text));
+    return div.innerHTML;
+}
+
+function formatearTextoIA(texto) {
+    if (!texto) return '';
+    // Negrita con ** **
+    texto = texto.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // Cursiva con * *
+    texto = texto.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    // Títulos con # y ##
+    texto = texto.replace(/^## (.+)$/gm, '<p style="color:#4facfe;font-weight:700;margin:10px 0 4px;">$1</p>');
+    texto = texto.replace(/^# (.+)$/gm, '<p style="color:#667eea;font-weight:700;font-size:15px;margin:12px 0 4px;">$1</p>');
+    // Saltos de línea
+    texto = texto.replace(/\n/g, '<br>');
+    return texto;
+}
+
+// Animación del cursor parpadeante
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+`;
+document.head.appendChild(style);
+
 </script>
-{% endblock %}
+{% endblock %}

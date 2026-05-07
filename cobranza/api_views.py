@@ -329,7 +329,6 @@ def api_cartera_patch(request, fila_id):
         deudor.foto_evidencia = files['foto_evidencia']
         campos_actualizados.append('foto_evidencia')
 
-    if not campos_actualizados:
         return JsonResponse({'success': False, 'detail': 'No se enviaron campos válidos. Permitidos: link_gps, link_gps_aval, foto_evidencia.'}, status=400)
 
     deudor.save(update_fields=campos_actualizados)
@@ -337,3 +336,86 @@ def api_cartera_patch(request, fila_id):
     foto_url = settings.SITE_URL + deudor.foto_evidencia.url if deudor.foto_evidencia else ''
     return JsonResponse({'success': True, 'foto_url': foto_url}, status=200)
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 🤖  MÓDULO IA — DEEPSEEK V4 PRO ASSISTANT
+# ─────────────────────────────────────────────────────────────────────────────
+
+from django.http import StreamingHttpResponse
+from .ai_service import generar_resumen_historial, generar_guion_llamada, chat_asistente_streaming
+from .models import Gestion
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_ai_resumen(request, deudor_id):
+    """
+    GET /api/ai/resumen/<deudor_id>/
+    Genera un resumen ejecutivo IA del historial completo del deudor.
+    Requiere autenticación de sesión Django.
+    """
+    deudor = get_object_or_404(Deudor, id=deudor_id)
+    gestiones = Gestion.objects.filter(deudor=deudor).select_related('gestor').order_by('-fecha')
+
+    try:
+        resumen = generar_resumen_historial(deudor, gestiones)
+        return JsonResponse({'success': True, 'resumen': resumen})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Error al contactar DeepSeek: {str(e)}'}, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_ai_guion(request, deudor_id):
+    """
+    GET /api/ai/guion/<deudor_id>/
+    Genera un guión de llamada personalizado para el deudor.
+    Requiere autenticación de sesión Django.
+    """
+    deudor = get_object_or_404(Deudor, id=deudor_id)
+    gestiones = Gestion.objects.filter(deudor=deudor).select_related('gestor').order_by('-fecha')
+
+    try:
+        guion = generar_guion_llamada(deudor, gestiones)
+        return JsonResponse({'success': True, 'guion': guion})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Error al contactar DeepSeek: {str(e)}'}, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_ai_chat(request, deudor_id):
+    """
+    POST /api/ai/chat/<deudor_id>/
+    Chat conversacional con streaming (Server-Sent Events).
+    Body JSON: { "mensaje": "...", "historial": [...] }
+    """
+    deudor = get_object_or_404(Deudor, id=deudor_id)
+    gestiones = Gestion.objects.filter(deudor=deudor).select_related('gestor').order_by('-fecha')
+
+    try:
+        data = json.loads(request.body)
+        consulta = data.get('mensaje', '').strip()
+        historial = data.get('historial', [])
+
+        if not consulta:
+            return JsonResponse({'success': False, 'error': 'El campo "mensaje" es requerido.'}, status=400)
+
+        def event_stream():
+            try:
+                for chunk in chat_asistente_streaming(deudor, gestiones, historial, consulta):
+                    # Formato Server-Sent Events (SSE)
+                    yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            yield "data: [DONE]\n\n"
+
+        response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'
+        return response
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'JSON inválido en el cuerpo de la solicitud.'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
