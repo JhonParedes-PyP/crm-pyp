@@ -98,7 +98,7 @@ Analiza el siguiente perfil de deudor y genera el resumen ejecutivo:
 TOTAL DE GESTIONES EN SISTEMA: {total_gestiones}"""
 
     response = client.chat.completions.create(
-        model="deepseek-reasoner",
+        model="deepseek-chat",
         messages=[
             {"role": "system", "content": prompt_sistema},
             {"role": "user", "content": prompt_usuario},
@@ -150,7 +150,7 @@ Incluye notas entre [CORCHETES] con instrucciones para el gestor."""
 {perfil}"""
 
     response = client.chat.completions.create(
-        model="deepseek-reasoner",
+        model="deepseek-chat",
         messages=[
             {"role": "system", "content": prompt_sistema},
             {"role": "user", "content": prompt_usuario},
