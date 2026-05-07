@@ -358,7 +358,7 @@ def api_ai_resumen(request, deudor_id):
     gestiones = Gestion.objects.filter(deudor=deudor).select_related('gestor').order_by('-fecha')
 
     try:
-        resumen = generar_resumen_historial(deudor, gestiones)
+        resumen = generar_resumen_historial(deudor, gestiones, gestor=request.user)
         return JsonResponse({'success': True, 'resumen': resumen})
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'Error al contactar DeepSeek: {str(e)}'}, status=500)
@@ -376,7 +376,7 @@ def api_ai_guion(request, deudor_id):
     gestiones = Gestion.objects.filter(deudor=deudor).select_related('gestor').order_by('-fecha')
 
     try:
-        guion = generar_guion_llamada(deudor, gestiones)
+        guion = generar_guion_llamada(deudor, gestiones, gestor=request.user)
         return JsonResponse({'success': True, 'guion': guion})
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'Error al contactar DeepSeek: {str(e)}'}, status=500)
@@ -403,7 +403,7 @@ def api_ai_chat(request, deudor_id):
 
         def event_stream():
             try:
-                for chunk in chat_asistente_streaming(deudor, gestiones, historial, consulta):
+                for chunk in chat_asistente_streaming(deudor, gestiones, historial, consulta, gestor=request.user):
                     # Formato Server-Sent Events (SSE)
                     yield f"data: {json.dumps({'chunk': chunk})}\n\n"
             except Exception as e:

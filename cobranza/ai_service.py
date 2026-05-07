@@ -64,7 +64,7 @@ def _build_perfil_deudor(deudor, gestiones=None):
     return perfil
 
 
-def generar_resumen_historial(deudor, gestiones):
+def generar_resumen_historial(deudor, gestiones, gestor=None):
     """
     Genera un resumen ejecutivo del historial de gestiones de un deudor.
     Retorna el texto completo del resumen.
@@ -72,11 +72,13 @@ def generar_resumen_historial(deudor, gestiones):
     client = _get_client()
     perfil = _build_perfil_deudor(deudor, gestiones)
     total_gestiones = gestiones.count() if hasattr(gestiones, 'count') else len(gestiones)
+    gestor_nombre = gestor.get_full_name() or gestor.username.upper() if gestor else 'GESTOR'
+    cartera = deudor.cartera or 'P&P Soluciones Jurídicas'
 
-    prompt_sistema = """Eres un analista experto en cobranza y recuperación de deudas para P&P Soluciones Jurídicas Empresariales, 
+    prompt_sistema = """Eres PP, el Asistente de Inteligencia Artificial de P&P Soluciones Jurídicas Empresariales,
 una firma legal peruana especializada en recuperación de créditos.
 
-Tu tarea es analizar el perfil completo de un deudor y generar un resumen ejecutivo claro, 
+Tu tarea es analizar el perfil completo de un deudor y generar un resumen ejecutivo claro,
 conciso y útil para que el gestor tome decisiones rápidas antes de realizar una gestión.
 
 El resumen debe incluir:
@@ -87,7 +89,9 @@ El resumen debe incluir:
 
 Usa lenguaje directo y profesional. Máximo 200 palabras."""
 
-    prompt_usuario = f"""Analiza el siguiente perfil de deudor y genera el resumen ejecutivo:
+    prompt_usuario = f"""Gestor asignado: {gestor_nombre} | Cartera: {cartera}
+
+Analiza el siguiente perfil de deudor y genera el resumen ejecutivo:
 
 {perfil}
 
@@ -105,27 +109,39 @@ TOTAL DE GESTIONES EN SISTEMA: {total_gestiones}"""
     return response.choices[0].message.content
 
 
-def generar_guion_llamada(deudor, gestiones):
+def generar_guion_llamada(deudor, gestiones, gestor=None):
     """
     Genera un guión de llamada personalizado para negociar con el deudor.
     Retorna el texto del guión listo para usar.
     """
     client = _get_client()
     perfil = _build_perfil_deudor(deudor, gestiones)
+    gestor_nombre = gestor.get_full_name() or gestor.username.upper() if gestor else 'GESTOR'
+    cartera = deudor.cartera or 'P&P Soluciones Jurídicas'
 
-    prompt_sistema = """Eres un experto en técnicas de cobranza y negociación para P&P Soluciones Jurídicas Empresariales.
+    # Determinar la entidad mandante según la cartera
+    entidades = {
+        'CAJA HUANCAYO': 'Caja Huancayo',
+        'PROEMPRESA': 'Proempresa',
+        'FOCMAC': 'Focmac',
+    }
+    entidad = entidades.get(cartera.upper().strip(), cartera)
+
+    prompt_sistema = f"""Eres PP, experto en técnicas de cobranza y negociación para P&P Soluciones Jurídicas Empresariales.
+El gestor que realizará la llamada es: **{gestor_nombre}**
+Llama por encargo de: **{entidad}**
 
 Genera un guión de llamada telefónica profesional, empático pero firme, adaptado al perfil específico del deudor.
 
 El guión debe incluir:
-1. **APERTURA** — Saludo y presentación (2-3 oraciones)
+1. **APERTURA** — Saludo usando el nombre del gestor ({gestor_nombre}) e identificando que llama por encargo de {entidad}
 2. **VERIFICACIÓN** — Confirmar identidad del deudor
 3. **PROPÓSITO** — Mencionar la deuda de forma directa pero respetuosa
 4. **NEGOCIACIÓN** — 2-3 argumentos persuasivos basados en el perfil
 5. **MANEJO DE OBJECIONES** — 2 respuestas para objeciones típicas
 6. **CIERRE** — Solicitar compromiso concreto
 
-Personaliza el tono según el historial: si tiene promesas incumplidas, sé más firme. 
+Personaliza el tono según el historial: si tiene promesas incumplidas, sé más firme.
 Si es primer contacto, sé más amigable. Usa el nombre del deudor.
 Incluye notas entre [CORCHETES] con instrucciones para el gestor."""
 
@@ -145,7 +161,7 @@ Incluye notas entre [CORCHETES] con instrucciones para el gestor."""
     return response.choices[0].message.content
 
 
-def chat_asistente_streaming(deudor, gestiones, mensajes_historial, consulta_usuario):
+def chat_asistente_streaming(deudor, gestiones, mensajes_historial, consulta_usuario, gestor=None):
     """
     Chat interactivo con streaming. Retorna un generador de chunks de texto.
     Usar con StreamingHttpResponse en Django.
@@ -153,8 +169,20 @@ def chat_asistente_streaming(deudor, gestiones, mensajes_historial, consulta_usu
     client = _get_client()
     perfil = _build_perfil_deudor(deudor, gestiones)
 
+    gestor_nombre = gestor.get_full_name() or gestor.username.upper() if gestor else 'GESTOR'
+    cartera = deudor.cartera or 'P&P Soluciones Jurídicas'
+
+    entidades = {
+        'CAJA HUANCAYO': 'Caja Huancayo',
+        'PROEMPRESA': 'Proempresa',
+        'FOCMAC': 'Focmac',
+    }
+    entidad = entidades.get(cartera.upper().strip(), cartera)
+
     prompt_sistema = f"""Eres PP, el Asistente de Inteligencia Artificial de P&P Soluciones Jurídicas Empresariales.
 Eres un experto en cobranza, negociación, y procedimientos legales peruanos de recuperación de créditos.
+
+Gestor en sesión: {gestor_nombre} | Llama por encargo de: {entidad}
 
 CONTEXTO DEL CASO ACTUAL:
 {perfil}
