@@ -376,12 +376,13 @@
     </div>
 </div>
 
-
+<script>
 /* ── LLAMADA SIP DIRECTA vía Janus WebRTC (IPB) ───────────────────────────────────
    - Se conecta al Webphone Nativo inyectado en base.html
    - Al presionar "Llamar" abre el teclado e inyecta el número
    ─────────────────────────────────────────────────────────────────────────── */
 function realizarLlamada(numero, btnElement) {
+
     /* Normalizar número → solo dígitos */
     var limpio = numero.toString().replace(/[\s\-\(\)\+]/g, '');
     
