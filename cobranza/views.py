@@ -774,8 +774,16 @@ def registrar_gestion(request, deudor_id):
     todos_los_numeros = []
     lista_contactos = []
     msg_base = f"Hola {deudor.nombre_completo}, de P&P Jurídicas."
+    conteo_numeros_cliente = {}
+
+    def registrar_numero_cliente(numero):
+        numero_normalizado = normalizar_telefono(numero)
+        if not numero_normalizado:
+            return
+        conteo_numeros_cliente[numero_normalizado] = conteo_numeros_cliente.get(numero_normalizado, 0) + 1
     
     if deudor.telefono_principal and deudor.telefono_principal != 'Sin número':
+        registrar_numero_cliente(deudor.telefono_principal)
         todos_los_numeros.append(deudor.telefono_principal)
         lista_contactos.append({
             'numero': deudor.telefono_principal, 'tipo': 'TITULAR',
@@ -785,6 +793,7 @@ def registrar_gestion(request, deudor_id):
         })
     
     if deudor.tlf_celular_aval:
+        registrar_numero_cliente(deudor.tlf_celular_aval)
         todos_los_numeros.append(deudor.tlf_celular_aval)
         lista_contactos.append({
             'numero': deudor.tlf_celular_aval, 'tipo': 'AVAL',
@@ -794,12 +803,17 @@ def registrar_gestion(request, deudor_id):
         })
 
     for tel in telefonos_adicionales:
+        registrar_numero_cliente(tel.numero)
+
+    for tel in telefonos_adicionales:
+        numero_normalizado = normalizar_telefono(tel.numero)
+        telefono_repetido = conteo_numeros_cliente.get(numero_normalizado, 0) > 1 if numero_normalizado else False
         todos_los_numeros.append(tel.numero)
         lista_contactos.append({
             'numero': tel.numero, 'tipo': tel.descripcion.upper(),
             'link_call': f"tel:{tel.numero}",
             'link_wa': f"https://web.whatsapp.com/send?phone=51{tel.numero}&text={urllib.parse.quote(msg_base)}",
-            'puede_eliminar': puede_depurar_telefonos(request.user),
+            'puede_eliminar': puede_depurar_telefonos(request.user) and telefono_repetido,
             'telefono_extra_id': tel.id,
         })
 
