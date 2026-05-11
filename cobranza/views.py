@@ -39,6 +39,9 @@ from django.urls import reverse
 def es_gerente(user):
     return user.groups.filter(name='GERENTE').exists() or user.is_superuser
 
+def puede_depurar_telefonos(user):
+    return bool(user and user.is_authenticated and user.is_superuser and user.username.upper() == 'JPAREDES')
+
 SUPERVISORES_CON_BANDEJA_AGENTE = {'JPAREDES'}
 
 def puede_usar_modo_agente(user):
@@ -777,7 +780,8 @@ def registrar_gestion(request, deudor_id):
         lista_contactos.append({
             'numero': deudor.telefono_principal, 'tipo': 'TITULAR',
             'link_call': f"tel:{deudor.telefono_principal}",
-            'link_wa': f"https://web.whatsapp.com/send?phone=51{deudor.telefono_principal}&text={urllib.parse.quote(msg_base)}"
+            'link_wa': f"https://web.whatsapp.com/send?phone=51{deudor.telefono_principal}&text={urllib.parse.quote(msg_base)}",
+            'puede_eliminar': False,
         })
     
     if deudor.tlf_celular_aval:
@@ -785,7 +789,8 @@ def registrar_gestion(request, deudor_id):
         lista_contactos.append({
             'numero': deudor.tlf_celular_aval, 'tipo': 'AVAL',
             'link_call': f"tel:{deudor.tlf_celular_aval}",
-            'link_wa': f"https://web.whatsapp.com/send?phone=51{deudor.tlf_celular_aval}&text={urllib.parse.quote(msg_base)}"
+            'link_wa': f"https://web.whatsapp.com/send?phone=51{deudor.tlf_celular_aval}&text={urllib.parse.quote(msg_base)}",
+            'puede_eliminar': False,
         })
 
     for tel in telefonos_adicionales:
@@ -793,7 +798,9 @@ def registrar_gestion(request, deudor_id):
         lista_contactos.append({
             'numero': tel.numero, 'tipo': tel.descripcion.upper(),
             'link_call': f"tel:{tel.numero}",
-            'link_wa': f"https://web.whatsapp.com/send?phone=51{tel.numero}&text={urllib.parse.quote(msg_base)}"
+            'link_wa': f"https://web.whatsapp.com/send?phone=51{tel.numero}&text={urllib.parse.quote(msg_base)}",
+            'puede_eliminar': puede_depurar_telefonos(request.user),
+            'telefono_extra_id': tel.id,
         })
 
     if request.method == 'POST':
@@ -894,6 +901,7 @@ def registrar_gestion(request, deudor_id):
         'telefono_alerta': telefono_alerta,
         'nuevo_telefono_valor': nuevo_telefono_valor,
         'desc_nuevo_telefono_valor': desc_nuevo_telefono_valor,
+        'puede_depurar_telefonos': puede_depurar_telefonos(request.user),
     })
 
 # --- ELIMINAR CLIENTE ---
@@ -1032,6 +1040,32 @@ def eliminar_gestion(request, gestion_id):
     
     # 5. Redirigimos de vuelta a la ficha del cliente
     return redirect('registrar_gestion', deudor_id=deudor_id)
+
+@login_required
+@require_POST
+def eliminar_telefono_extra(request, telefono_id):
+    if not puede_depurar_telefonos(request.user):
+        return HttpResponse("Acceso Denegado. Accion exclusiva para JPAREDES.", status=403)
+
+    telefono = get_object_or_404(TelefonoExtra.objects.select_related('deudor'), id=telefono_id)
+    deudor = telefono.deudor
+    numero = telefono.numero
+    descripcion = telefono.descripcion
+    parametros_url = request.POST.get('parametros_url', '').strip()
+
+    telefono.delete()
+    Gestion.objects.create(
+        deudor=deudor,
+        gestor=request.user,
+        resultado="TELÉFONO ELIMINADO",
+        observacion=f"JPAREDES eliminó el teléfono manual {numero} ({descripcion}).",
+        monto_pago=Decimal('0')
+    )
+
+    url = reverse('registrar_gestion', args=[deudor.id])
+    if parametros_url:
+        url = f"{url}?{parametros_url}"
+    return redirect(url)
 
 # --- MÓDULO: TELEFONÍA ZADARMA (SINCRONIZADO) ---
 
