@@ -44,6 +44,7 @@ urlpatterns = [
     path('eliminar-cliente/<int:deudor_id>/', views.eliminar_cliente, name='eliminar_cliente'),
     # RUTA SECRETA: Eliminar Gestión (Solo Gerentes)
     path('eliminar-gestion/<int:gestion_id>/', views.eliminar_gestion, name='eliminar_gestion'),
+    path('eliminar-contacto/<int:deudor_id>/<str:tipo_contacto>/', views.eliminar_contacto_cliente, name='eliminar_contacto_cliente'),
     path('eliminar-telefono-extra/<int:telefono_id>/', views.eliminar_telefono_extra, name='eliminar_telefono_extra'),
 
     # Asignación de Carteras (solo gerentes)

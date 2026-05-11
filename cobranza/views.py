@@ -42,6 +42,12 @@ def es_gerente(user):
 def puede_depurar_telefonos(user):
     return bool(user and user.is_authenticated and user.is_superuser and user.username.upper() == 'JPAREDES')
 
+def numero_repetido_en_cliente(conteo_numeros_cliente, numero):
+    numero_normalizado = normalizar_telefono(numero)
+    if not numero_normalizado:
+        return False
+    return conteo_numeros_cliente.get(numero_normalizado, 0) > 1
+
 SUPERVISORES_CON_BANDEJA_AGENTE = {'JPAREDES'}
 
 def puede_usar_modo_agente(user):
@@ -781,40 +787,44 @@ def registrar_gestion(request, deudor_id):
         if not numero_normalizado:
             return
         conteo_numeros_cliente[numero_normalizado] = conteo_numeros_cliente.get(numero_normalizado, 0) + 1
-    
+
     if deudor.telefono_principal and deudor.telefono_principal != 'Sin número':
         registrar_numero_cliente(deudor.telefono_principal)
+
+    if deudor.tlf_celular_aval:
+        registrar_numero_cliente(deudor.tlf_celular_aval)
+
+    for tel in telefonos_adicionales:
+        registrar_numero_cliente(tel.numero)
+    
+    if deudor.telefono_principal and deudor.telefono_principal != 'Sin número':
         todos_los_numeros.append(deudor.telefono_principal)
         lista_contactos.append({
             'numero': deudor.telefono_principal, 'tipo': 'TITULAR',
             'link_call': f"tel:{deudor.telefono_principal}",
             'link_wa': f"https://web.whatsapp.com/send?phone=51{deudor.telefono_principal}&text={urllib.parse.quote(msg_base)}",
-            'puede_eliminar': False,
+            'puede_eliminar': puede_depurar_telefonos(request.user) and numero_repetido_en_cliente(conteo_numeros_cliente, deudor.telefono_principal),
+            'url_eliminar': reverse('eliminar_contacto_cliente', args=[deudor.id, 'titular']),
         })
     
     if deudor.tlf_celular_aval:
-        registrar_numero_cliente(deudor.tlf_celular_aval)
         todos_los_numeros.append(deudor.tlf_celular_aval)
         lista_contactos.append({
             'numero': deudor.tlf_celular_aval, 'tipo': 'AVAL',
             'link_call': f"tel:{deudor.tlf_celular_aval}",
             'link_wa': f"https://web.whatsapp.com/send?phone=51{deudor.tlf_celular_aval}&text={urllib.parse.quote(msg_base)}",
-            'puede_eliminar': False,
+            'puede_eliminar': puede_depurar_telefonos(request.user) and numero_repetido_en_cliente(conteo_numeros_cliente, deudor.tlf_celular_aval),
+            'url_eliminar': reverse('eliminar_contacto_cliente', args=[deudor.id, 'aval']),
         })
 
     for tel in telefonos_adicionales:
-        registrar_numero_cliente(tel.numero)
-
-    for tel in telefonos_adicionales:
-        numero_normalizado = normalizar_telefono(tel.numero)
-        telefono_repetido = conteo_numeros_cliente.get(numero_normalizado, 0) > 1 if numero_normalizado else False
         todos_los_numeros.append(tel.numero)
         lista_contactos.append({
             'numero': tel.numero, 'tipo': tel.descripcion.upper(),
             'link_call': f"tel:{tel.numero}",
             'link_wa': f"https://web.whatsapp.com/send?phone=51{tel.numero}&text={urllib.parse.quote(msg_base)}",
-            'puede_eliminar': puede_depurar_telefonos(request.user) and telefono_repetido,
-            'telefono_extra_id': tel.id,
+            'puede_eliminar': puede_depurar_telefonos(request.user) and numero_repetido_en_cliente(conteo_numeros_cliente, tel.numero),
+            'url_eliminar': reverse('eliminar_telefono_extra', args=[tel.id]),
         })
 
     if request.method == 'POST':
@@ -1054,6 +1064,40 @@ def eliminar_gestion(request, gestion_id):
     
     # 5. Redirigimos de vuelta a la ficha del cliente
     return redirect('registrar_gestion', deudor_id=deudor_id)
+
+@login_required
+@require_POST
+def eliminar_contacto_cliente(request, deudor_id, tipo_contacto):
+    if not puede_depurar_telefonos(request.user):
+        return HttpResponse("Acceso Denegado. Accion exclusiva para JPAREDES.", status=403)
+
+    deudor = get_object_or_404(Deudor, id=deudor_id)
+    parametros_url = request.POST.get('parametros_url', '').strip()
+
+    if tipo_contacto == 'titular':
+        numero = deudor.telefono_principal
+        deudor.telefono_principal = ''
+        etiqueta = 'telefono titular'
+    elif tipo_contacto == 'aval':
+        numero = deudor.tlf_celular_aval
+        deudor.tlf_celular_aval = ''
+        etiqueta = 'telefono aval'
+    else:
+        return HttpResponse("Tipo de contacto no valido.", status=400)
+
+    deudor.save(update_fields=['telefono_principal', 'tlf_celular_aval'])
+    Gestion.objects.create(
+        deudor=deudor,
+        gestor=request.user,
+        resultado="TELÉFONO ELIMINADO",
+        observacion=f"JPAREDES eliminó el {etiqueta}: {numero}.",
+        monto_pago=Decimal('0')
+    )
+
+    url = reverse('registrar_gestion', args=[deudor.id])
+    if parametros_url:
+        url = f"{url}?{parametros_url}"
+    return redirect(url)
 
 @login_required
 @require_POST

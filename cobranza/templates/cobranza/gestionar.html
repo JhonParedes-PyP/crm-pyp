@@ -58,7 +58,7 @@
                             <span style="font-size: 16px; font-weight: bold; color: #333; display: block;">{{ contacto.numero }}</span>
                         </div>
                         {% if contacto.puede_eliminar %}
-                        <form method="POST" action="{% url 'eliminar_telefono_extra' contacto.telefono_extra_id %}" onsubmit="return confirm('⚠️ ALERTA DE DEPURACIÓN: ¿De verdad quiere borrar este número {{ contacto.numero }}? Esta acción no se puede deshacer.');" style="margin: 0;">
+                        <form method="POST" action="{{ contacto.url_eliminar }}" onsubmit="return confirm('⚠️ ALERTA DE DEPURACIÓN: ¿De verdad quiere borrar este número {{ contacto.numero }}? Esta acción no se puede deshacer.');" style="margin: 0;">
                             {% csrf_token %}
                             <input type="hidden" name="parametros_url" value="{{ parametros_url }}">
                             <button type="submit" style="background: #fff; color: #dc3545; border: 1px solid #dc3545; width: 28px; height: 28px; border-radius: 50%; font-weight: bold; cursor: pointer; line-height: 1;" title="Eliminar teléfono manual">
