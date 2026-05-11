@@ -92,6 +92,9 @@
                 {% if deudor.departamento or deudor.provincia %}
                 <p style="margin: 4px 0 0 0; font-size: 11px; color: #888;">{{ deudor.departamento|default:"" }} {{ deudor.provincia|default:"" }} {% if deudor.zona %} — Zona: {{ deudor.zona }}{% endif %}</p>
                 {% endif %}
+                    {% if deudor.referencia %}
+                    <p style="margin: 4px 0 0 0;"><strong>Referencia:</strong> {{ deudor.referencia }}</p>
+                    {% endif %}
                 {% if deudor.link_gps %}
                 <p style="margin: 4px 0 0 0;"><a href="{{ deudor.link_gps }}" target="_blank" style="color: #007bff; font-size: 11px; text-decoration: none;">📌 Ver ubicación GPS</a></p>
                 {% endif %}
@@ -125,7 +128,6 @@
                 {% if deudor.fec_demanda %}<p style="margin: 3px 0; color: #444;"><strong>Fecha Demanda:</strong> {{ deudor.fec_demanda|date:"d/m/Y" }}</p>{% endif %}
                 {% if deudor.monto_demanda %}<p style="margin: 3px 0; color: #444;"><strong>Monto Demanda:</strong> S/ {{ deudor.monto_demanda|floatformat:2|intcomma }}</p>{% endif %}
                 {% if deudor.ingreso_judicial %}<p style="margin: 3px 0; color: #444;"><strong>Ingreso Judicial:</strong> {{ deudor.ingreso_judicial|date:"d/m/Y" }}</p>{% endif %}
-                {% if deudor.referencia %}<p style="margin: 3px 0; color: #444;"><strong>Referencia:</strong> {{ deudor.referencia }}</p>{% endif %}
                 {% if deudor.proceso %}<p style="margin: 3px 0; color: #444;"><strong>Proceso:</strong> {{ deudor.proceso }}</p>{% endif %}
             </div>
             {% endif %}
@@ -683,4 +685,4 @@ style.textContent = `
 document.head.appendChild(style);
 
 </script>
-{% endblock %}
+{% endblock %}
