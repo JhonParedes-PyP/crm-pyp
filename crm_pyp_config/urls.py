@@ -37,6 +37,7 @@ urlpatterns = [
 
     # Ficha del Cliente y Acciones
     path('gestionar/<int:deudor_id>/', views.registrar_gestion, name='registrar_gestion'),
+    path('gestionar/<int:deudor_id>/verificar-telefono/', views.verificar_telefono_duplicado, name='verificar_telefono_duplicado'),
     path('buscar-dni/<str:dni>/', views.buscar_por_dni, name='buscar_por_dni'),
 
     # RUTA SECRETA: Eliminar Cliente (Solo Gerentes)

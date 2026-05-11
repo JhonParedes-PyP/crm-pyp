@@ -159,23 +159,21 @@
         
         <div style="background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-left: 4px solid #17a2b8;">
             <h3 style="margin-top: 0; color: #003366; font-size: 14px;">📱 Agregar Nuevo Teléfono</h3>
-            {% if telefono_alerta %}
-            <div style="background: #fff3cd; color: #8a3a00; border: 1px solid #ffe69c; padding: 10px 12px; border-radius: 8px; margin-bottom: 10px; font-size: 12px; font-weight: bold;">
-                ⚠ {{ telefono_alerta }}
+            <div id="telefono-alerta" style="{% if telefono_alerta %}background: #fff3cd; color: #8a3a00; border: 1px solid #ffe69c;{% else %}display: none; background: #e8f7ee; color: #1f6f43; border: 1px solid #b7e4c7;{% endif %} padding: 10px 12px; border-radius: 8px; margin-bottom: 10px; font-size: 12px; font-weight: bold;">
+                <span id="telefono-alerta-texto">{% if telefono_alerta %}⚠ {{ telefono_alerta }}{% endif %}</span>
             </div>
-            {% endif %}
             <form method="POST" style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 10px; align-items: end;">
                 {% csrf_token %}
                 <input type="hidden" name="guardar_nuevo_telefono" value="1">
                 <div>
                     <label style="font-size: 10px; font-weight: bold; color: #555;">Número:</label>
-                    <input type="text" name="nuevo_telefono" value="{{ nuevo_telefono_valor }}" placeholder="Ej: 987654321" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px;" required>
+                    <input type="text" name="nuevo_telefono" id="nuevo_telefono" value="{{ nuevo_telefono_valor }}" placeholder="Ej: 987654321" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px;" required>
                 </div>
                 <div>
                     <label style="font-size: 10px; font-weight: bold; color: #555;">Descripción:</label>
                     <input type="text" name="desc_nuevo_telefono" value="{{ desc_nuevo_telefono_valor }}" placeholder="Ej: Trabajo" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px;" required>
                 </div>
-                <button type="submit" style="background: #17a2b8; color: white; padding: 8px 15px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; height: 33px;">Guardar</button>
+                <button type="submit" id="btn-guardar-telefono" style="background: #17a2b8; color: white; padding: 8px 15px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; height: 33px;">Guardar</button>
             </form>
         </div>
 
@@ -661,6 +659,78 @@ function getCsrf() {
     return cookie ? cookie.trim().split('=')[1] : '';
 }
 
+let validarTelefonoTimer = null;
+
+function mostrarAlertaTelefono(mensaje, esDuplicado) {
+    const alerta = document.getElementById('telefono-alerta');
+    const texto = document.getElementById('telefono-alerta-texto');
+    const btnGuardar = document.getElementById('btn-guardar-telefono');
+
+    if (!alerta || !texto || !btnGuardar) return;
+
+    if (!mensaje) {
+        alerta.style.display = 'none';
+        texto.textContent = '';
+        btnGuardar.disabled = false;
+        btnGuardar.style.opacity = '1';
+        btnGuardar.style.cursor = 'pointer';
+        return;
+    }
+
+    alerta.style.display = 'block';
+    texto.textContent = mensaje;
+
+    if (esDuplicado) {
+        alerta.style.background = '#fff3cd';
+        alerta.style.color = '#8a3a00';
+        alerta.style.border = '1px solid #ffe69c';
+        btnGuardar.disabled = true;
+        btnGuardar.style.opacity = '0.6';
+        btnGuardar.style.cursor = 'not-allowed';
+    } else {
+        alerta.style.background = '#e8f7ee';
+        alerta.style.color = '#1f6f43';
+        alerta.style.border = '1px solid #b7e4c7';
+        btnGuardar.disabled = false;
+        btnGuardar.style.opacity = '1';
+        btnGuardar.style.cursor = 'pointer';
+    }
+}
+
+async function validarTelefonoEnTiempoReal() {
+    const input = document.getElementById('nuevo_telefono');
+    if (!input) return;
+
+    const numero = input.value.trim();
+    const numeroNormalizado = numero.replace(/\D/g, '');
+
+    if (!numeroNormalizado) {
+        mostrarAlertaTelefono('', false);
+        return;
+    }
+
+    if (numeroNormalizado.length < 7) {
+        mostrarAlertaTelefono('Ingrese al menos 7 digitos para validar el numero.', false);
+        return;
+    }
+
+    try {
+        const resp = await fetch(`/gestionar/${DEUDOR_ID}/verificar-telefono/?numero=${encodeURIComponent(numero)}`, {
+            method: 'GET',
+            headers: {'X-CSRFToken': getCsrf()}
+        });
+        const data = await resp.json();
+        mostrarAlertaTelefono(data.duplicado ? `⚠ ${data.mensaje}` : `✓ ${data.mensaje}`, data.duplicado);
+    } catch (e) {
+        mostrarAlertaTelefono('No se pudo validar el numero en este momento.', false);
+    }
+}
+
+function programarValidacionTelefono() {
+    clearTimeout(validarTelefonoTimer);
+    validarTelefonoTimer = setTimeout(validarTelefonoEnTiempoReal, 350);
+}
+
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.appendChild(document.createTextNode(text));
@@ -689,9 +759,13 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-{% if telefono_alerta %}
-alert("{{ telefono_alerta|escapejs }}");
-{% endif %}
+const inputNuevoTelefono = document.getElementById('nuevo_telefono');
+if (inputNuevoTelefono) {
+    inputNuevoTelefono.addEventListener('input', programarValidacionTelefono);
+    if (inputNuevoTelefono.value.trim()) {
+        programarValidacionTelefono();
+    }
+}
 
 </script>
 {% endblock %}

@@ -81,6 +81,22 @@ def buscar_telefono_duplicado(deudor_actual, numero_normalizado):
 
     return None
 
+@login_required
+@require_http_methods(["GET"])
+def verificar_telefono_duplicado(request, deudor_id):
+    deudor = get_object_or_404(Deudor, id=deudor_id)
+    numero = request.GET.get('numero', '').strip()
+    numero_normalizado = normalizar_telefono(numero)
+
+    if not numero_normalizado:
+        return JsonResponse({'duplicado': False, 'mensaje': ''})
+
+    mensaje = buscar_telefono_duplicado(deudor, numero_normalizado)
+    return JsonResponse({
+        'duplicado': bool(mensaje),
+        'mensaje': mensaje or 'Numero disponible para registrar.',
+    })
+
 def aplicar_asignaciones_de_gestor(queryset, usuario):
     return aplicar_visibilidad_por_asignaciones(queryset, usuario)
 
