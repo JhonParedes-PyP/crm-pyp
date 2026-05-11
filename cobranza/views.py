@@ -971,6 +971,7 @@ def cargar_telefonos(request):
     errores = []
     exitosos = 0
     fallidos = 0
+    repetidos = 0
     
     if request.method == 'POST' and request.FILES.get('archivo_excel'):
         try:
@@ -984,6 +985,7 @@ def cargar_telefonos(request):
                         'mensajes': f"Error: El archivo debe tener la columna '{col}'",
                         'exitosos': 0,
                         'fallidos': 0,
+                        'repetidos': 0,
                         'errores': []
                     })
             
@@ -1010,15 +1012,11 @@ def cargar_telefonos(request):
                     fallidos += 1
                     continue
                 
-                telefono_existente = TelefonoExtra.objects.filter(deudor=deudor, numero=telefono_limpio).exists()
-                if telefono_existente:
-                    errores.append(f"Fila {index+2}: Teléfono {telefono_limpio} ya existe para {deudor.nombre_completo}")
+                duplicado_msg = buscar_telefono_duplicado(deudor, telefono_limpio)
+                if duplicado_msg:
+                    errores.append(f"Fila {index+2}: {duplicado_msg}")
                     fallidos += 1
-                    continue
-                
-                if deudor.telefono_principal == telefono_limpio:
-                    errores.append(f"Fila {index+2}: Teléfono {telefono_limpio} es el teléfono principal de {deudor.nombre_completo}")
-                    fallidos += 1
+                    repetidos += 1
                     continue
                 
                 TelefonoExtra.objects.create(
@@ -1028,7 +1026,10 @@ def cargar_telefonos(request):
                 )
                 exitosos += 1
             
-            mensajes = f"Proceso completado: {exitosos} teléfonos cargados correctamente, {fallidos} fallidos."
+            mensajes = (
+                f"Proceso completado: {exitosos} teléfonos cargados correctamente, "
+                f"{repetidos} rechazados por repetidos y {fallidos - repetidos} fallidos por otros motivos."
+            )
             
         except Exception as e:
             mensajes = f"Error al procesar el archivo: {e}"
@@ -1037,6 +1038,7 @@ def cargar_telefonos(request):
         'mensajes': mensajes,
         'exitosos': exitosos,
         'fallidos': fallidos,
+        'repetidos': repetidos,
         'errores': errores[:20]
     })
 

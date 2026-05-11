@@ -46,6 +46,7 @@
     <div style="margin-top: 25px; padding: 15px; border-radius: 8px; background: {% if exitosos > 0 %}#d4edda{% else %}#f8d7da{% endif %}; border: 1px solid {% if exitosos > 0 %}#c3e6cb{% else %}#f5c6cb{% endif %};">
         <h4 style="margin: 0 0 10px 0; color: {% if exitosos > 0 %}#155724{% else %}#721c24{% endif %};">📊 Resultado del Proceso</h4>
         <p style="margin: 5px 0;"><strong>✅ Exitosos:</strong> {{ exitosos }} teléfonos cargados</p>
+        <p style="margin: 5px 0;"><strong>🔁 Repetidos no cargados:</strong> {{ repetidos|default:0 }} registros</p>
         <p style="margin: 5px 0;"><strong>❌ Fallidos:</strong> {{ fallidos }} registros</p>
         <p style="margin: 10px 0 0 0;"><strong>📝 {{ mensajes }}</strong></p>
         
