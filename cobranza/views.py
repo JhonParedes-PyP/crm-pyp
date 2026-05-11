@@ -47,6 +47,40 @@ def puede_usar_modo_agente(user):
 def modo_agente_ve_todos_los_clientes(user):
     return user.is_superuser and user.username.upper() in SUPERVISORES_CON_BANDEJA_AGENTE
 
+def normalizar_telefono(numero):
+    return ''.join(ch for ch in str(numero or '') if ch.isdigit())
+
+def buscar_telefono_duplicado(deudor_actual, numero_normalizado):
+    if not numero_normalizado:
+        return None
+
+    telefonos_mismo_cliente = [
+        ('telefono principal', deudor_actual.telefono_principal),
+        ('telefono de aval', deudor_actual.tlf_celular_aval),
+    ]
+    for etiqueta, numero in telefonos_mismo_cliente:
+        if normalizar_telefono(numero) == numero_normalizado:
+            return f"El numero {numero_normalizado} ya esta registrado en este cliente como {etiqueta}."
+
+    for telefono in TelefonoExtra.objects.filter(deudor=deudor_actual):
+        if normalizar_telefono(telefono.numero) == numero_normalizado:
+            return f"El numero {numero_normalizado} ya esta registrado en este cliente como telefono adicional ({telefono.descripcion})."
+
+    for otro in Deudor.objects.exclude(id=deudor_actual.id).only('id', 'nombre_completo', 'documento', 'telefono_principal', 'tlf_celular_aval'):
+        if normalizar_telefono(otro.telefono_principal) == numero_normalizado:
+            return f"El numero {numero_normalizado} ya esta registrado en otro cliente: {otro.nombre_completo} ({otro.documento}) como telefono principal."
+        if normalizar_telefono(otro.tlf_celular_aval) == numero_normalizado:
+            return f"El numero {numero_normalizado} ya esta registrado en otro cliente: {otro.nombre_completo} ({otro.documento}) como telefono de aval."
+
+    for telefono in TelefonoExtra.objects.exclude(deudor=deudor_actual).select_related('deudor'):
+        if normalizar_telefono(telefono.numero) == numero_normalizado:
+            return (
+                f"El numero {numero_normalizado} ya esta registrado en otro cliente: "
+                f"{telefono.deudor.nombre_completo} ({telefono.deudor.documento}) como telefono adicional ({telefono.descripcion})."
+            )
+
+    return None
+
 def aplicar_asignaciones_de_gestor(queryset, usuario):
     return aplicar_visibilidad_por_asignaciones(queryset, usuario)
 
@@ -686,6 +720,9 @@ def registrar_gestion(request, deudor_id):
     deudor = get_object_or_404(Deudor, id=deudor_id)
     historial = Gestion.objects.filter(deudor=deudor).order_by('-fecha')
     telefonos_adicionales = TelefonoExtra.objects.filter(deudor=deudor)
+    telefono_alerta = None
+    nuevo_telefono_valor = ''
+    desc_nuevo_telefono_valor = ''
     
     es_gerente_flag = es_gerente(request.user)
     
@@ -745,21 +782,27 @@ def registrar_gestion(request, deudor_id):
 
     if request.method == 'POST':
         if 'guardar_nuevo_telefono' in request.POST:
-            nuevo_tel = request.POST.get('nuevo_telefono')
-            desc_tel = request.POST.get('desc_nuevo_telefono', 'ADICIONAL')
-            if nuevo_tel and nuevo_tel.strip():
-                TelefonoExtra.objects.create(deudor=deudor, numero=nuevo_tel.strip(), descripcion=desc_tel)
+            nuevo_tel = request.POST.get('nuevo_telefono', '').strip()
+            desc_tel = request.POST.get('desc_nuevo_telefono', 'ADICIONAL').strip() or 'ADICIONAL'
+            nuevo_telefono_valor = nuevo_tel
+            desc_nuevo_telefono_valor = desc_tel
+            telefono_duplicado = buscar_telefono_duplicado(deudor, normalizar_telefono(nuevo_tel))
+            if nuevo_tel and not telefono_duplicado:
+                TelefonoExtra.objects.create(deudor=deudor, numero=nuevo_tel, descripcion=desc_tel)
                 Gestion.objects.create(
                     deudor=deudor,
                     gestor=request.user,
                     resultado="NUEVO TELÉFONO",
-                    observacion=f"Se registró un nuevo número de contacto: {nuevo_tel.strip()} ({desc_tel})",
+                    observacion=f"Se registró un nuevo número de contacto: {nuevo_tel} ({desc_tel})",
                     monto_pago=Decimal('0')
                 )
-            url = reverse('registrar_gestion', args=[deudor.id])
-            if parametros_url:
-                url = f"{url}?{parametros_url}"
-            return redirect(url)
+                url = reverse('registrar_gestion', args=[deudor.id])
+                if parametros_url:
+                    url = f"{url}?{parametros_url}"
+                return redirect(url)
+
+            if telefono_duplicado:
+                telefono_alerta = telefono_duplicado
             
         else:
             resultado_principal = request.POST.get('resultado_principal')
@@ -832,6 +875,9 @@ def registrar_gestion(request, deudor_id):
         'posicion_actual': posicion_actual,
         'total_clientes': len(lista_ids),
         'parametros_url': parametros_url,
+        'telefono_alerta': telefono_alerta,
+        'nuevo_telefono_valor': nuevo_telefono_valor,
+        'desc_nuevo_telefono_valor': desc_nuevo_telefono_valor,
     })
 
 # --- ELIMINAR CLIENTE ---

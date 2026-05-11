@@ -159,16 +159,21 @@
         
         <div style="background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-left: 4px solid #17a2b8;">
             <h3 style="margin-top: 0; color: #003366; font-size: 14px;">📱 Agregar Nuevo Teléfono</h3>
+            {% if telefono_alerta %}
+            <div style="background: #fff3cd; color: #8a3a00; border: 1px solid #ffe69c; padding: 10px 12px; border-radius: 8px; margin-bottom: 10px; font-size: 12px; font-weight: bold;">
+                ⚠ {{ telefono_alerta }}
+            </div>
+            {% endif %}
             <form method="POST" style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 10px; align-items: end;">
                 {% csrf_token %}
                 <input type="hidden" name="guardar_nuevo_telefono" value="1">
                 <div>
                     <label style="font-size: 10px; font-weight: bold; color: #555;">Número:</label>
-                    <input type="text" name="nuevo_telefono" placeholder="Ej: 987654321" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px;" required>
+                    <input type="text" name="nuevo_telefono" value="{{ nuevo_telefono_valor }}" placeholder="Ej: 987654321" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px;" required>
                 </div>
                 <div>
                     <label style="font-size: 10px; font-weight: bold; color: #555;">Descripción:</label>
-                    <input type="text" name="desc_nuevo_telefono" placeholder="Ej: Trabajo" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px;" required>
+                    <input type="text" name="desc_nuevo_telefono" value="{{ desc_nuevo_telefono_valor }}" placeholder="Ej: Trabajo" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px;" required>
                 </div>
                 <button type="submit" style="background: #17a2b8; color: white; padding: 8px 15px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; height: 33px;">Guardar</button>
             </form>
@@ -683,6 +688,10 @@ style.textContent = `
     @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 `;
 document.head.appendChild(style);
+
+{% if telefono_alerta %}
+alert("{{ telefono_alerta|escapejs }}");
+{% endif %}
 
 </script>
 {% endblock %}
