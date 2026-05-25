@@ -1056,6 +1056,7 @@ def subir_gestiones_masivas(request):
         try:
             archivo = request.FILES['archivo_excel']
             df = pd.read_excel(archivo, dtype=str).fillna('')
+            df.columns = df.columns.str.strip()
             
             columnas_requeridas = ['CUENTA', 'RESULTADO DE GESTIÓN', 'USUARIO']
             faltantes = [c for c in columnas_requeridas if c not in df.columns]
