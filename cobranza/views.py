@@ -1041,7 +1041,6 @@ def cargar_telefonos(request):
         'repetidos': repetidos,
         'errores': errores[:20]
     })
-    })
 
 @login_required
 def subir_gestiones_masivas(request):

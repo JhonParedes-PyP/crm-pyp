@@ -63,6 +63,7 @@ try:
             ('cobranza/templates/cobranza/bandeja.html', f"{project_dir}/cobranza/templates/cobranza/bandeja.html"),
             ('cobranza/templates/cobranza/base.html', f"{project_dir}/cobranza/templates/cobranza/base.html"),
             ('cobranza/templates/cobranza/asignaciones_diarias.html', f"{project_dir}/cobranza/templates/cobranza/asignaciones_diarias.html"),
+            ('cobranza/templates/cobranza/subir_gestiones_masivas.html', f"{project_dir}/cobranza/templates/cobranza/subir_gestiones_masivas.html"),
             ('crm_pyp_config/context_processors.py', f"{project_dir}/crm_pyp_config/context_processors.py"),
             ('crm_pyp_config/urls.py', f"{project_dir}/crm_pyp_config/urls.py"),
             # ── 🤖 DEEPSEEK AI ──────────────────────────────────────────────────────
