@@ -1041,8 +1041,75 @@ def cargar_telefonos(request):
         'repetidos': repetidos,
         'errores': errores[:20]
     })
+    })
 
-    
+@login_required
+def subir_gestiones_masivas(request):
+    if request.user.username != 'JPAREDES' and not request.user.is_superuser:
+        return HttpResponse("Acceso Denegado. Solo JPAREDES puede realizar esta acción.", status=403)
+
+    mensajes = []
+    exitosos = 0
+    fallidos = 0
+    errores = []
+
+    if request.method == 'POST' and request.FILES.get('archivo_excel'):
+        try:
+            archivo = request.FILES['archivo_excel']
+            df = pd.read_excel(archivo, dtype=str).fillna('')
+            
+            columnas_requeridas = ['CUENTA', 'RESULTADO DE GESTIÓN', 'USUARIO']
+            faltantes = [c for c in columnas_requeridas if c not in df.columns]
+            if faltantes:
+                return render(request, 'cobranza/subir_gestiones_masivas.html', {
+                    'mensajes': f"Error: Faltan las columnas requeridas: {', '.join(faltantes)}",
+                    'errores': []
+                })
+
+            for index, row in df.iterrows():
+                cuenta = str(row.get('CUENTA', '')).strip()
+                resultado_gestion = str(row.get('RESULTADO DE GESTIÓN', '')).strip()
+                usuario_str = str(row.get('USUARIO', '')).strip()
+                
+                if not cuenta or not resultado_gestion:
+                    errores.append(f"Fila {index+2}: Falta CUENTA o RESULTADO DE GESTIÓN")
+                    fallidos += 1
+                    continue
+                
+                deudor = Deudor.objects.filter(cuenta=cuenta).first()
+                if not deudor:
+                    errores.append(f"Fila {index+2}: Deudor no encontrado con cuenta {cuenta}")
+                    fallidos += 1
+                    continue
+                
+                gestor = None
+                if usuario_str:
+                    gestor = User.objects.filter(username__iexact=usuario_str).first()
+                if not gestor:
+                    gestor = request.user 
+
+                Gestion.objects.create(
+                    deudor=deudor,
+                    gestor=gestor,
+                    resultado="CARGA MASIVA",
+                    observacion=resultado_gestion,
+                    monto_pago=Decimal('0')
+                )
+                
+                exitosos += 1
+                
+            mensajes = f"Proceso completado: {exitosos} gestiones subidas correctamente, {fallidos} fallidas."
+            
+        except Exception as e:
+            mensajes = f"Error al procesar el archivo: {e}"
+
+    return render(request, 'cobranza/subir_gestiones_masivas.html', {
+        'mensajes': mensajes,
+        'exitosos': exitosos,
+        'fallidos': fallidos,
+        'errores': errores[:30]
+    })
+
 
 
 from django.views.decorators.http import require_POST

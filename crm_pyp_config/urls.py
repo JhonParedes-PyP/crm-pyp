@@ -33,6 +33,7 @@ urlpatterns = [
 
     # Rutas Principales del CRM
     path('subir-excel/', views.subir_excel, name='subir_excel'),
+    path('subir-gestiones/', views.subir_gestiones_masivas, name='subir_gestiones_masivas'),
     path('bandeja-gestor/', views.bandeja_gestor, name='bandeja_gestor'),
 
     # Ficha del Cliente y Acciones

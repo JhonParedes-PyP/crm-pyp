@@ -1,0 +1,60 @@
+{% extends 'cobranza/base.html' %}
+{% block content %}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+    <h2 style="color: #6f42c1; margin: 0;">📤 Subir Gestiones Masivas</h2>
+    <a href="{% url 'dashboard_gerente' %}" style="background: #003366; color: white; padding: 9px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">
+        ← Volver al Dashboard
+    </a>
+</div>
+
+<div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.07); max-width: 700px; margin: auto;">
+    <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-left: 5px solid #17a2b8; border-radius: 8px; font-size: 14px; color: #333;">
+        <h4 style="margin-top: 0; color: #17a2b8;">Formato del Excel Requerido</h4>
+        <p>El archivo debe contener exactamente las siguientes columnas (mayúsculas o minúsculas) para ser procesado:</p>
+        <ul style="margin-bottom: 0;">
+            <li><strong>CUENTA</strong> (Obligatorio)</li>
+            <li><strong>RESULTADO DE GESTIÓN</strong> (Obligatorio)</li>
+            <li><strong>USUARIO</strong> (Opcional - Gestor asociado)</li>
+        </ul>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 15px;">
+        {% csrf_token %}
+        <div>
+            <label style="font-size: 13px; font-weight: bold; color: #555; display: block; margin-bottom: 6px;">Archivo Excel (.xlsx / .xls):</label>
+            <input type="file" name="archivo_excel" accept=".xlsx, .xls" required
+                   style="width: 100%; padding: 10px; border: 2px dashed #ccc; border-radius: 8px; font-size: 14px; cursor: pointer;">
+        </div>
+        <button type="submit" style="background: #6f42c1; color: white; padding: 12px; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer;">
+            📤 Procesar Gestiones Masivas
+        </button>
+    </form>
+
+    {% if mensajes %}
+        <div style="margin-top: 20px; padding: 14px; border-radius: 8px;
+            {% if 'Error' in mensajes %}background:#f8d7da; color:#721c24; border-left: 4px solid #dc3545;
+            {% else %}background:#d4edda; color:#155724; border-left: 4px solid #28a745;{% endif %}">
+            <strong>{{ mensajes }}</strong>
+            {% if exitosos or fallidos %}
+                <ul style="margin-top: 10px; margin-bottom: 0;">
+                    <li style="color: green;">Gestiones creadas: {{ exitosos }}</li>
+                    <li style="color: red;">Gestiones fallidas: {{ fallidos }}</li>
+                </ul>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% if errores %}
+        <div style="margin-top: 20px; background: #fff3cd; color: #856404; padding: 15px; border-left: 4px solid #ffc107; border-radius: 8px; max-height: 250px; overflow-y: auto;">
+            <h4 style="margin-top: 0;">Errores Encontrados (Muestra parcial):</h4>
+            <ul style="margin-bottom: 0; font-size: 13px;">
+                {% for error in errores %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -161,6 +161,9 @@
             <a href="{% url 'cargar_telefonos' %}" style="background: #17a2b8; padding: 5px 12px; border-radius: 4px;">📱 Cargar Teléfonos</a>
             <a href="{% url 'panel_campanas' %}" style="background: #fd7e14; padding: 5px 12px; border-radius: 4px; border: 1px solid white;">🎧 Motor Asterisk</a>
             {% endif %}
+            {% if user.username == 'JPAREDES' %}
+            <a href="{% url 'subir_gestiones_masivas' %}" style="background: #6f42c1; padding: 5px 12px; border-radius: 4px; color: white;">📤 Subir Gestiones</a>
+            {% endif %}
             {% if user.is_staff %}<a href="/admin/">⚙️ Configuración</a>{% endif %}
         </div>
         {% if user.is_authenticated %}
