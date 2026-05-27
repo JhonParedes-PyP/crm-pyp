@@ -1,5 +1,6 @@
 {% extends 'cobranza/base.html' %}
 {% load humanize %}
+{% load custom_filters %}
 
 {% block content %}
 
@@ -294,7 +295,7 @@
                         </span>
                         <strong style="color: #007bff;">{{ g.fecha|date:"d/m/y H:i" }}</strong> - 
                         <span style="color: {% if 'PAGÓ' in g.resultado %}#28a745{% elif 'PROMESA' in g.resultado %}#ffc107{% elif 'NUEVO TELÉFONO' in g.resultado %}#17a2b8{% else %}#dc3545{% endif %}; font-weight: bold;">{{ g.resultado }}</span>
-                        <p style="margin: 5px 0; color: #555;">{{ g.observacion }}</p>
+                        <p style="margin: 5px 0; color: #555;">{{ g.observacion|format_obs }}</p>
                         
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
                             <small style="color: #999;">👤 Gestor: {{ g.gestor.username|upper }}</small>
