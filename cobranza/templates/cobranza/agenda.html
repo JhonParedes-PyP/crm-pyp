@@ -241,7 +241,7 @@
                 <div class="ci-nom">{{ g.deudor.nombre_completo }}</div>
                 <div class="ci-sub">
                     <span>📄 {{ g.deudor.documento }}</span>
-                    <span>📅 <strong style="color:#c0392b;">{{ g.fecha_promesa|date:"d/m/Y" }}</strong></span>
+                    <span>📅 <strong style="color:#c0392b;">{{ g.fecha_promesa|date:"d/m/Y" }}{% if g.hora_promesa %} - {{ g.hora_promesa|time:"H:i" }}{% endif %}</strong></span>
                     <span class="tag t-v">VENCIDA</span>
                 </div>
             </div>
@@ -263,7 +263,7 @@
             <div>
                 <div class="ci-nom">{{ seg.deudor.nombre_completo }}</div>
                 <div class="ci-sub">
-                    <span>📅 <strong style="color:#c0392b;">{{ seg.fecha_programada|date:"d/m/Y" }}</strong></span>
+                    <span>📅 <strong style="color:#c0392b;">{{ seg.fecha_programada|date:"d/m/Y" }}{% if seg.hora_programada %} - {{ seg.hora_programada|time:"H:i" }}{% endif %}</strong></span>
                     <span class="tag t-v">VENCIDO</span>
                 </div>
                 <div class="ci-sub" style="font-style:italic;">📝 {{ seg.motivo }}</div>

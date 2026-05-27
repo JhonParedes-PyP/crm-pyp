@@ -232,10 +232,14 @@
                     </select>
                 </div>
 
-                <div id="div_fecha_monto" style="display: none; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                <div id="div_fecha_monto" style="display: none; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
                     <div id="div_fecha" style="display: none;">
                         <label id="label_fecha" style="font-size: 11px; font-weight: bold; color: #555;">Fecha:</label>
                         <input type="date" name="fecha_promesa" id="fecha_promesa" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px;">
+                    </div>
+                    <div id="div_hora" style="display: none;">
+                        <label id="label_hora" style="font-size: 11px; font-weight: bold; color: #555;">Hora:</label>
+                        <input type="time" name="hora_promesa" id="hora_promesa" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px;">
                     </div>
                     <div id="div_monto" style="display: none;">
                         <label style="font-size: 11px; font-weight: bold; color: #555;">Monto (S/):</label>
@@ -254,14 +258,18 @@
                         <input type="checkbox" id="chk_seguimiento" name="programar_seguimiento" onchange="toggleSeguimiento()" style="width:16px; height:16px;">
                         📌 Programar seguimiento
                     </label>
-                    <div id="div_seguimiento" style="display:none; margin-top: 8px; display: none; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div id="div_seguimiento" style="display:none; margin-top: 8px; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
                         <div>
                             <label style="font-size: 10px; font-weight: bold; color: #555;">Fecha del seguimiento:</label>
                             <input type="date" name="fecha_seguimiento" id="fecha_seguimiento" style="width: 100%; padding: 7px; border-radius: 6px; border: 1px solid #3498db; font-size: 12px;">
                         </div>
                         <div>
+                            <label style="font-size: 10px; font-weight: bold; color: #555;">Hora:</label>
+                            <input type="time" name="hora_seguimiento" id="hora_seguimiento" style="width: 100%; padding: 7px; border-radius: 6px; border: 1px solid #3498db; font-size: 12px;">
+                        </div>
+                        <div>
                             <label style="font-size: 10px; font-weight: bold; color: #555;">Motivo / Recordatorio:</label>
-                            <input type="text" name="motivo_seguimiento" id="motivo_seguimiento" placeholder="Ej: Confirmar pago, Rellamar..." style="width: 100%; padding: 7px; border-radius: 6px; border: 1px solid #3498db; font-size: 12px;">
+                            <input type="text" name="motivo_seguimiento" id="motivo_seguimiento" placeholder="Ej: Confirmar pago..." style="width: 100%; padding: 7px; border-radius: 6px; border: 1px solid #3498db; font-size: 12px;">
                         </div>
                     </div>
                 </div>
@@ -422,6 +430,7 @@ function manejarMenuDinamico() {
     var divSub = document.getElementById("div_sub_resultado");
     var divFechaMonto = document.getElementById("div_fecha_monto");
     var divFecha = document.getElementById("div_fecha");
+    var divHora = document.getElementById("div_hora");
     var divMonto = document.getElementById("div_monto");
     var labelFecha = document.getElementById("label_fecha");
     
@@ -429,6 +438,7 @@ function manejarMenuDinamico() {
     divSub.style.display = "none";
     divFechaMonto.style.display = "none";
     divFecha.style.display = "none";
+    divHora.style.display = "none";
     divMonto.style.display = "none";
     
     // 2. Quitar obligaciones
@@ -449,10 +459,18 @@ function manejarMenuDinamico() {
             
             if (sub === "VOLVER A LLAMAR") {
                 divMonto.style.display = "none";
+                divHora.style.display = "block";
                 document.getElementById("monto_pago").required = false;
                 labelFecha.innerText = "Agendar para el:";
+                
+                var now = new Date();
+                var hh = String(now.getHours()).padStart(2, '0');
+                var mm = String(now.getMinutes()).padStart(2, '0');
+                document.getElementById("hora_promesa").value = hh + ":" + mm;
+                
             } else {
                 divMonto.style.display = "block";
+                divHora.style.display = "none";
                 document.getElementById("monto_pago").required = true;
                 if (sub === "PROMESA DE PAGO") {
                     labelFecha.innerText = "Fecha Promesa:";
@@ -475,6 +493,11 @@ function toggleSeguimiento() {
         div.style.display = 'grid';
         document.getElementById('fecha_seguimiento').required = true;
         document.getElementById('motivo_seguimiento').required = true;
+        
+        var now = new Date();
+        var hh = String(now.getHours()).padStart(2, '0');
+        var mm = String(now.getMinutes()).padStart(2, '0');
+        document.getElementById("hora_seguimiento").value = hh + ":" + mm;
     } else {
         div.style.display = 'none';
         document.getElementById('fecha_seguimiento').required = false;

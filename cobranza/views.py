@@ -872,6 +872,7 @@ def registrar_gestion(request, deudor_id):
                 resultado=resultado_final, 
                 observacion=obs_final, 
                 fecha_promesa=request.POST.get('fecha_promesa') or None,
+                hora_promesa=request.POST.get('hora_promesa') or None,
                 monto_pago=monto_decimal
             )
             
@@ -893,6 +894,7 @@ def registrar_gestion(request, deudor_id):
                             deudor=deudor,
                             gestor=request.user,
                             fecha_programada=fecha_seg,
+                            hora_programada=request.POST.get('hora_seguimiento') or None,
                             motivo=motivo_seg[:200],
                         )
             

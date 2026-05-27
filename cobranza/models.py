@@ -78,6 +78,7 @@ class Gestion(models.Model):
     resultado = models.CharField(max_length=100)
     observacion = models.TextField()
     fecha_promesa = models.DateField(null=True, blank=True)
+    hora_promesa = models.TimeField(null=True, blank=True)
     monto_pago = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
 # --- MODELO ACTUALIZADO: ASIGNACIÓN DE CARTERA Y AGENCIA POR GESTOR ---
@@ -161,6 +162,7 @@ class SeguimientoProgramado(models.Model):
     deudor = models.ForeignKey(Deudor, on_delete=models.CASCADE, related_name='seguimientos')
     gestor = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='seguimientos')
     fecha_programada = models.DateField()
+    hora_programada = models.TimeField(null=True, blank=True, verbose_name="Hora Programada")
     motivo = models.CharField(max_length=200)
     completado = models.BooleanField(default=False)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
