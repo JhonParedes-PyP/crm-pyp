@@ -890,6 +890,7 @@ def registrar_gestion(request, deudor_id):
                 deudor.save()
 
             # --- GUARDAR SEGUIMIENTO PROGRAMADO (si el gestor lo marcó) ---
+            seguimiento_creado = False
             if request.POST.get('programar_seguimiento'):
                 fecha_seg_raw = request.POST.get('fecha_seguimiento', '').strip()
                 motivo_seg = request.POST.get('motivo_seguimiento', '').strip() or resultado_final
@@ -903,6 +904,23 @@ def registrar_gestion(request, deudor_id):
                             fecha_programada=fecha_seg,
                             hora_programada=request.POST.get('hora_seguimiento') or None,
                             motivo=motivo_seg[:200],
+                        )
+                        seguimiento_creado = True
+                        
+            # --- AUTO-PROGRAMAR SEGUIMIENTO SI ES PROMESA DE PAGO ---
+            if not seguimiento_creado and "PROMESA" in resultado_final.upper() and request.POST.get('fecha_promesa'):
+                fecha_prom_raw = request.POST.get('fecha_promesa', '').strip()
+                hora_prom_raw = request.POST.get('hora_promesa', '').strip()
+                if fecha_prom_raw:
+                    from django.utils.dateparse import parse_date
+                    fecha_prom = parse_date(fecha_prom_raw)
+                    if fecha_prom:
+                        SeguimientoProgramado.objects.create(
+                            deudor=deudor,
+                            gestor=request.user,
+                            fecha_programada=fecha_prom,
+                            hora_programada=hora_prom_raw or None,
+                            motivo=f"Alerta automática: Verificar {resultado_final}",
                         )
             
             # --- NUEVA LÓGICA DE REDIRECCIÓN AL SIGUIENTE ---
