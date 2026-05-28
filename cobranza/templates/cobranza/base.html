@@ -339,24 +339,31 @@
             .then(data => {
                 var container = document.getElementById('alertas-container');
                 if (data.alertas && data.alertas.length > 0) {
-                    var html = '<div class="alert-popup">';
-                    html += '<h4>🔔 Tienes ' + data.alertas.length + ' seguimiento(s) pendiente(s)</h4>';
-                    data.alertas.forEach(function(a) {
-                        html += '<div class="alert-item">';
-                        html += '<div class="alert-name">' + a.cliente + '</div>';
-                        html += '<div class="alert-time">Programado: ' + a.fecha + ' a las ' + a.hora + '</div>';
-                        html += '<div class="alert-motivo">📝 ' + a.motivo + '</div>';
-                        html += '<a href="/gestionar/' + a.deudor_id + '/" class="btn-gestionar">Gestionar para quitar aviso →</a>';
+                    var currentPath = window.location.pathname;
+                    var alertasActivas = data.alertas.filter(a => '/gestionar/' + a.deudor_id + '/' !== currentPath);
+                    
+                    if (alertasActivas.length > 0) {
+                        var html = '<div class="alert-popup">';
+                        html += '<h4>🔔 Tienes ' + alertasActivas.length + ' seguimiento(s) pendiente(s)</h4>';
+                        alertasActivas.forEach(function(a) {
+                            html += '<div class="alert-item">';
+                            html += '<div class="alert-name">' + a.cliente + '</div>';
+                            html += '<div class="alert-time">Programado: ' + a.fecha + ' a las ' + a.hora + '</div>';
+                            html += '<div class="alert-motivo">📝 ' + a.motivo + '</div>';
+                            html += '<a href="/gestionar/' + a.deudor_id + '/" class="btn-gestionar">Gestionar para quitar aviso →</a>';
+                            html += '</div>';
+                        });
                         html += '</div>';
-                    });
-                    html += '</div>';
-                    
-                    var wasEmpty = (container.innerHTML === '');
-                    container.innerHTML = html;
-                    
-                    if (wasEmpty) {
-                        var au = document.getElementById("keypress-sound");
-                        if(au) au.play().catch(e=>{});
+                        
+                        var wasEmpty = (container.innerHTML === '');
+                        container.innerHTML = html;
+                        
+                        if (wasEmpty) {
+                            var au = document.getElementById("keypress-sound");
+                            if(au) au.play().catch(e=>{});
+                        }
+                    } else {
+                        container.innerHTML = '';
                     }
                 } else {
                     container.innerHTML = '';
