@@ -30,6 +30,7 @@ urlpatterns = [
     # Agenda Diaria
     path('agenda/', dashboard_views.agenda_diaria, name='agenda_diaria'),
     path('agenda/completar/<int:seguimiento_id>/', dashboard_views.marcar_seguimiento_completado, name='marcar_seguimiento_completado'),
+    path('agenda/alertas/', dashboard_views.comprobar_alertas_seguimiento, name='comprobar_alertas_seguimiento'),
 
     # Rutas Principales del CRM
     path('subir-excel/', views.subir_excel, name='subir_excel'),

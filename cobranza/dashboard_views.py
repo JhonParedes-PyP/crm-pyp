@@ -341,3 +341,31 @@ def marcar_seguimiento_completado(request, seguimiento_id):
     seg.completado = True
     seg.save()
     return JsonResponse({'ok': True})
+
+@login_required
+@require_http_methods(["GET"])
+def comprobar_alertas_seguimiento(request):
+    """
+    Retorna los seguimientos pendientes para hoy cuya hora programada
+    es menor o igual a la actual, o seguimientos de días anteriores.
+    """
+    hoy = timezone.now().date()
+    hora_actual = timezone.now().time()
+    
+    alertas = SeguimientoProgramado.objects.filter(
+        Q(gestor=request.user, completado=False),
+        Q(fecha_programada__lt=hoy) | Q(fecha_programada=hoy, hora_programada__lte=hora_actual, hora_programada__isnull=False)
+    ).select_related('deudor').order_by('fecha_programada', 'hora_programada')
+    
+    data = []
+    for a in alertas:
+        data.append({
+            'id': a.id,
+            'deudor_id': a.deudor.id,
+            'cliente': a.deudor.nombre_completo,
+            'hora': a.hora_programada.strftime('%H:%M') if a.hora_programada else 'Pendiente',
+            'fecha': a.fecha_programada.strftime('%d/%m/%Y'),
+            'motivo': a.motivo
+        })
+        
+    return JsonResponse({'alertas': data})

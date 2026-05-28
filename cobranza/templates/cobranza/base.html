@@ -300,5 +300,76 @@
 
     document.addEventListener("DOMContentLoaded", function(){requestMicrophoneAccess()});
 </script>
+
+<!-- SISTEMA DE ALERTAS EMERGENTES PARA SEGUIMIENTOS -->
+<style>
+    .alert-popup {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #fff;
+        border-left: 5px solid #dc3545;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        padding: 15px 20px;
+        border-radius: 8px;
+        z-index: 10000;
+        min-width: 300px;
+        max-width: 400px;
+        animation: slideInRight 0.5s ease-out forwards;
+    }
+    @keyframes slideInRight {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    .alert-popup h4 { margin: 0 0 10px 0; color: #dc3545; font-size: 15px; font-weight: bold; }
+    .alert-popup .alert-item { margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+    .alert-popup .alert-item:last-child { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
+    .alert-popup .alert-name { font-weight: bold; color: #003366; font-size: 13px; }
+    .alert-popup .alert-time { font-size: 11px; color: #dc3545; font-weight: bold; }
+    .alert-popup .alert-motivo { font-size: 11px; color: #666; font-style: italic; margin-bottom: 8px; }
+    .alert-popup .btn-gestionar { display: inline-block; background: #003366; color: #fff; text-decoration: none; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+    .alert-popup .btn-gestionar:hover { background: #0055a5; }
+</style>
+<div id="alertas-container"></div>
+<script>
+    function checkAlertasSeguimiento() {
+        {% if user.is_authenticated %}
+        fetch('/agenda/alertas/')
+            .then(r => r.json())
+            .then(data => {
+                var container = document.getElementById('alertas-container');
+                if (data.alertas && data.alertas.length > 0) {
+                    var html = '<div class="alert-popup">';
+                    html += '<h4>🔔 Tienes ' + data.alertas.length + ' seguimiento(s) pendiente(s)</h4>';
+                    data.alertas.forEach(function(a) {
+                        html += '<div class="alert-item">';
+                        html += '<div class="alert-name">' + a.cliente + '</div>';
+                        html += '<div class="alert-time">Programado: ' + a.fecha + ' a las ' + a.hora + '</div>';
+                        html += '<div class="alert-motivo">📝 ' + a.motivo + '</div>';
+                        html += '<a href="/gestionar/' + a.deudor_id + '/" class="btn-gestionar">Gestionar para quitar aviso →</a>';
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                    
+                    var wasEmpty = (container.innerHTML === '');
+                    container.innerHTML = html;
+                    
+                    if (wasEmpty) {
+                        var au = document.getElementById("keypress-sound");
+                        if(au) au.play().catch(e=>{});
+                    }
+                } else {
+                    container.innerHTML = '';
+                }
+            })
+            .catch(e => console.log('Error verificando alertas', e));
+        {% endif %}
+    }
+    
+    // Verificar cada minuto (60000 ms)
+    setInterval(checkAlertasSeguimiento, 60000);
+    // Verificar a los 5 segundos de cargar la página
+    setTimeout(checkAlertasSeguimiento, 5000);
+</script>
 </body>
 </html>

@@ -876,6 +876,13 @@ def registrar_gestion(request, deudor_id):
                 monto_pago=monto_decimal
             )
             
+            # --- MARCAR SEGUIMIENTOS COMO COMPLETADOS AUTOMÁTICAMENTE ---
+            SeguimientoProgramado.objects.filter(
+                deudor=deudor, 
+                gestor=request.user, 
+                completado=False
+            ).update(completado=True)
+            
             if "PAGO" in resultado_final and monto_decimal > 0:
                 if monto_decimal > deudor.saldo_deuda:
                     monto_decimal = deudor.saldo_deuda
