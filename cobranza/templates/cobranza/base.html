@@ -165,7 +165,7 @@
             <a href="{% url 'subir_gestiones_masivas' %}" style="background: #6f42c1; padding: 5px 12px; border-radius: 4px; color: white;">📤 Subir Gestiones</a>
             {% endif %}
             {% if user.is_staff %}<a href="/admin/">⚙️ Configuración</a>{% endif %}
-            <a href="#" onclick="window.open('{% url 'webphone_popup' %}', 'WebPhone', 'width=360,height=580,resizable=no'); return false;" style="background: #e83e8c; padding: 5px 12px; border-radius: 4px; color: white; font-weight: bold; margin-left: 10px; border: 1px solid white;">📞 Iniciar Teléfono</a>
+            <a href="#" onclick="window.open('{% url 'webphone_popup' %}', 'WebPhone', 'width=260,height=460,resizable=no'); return false;" style="background: #e83e8c; padding: 5px 12px; border-radius: 4px; color: white; font-weight: bold; margin-left: 10px; border: 1px solid white;">📞 Iniciar Teléfono</a>
         </div>
         {% if user.is_authenticated %}
         <div class="user-area">
