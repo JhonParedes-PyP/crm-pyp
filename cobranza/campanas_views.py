@@ -8,7 +8,7 @@ import csv
 import pandas as pd
 
 @login_required
-def datos_cliente_kubo(request, telefono, campana, cod_cliente, cod_telefono):
+def datos_cliente_kubo(request, telefono, campana, *args, **kwargs):
     """
     Endpoint que recibe la URL de Kubo y redirige a la ficha del cliente
     URL: /datos-cliente/<telefono>/<campana>/<cod_cliente>/<cod_telefono>/

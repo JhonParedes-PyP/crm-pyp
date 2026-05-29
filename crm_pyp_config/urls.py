@@ -60,8 +60,8 @@ urlpatterns = [
     path('campanas-asterisk/', campanas_views.panel_campanas_asterisk, name='panel_campanas'),
     path('campanas-asterisk/descargar/<int:campana_id>/', campanas_views.descargar_csv_campana, name='descargar_csv_campana'),
 
-    # Ruta callback de Kubo (con 4 parámetros)
-    path('datos-cliente/<str:telefono>/<str:campana>/<str:cod_cliente>/<str:cod_telefono>/', campanas_views.datos_cliente_kubo, name='datos_cliente_kubo'),
+    # Ruta callback de Kubo (captura cualquier dato extra encriptado que tenga barras)
+    path('datos-cliente/<str:telefono>/<str:campana>/<path:datos_extra>', campanas_views.datos_cliente_kubo, name='datos_cliente_kubo'),
 
     # --- ZADARMA WebRTC / Callback ---
     path('api/webrtc-key/', api_views.api_zadarma_webrtc_key, name='api_zadarma_webrtc_key'),
