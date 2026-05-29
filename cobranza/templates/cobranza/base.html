@@ -202,9 +202,6 @@
         const bc = new BroadcastChannel('crm_phone_channel');
         bc.postMessage({ command: 'dial', numero: numero });
         bc.close();
-        
-        // Mostrar alerta local
-        alert("Orden enviada al teléfono flotante para marcar: " + numero + "\nSi no abriste el teléfono, hazlo desde el botón superior.");
     };
 </script>
 <!-- SISTEMA DE ALERTAS EMERGENTES PARA SEGUIMIENTOS -->
