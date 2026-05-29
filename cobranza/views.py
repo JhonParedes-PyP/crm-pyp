@@ -1231,3 +1231,8 @@ def eliminar_telefono_extra(request, telefono_id):
 
 
 
+
+@login_required
+def webphone_popup(request):
+    return render(request, 'cobranza/webphone.html')
+

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebPhone P&P</title>
+    <!-- Teléfono SIP Nativo (Janus) -->
+    <link href="https://pyp.ipb.pe/wphone/css/materialdesignicons/css/materialdesignicons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        .webphon { padding-top: 10px; width: 100%; }
+        .phone { display: flex; flex-direction: column; align-items: center; background: white; padding: 20px; width: 100%; max-width: 320px; position: relative; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); border: 2px solid #003366; }
+        .phone-title {
+            background: #003366; color: white; padding: 8px 0; width: 100%; text-align: center; border-radius: 8px 8px 0 0; font-weight: bold; margin-top: -20px; margin-bottom: 20px;
+        }
+        .status-indicator { width: 12px; height: 12px; background: red; border-radius: 50%; position: absolute; top: 12px; right: 15px; }
+        .screen { width: 100%; height: 50px; text-align: center; font-size: 24px; margin-bottom: 15px; border: 2px solid #ccc; padding: 5px; background: #fff; box-sizing: border-box; border-radius: 6px; }
+        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
+        .info { display: flex; justify-content: space-between; width: 100%; margin-top: 15px; font-size: 12px; font-weight: bold; }
+        .phone button { width: 100%; padding: 12px 0; font-size: 18px; border: none; border-radius: 8px; background: #f0f0f0; cursor: pointer; text-align: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .phone button:hover { background: #e0e0e0; }
+        .phone button:active { box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+        .botones { padding-top: 15px; width: 100% !important; text-align: center; display: flex; flex-direction: column; gap: 10px; }
+        .botones button { margin: 0; display: block; font-size: 16px; padding: 10px; }
+        .texto-verde { color: #28a745; }
+        .status-icon { display: flex; align-items: center; color: #28a745; }
+        .status-icon i { margin-right: 3px; font-size: 16px; }
+        #sip-estatus { display: block; text-align: center; width: 100%; color: #888 !important; margin-top: 10px; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<div class="webphon">
+    <div class="phone text-center" style="margin: 0 auto;">
+        <div class="phone-title">📞 Teléfono WebRTC</div>
+        <div class="status-indicator" id="status-indicator"></div>
+        <input title="Ingresar número" type="text" id="txtnumeroallama" class="screen" readonly>
+        <div class="keypad">
+            <button onclick="pressKey('1')">1</button>
+            <button onclick="pressKey('2')">2</button>
+            <button onclick="pressKey('3')">3</button>
+            <button onclick="pressKey('4')">4</button>
+            <button onclick="pressKey('5')">5</button>
+            <button onclick="pressKey('6')">6</button>
+            <button onclick="pressKey('7')">7</button>
+            <button onclick="pressKey('8')">8</button>
+            <button onclick="pressKey('9')">9</button>
+            <button onclick="pressKey('*')">*</button>
+            <button onclick="pressKey('0')">0</button>
+            <button onclick="pressKey('#')">#</button>
+            <button title="Rellamar" onclick="redial()">R</button>
+            <button onclick="pressKey('+')">+</button>
+            <button title="Limpiar" onclick="clearNumber()">C</button>
+        </div>
+        <div class="botones">
+            <button class="call" onclick="dollamar()" style="background:#28a745; color:white;"><i class="mdi mdi-phone"></i> Llamar</button>
+            <button class="hangup" onclick="doHangup()" style="background:#dc3545; color:white; display:none;"><i class="mdi mdi-phone-hangup"></i> Colgar</button>
+            <button class="mute" id="mute" onclick="mute()" style="display:none;"><i class="mdi mdi-microphone"></i> Silenciar</button>
+        </div>
+        <div class="info">
+            <label id="anexo"></label>
+            <label id="auto-answer-status"></label>
+            <label id="estatus">Conectando...</label>
+        </div>
+        <div class="card-body" id="videoright"></div>
+    </div>
+</div>
+
+<audio id="keypress-sound" src="https://pyp.ipb.pe/wphone/sounds/click.mp3" preload="auto"></audio>
+
+<script src="https://pyp.ipb.pe/wphone/js/jquery.min.js"></script>
+<script src="https://pyp.ipb.pe/wphone/js/adapter.min.js"></script>
+<script src="https://pyp.ipb.pe/wphone/js/bootbox.min.js"></script>
+<script src="https://pyp.ipb.pe/wphone/js/bootstrap.min.js"></script>
+<script src="https://pyp.ipb.pe/wphone/js/md5.min.js"></script>
+<script src="https://pyp.ipb.pe/wphone/settings.js"></script>
+<script src="https://pyp.ipb.pe/wphone/janus.js"></script>
+
+<script>
+    var usuariosip="", clave="", sipproxy="192.168.199.129", nomuser="", aa="1", actcrm="0", urlcrm="https://www.ipbusiness.pe";
+    var service_account_email="";
+    var lastNumber = "";
+
+    function pressKey(e){var a=document.getElementById("keypress-sound");a&&(a.currentTime=0,a.play()),document.getElementById("txtnumeroallama").value+=e,"En Llamada"===$("#estatus").text()&&sipcall.dtmf({dtmf:{tones:e}}),updateCallButtonState()}
+    function mute(){if("En Llamada"==$("#estatus").text()){let e=sipcall.isAudioMuted();Janus.log((e?"Unmuting":"Muting")+" local stream..."),e?(sipcall.unmuteAudio(),$("#mute").html('<i class="mdi mdi-microphone"></i> Silenciar'),$("#mute").removeClass("btn-secondary").addClass("btn-secondary")):(sipcall.muteAudio(),$("#mute").html('<i class="mdi mdi-microphone-off"></i> Dejar de Silenciar'),$("#mute").removeClass("btn-secondary").addClass("btn-info"))}}
+    function redial(){""!==typeof lastNumber && lastNumber!==""?(document.getElementById("txtnumeroallama").value=lastNumber,updateCallButtonState(),dollamar()):console.log("No hay numero anterior para rellamar.")}
+    function clearNumber(){document.getElementById("txtnumeroallama").value="",updateCallNumberState()}
+    function requestMicrophoneAccess(){navigator.mediaDevices.getUserMedia({audio:!0}).then(function(e){console.log("Acceso al microfono concedido."),e.getTracks().forEach(t=>t.stop())}).catch(function(e){console.error("Error al acceder al microfono:",e),alert("Se necesita acceso al microfono para realizar llamadas.")})}
+    function updateCallButtonState(){} 
+    function updateCallNumberState(){}
+
+    // BroadcastChannel para recibir la orden de llamada del CRM
+    const bc = new BroadcastChannel('crm_phone_channel');
+    bc.onmessage = function (event) {
+        if (event.data.command === 'dial' && event.data.numero) {
+            console.log("Orden de marcar recibida para: " + event.data.numero);
+            document.getElementById('txtnumeroallama').value = event.data.numero;
+            // Esperar un poquito por si el audio local está ocupado e invocar
+            setTimeout(dollamar, 500);
+        }
+    };
+
+    fetch('/api/webrtc-key/')
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                usuariosip = data.sip;
+                clave = data.key;
+                nomuser = "{{ user.username }}";
+                service_account_email = data.key.substring(0,20);
+                
+                var script = document.createElement('script');
+                script.src = "https://pyp.ipb.pe/wphone/sip.js";
+                document.body.appendChild(script);
+            } else {
+                console.warn("[SIP] Usuario no tiene credenciales SIP configuradas.");
+                document.getElementById("estatus").innerHTML = "<span style='color:red;'>Sin Credenciales</span>";
+                document.getElementById("status-indicator").style.background = "red";
+            }
+        })
+        .catch(err => {
+            console.error("Error fetching SIP info", err);
+            document.getElementById("estatus").innerText = "Error de Servidor";
+        });
+
+    document.addEventListener("DOMContentLoaded", function(){
+        requestMicrophoneAccess();
+    });
+
+    // Pequeño parche para que la pantalla "limpie" el campo si escriben en él en lugar del readonly
+    document.addEventListener('keydown', function(event) {
+        if (!isNaN(event.key) || event.key === '*' || event.key === '#') {
+            pressKey(event.key);
+        } else if (event.key === 'Backspace') {
+            var val = document.getElementById("txtnumeroallama").value;
+            document.getElementById("txtnumeroallama").value = val.substring(0, val.length - 1);
+        }
+    });
+
+</script>
+</body>
+</html>

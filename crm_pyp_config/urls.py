@@ -22,6 +22,9 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='cobranza/login.html'), name='login'),
     path('salir/', views.salir_sistema, name='salir_sistema'),
 
+    # WebPhone Popup
+    path('webphone/', views.webphone_popup, name='webphone_popup'),
+
     # Dashboard y Reportes
     path('', dashboard_views.dashboard_gerente, name='inicio'),
     path('dashboard/', dashboard_views.dashboard_gerente, name='dashboard_gerente'),
