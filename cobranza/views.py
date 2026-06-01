@@ -938,6 +938,10 @@ def registrar_gestion(request, deudor_id):
             
             return redirect(url)
 
+    cuentas_asociadas = []
+    if deudor.documento and deudor.documento.strip():
+        cuentas_asociadas = list(Deudor.objects.filter(documento=deudor.documento).order_by('id'))
+
     return render(request, 'cobranza/gestionar.html', {
         'deudor': deudor, 
         'historial': historial, 
@@ -953,6 +957,7 @@ def registrar_gestion(request, deudor_id):
         'nuevo_telefono_valor': nuevo_telefono_valor,
         'desc_nuevo_telefono_valor': desc_nuevo_telefono_valor,
         'puede_depurar_telefonos': puede_depurar_telefonos(request.user),
+        'cuentas_asociadas': cuentas_asociadas,
     })
 
 # --- ELIMINAR CLIENTE ---

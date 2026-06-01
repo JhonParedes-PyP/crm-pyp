@@ -85,77 +85,92 @@
         <div>
             <h3 style="margin-top: 0; color: #333; font-size: 16px;">📄 Detalles del Crédito</h3>
             
-            <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee;">
-                <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Cartera:</strong> <span style="color: #007bff; font-weight: bold;">{{ deudor.cartera }}</span></p>
-                <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Agencia:</strong> <span style="color: #8a5a00; font-weight: bold;">{{ deudor.agencia|default:"N/A" }}</span></p>
-                <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>DNI:</strong> {{ deudor.documento }}</p>
-                <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Cuenta:</strong> {{ deudor.cuenta }}</p>
-                {% if deudor.producto %}<p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Producto:</strong> {{ deudor.producto }}</p>{% endif %}
-                <p style="margin: 5px 0; font-size: 14px; color: #000; font-weight: 900;">Capital Base: S/ {{ deudor.monto_capital|floatformat:2|intcomma }}</p>
-                <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Últ. Día de Pago:</strong> {{ deudor.ultimo_dia_pago|date:"d/m/Y"|default:"Sin registro" }}</p>
-                {% if deudor.negociacion %}<p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Negociación:</strong> {{ deudor.negociacion }}</p>{% endif %}
-                {% if deudor.rango_dias_mora %}<p style="margin: 3px 0; font-size: 12px;"><strong>Mora:</strong> <span style="color: #dc3545; font-weight: bold;">{{ deudor.rango_dias_mora }}</span></p>{% endif %}
-                {% if deudor.nmes %}<p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Meses de mora:</strong> <span style="color: #dc3545; font-weight: bold;">{{ deudor.nmes }}</span></p>{% endif %}
+            {% if cuentas_asociadas|length > 1 %}
+            <div style="display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap;">
+                {% for c in cuentas_asociadas %}
+                <button type="button" class="tab-cuenta" id="tab_{{ c.id }}" onclick="cambiarCuenta('{{ c.id }}', this)" 
+                        style="flex: 1; padding: 10px 5px; border: none; border-radius: 8px 8px 0 0; font-weight: bold; cursor: pointer; font-size: 13px; transition: all 0.2s;
+                               {% if c.id == deudor.id %}background: white; color: #003366; border-bottom: 3px solid #003366; box-shadow: 0 -3px 5px rgba(0,0,0,0.05);{% else %}background: #e9ecef; color: #666; border-bottom: 3px solid transparent;{% endif %}">
+                    💳 Cuenta {{ c.cuenta|default:"S/N" }}
+                </button>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% for c in cuentas_asociadas %}
+            <div id="detalle_cuenta_{{ c.id }}" class="bloque-detalle-cuenta" style="{% if c.id != deudor.id %}display: none;{% endif %}">
+            
+            <div style="background: white; padding: 12px; border-radius: {% if cuentas_asociadas|length > 1 %}0 0 8px 8px{% else %}8px{% endif %}; margin-bottom: 15px; border: 1px solid #eee; {% if cuentas_asociadas|length > 1 %}border-top: none;{% endif %}">
+                <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Cuenta:</strong> <span style="font-weight: bold; color: #003366; font-size: 14px;">{{ c.cuenta }}</span></p>
+                <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Cartera:</strong> <span style="color: #007bff; font-weight: bold;">{{ c.cartera }}</span></p>
+                <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Agencia:</strong> <span style="color: #8a5a00; font-weight: bold;">{{ c.agencia|default:"N/A" }}</span></p>
+                <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>DNI:</strong> {{ c.documento }}</p>
+                {% if c.producto %}<p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Producto:</strong> {{ c.producto }}</p>{% endif %}
+                <p style="margin: 5px 0; font-size: 14px; color: #000; font-weight: 900;">Capital Base: S/ {{ c.monto_capital|floatformat:2|intcomma }}</p>
+                <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Últ. Día de Pago:</strong> {{ c.ultimo_dia_pago|date:"d/m/Y"|default:"Sin registro" }}</p>
+                {% if c.negociacion %}<p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Negociación:</strong> {{ c.negociacion }}</p>{% endif %}
+                {% if c.rango_dias_mora %}<p style="margin: 3px 0; font-size: 12px;"><strong>Mora:</strong> <span style="color: #dc3545; font-weight: bold;">{{ c.rango_dias_mora }}</span></p>{% endif %}
+                {% if c.nmes %}<p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Meses de mora:</strong> <span style="color: #dc3545; font-weight: bold;">{{ c.nmes }}</span></p>{% endif %}
             </div>
 
             <h4 style="color: #666; font-size: 11px; text-transform: uppercase; margin-bottom: 5px;">📍 Dirección del Titular</h4>
             <div style="background: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee; font-size: 12px; color: #444;">
-                {% if deudor.dir_casa %}{{ deudor.dir_casa }} - {{ deudor.distrito }}{% else %}No registrada{% endif %}
-                {% if deudor.departamento or deudor.provincia %}
-                <p style="margin: 4px 0 0 0; font-size: 11px; color: #888;">{{ deudor.departamento|default:"" }} {{ deudor.provincia|default:"" }} {% if deudor.zona %} — Zona: {{ deudor.zona }}{% endif %}</p>
+                {% if c.dir_casa %}{{ c.dir_casa }} - {{ c.distrito }}{% else %}No registrada{% endif %}
+                {% if c.departamento or c.provincia %}
+                <p style="margin: 4px 0 0 0; font-size: 11px; color: #888;">{{ c.departamento|default:"" }} {{ c.provincia|default:"" }} {% if c.zona %} — Zona: {{ c.zona }}{% endif %}</p>
                 {% endif %}
-                    {% if deudor.referencia %}
-                    <p style="margin: 4px 0 0 0;"><strong>Referencia:</strong> {{ deudor.referencia }}</p>
+                    {% if c.referencia %}
+                    <p style="margin: 4px 0 0 0;"><strong>Referencia:</strong> {{ c.referencia }}</p>
                     {% endif %}
-                {% if deudor.link_gps %}
-                <p style="margin: 4px 0 0 0;"><a href="{{ deudor.link_gps }}" target="_blank" style="color: #007bff; font-size: 11px; text-decoration: none;">📌 Ver ubicación GPS</a></p>
+                {% if c.link_gps %}
+                <p style="margin: 4px 0 0 0;"><a href="{{ c.link_gps }}" target="_blank" style="color: #007bff; font-size: 11px; text-decoration: none;">📌 Ver ubicación GPS</a></p>
                 {% endif %}
             </div>
 
-            {% if deudor.dir_negocio %}
+            {% if c.dir_negocio %}
             <h4 style="color: #666; font-size: 11px; text-transform: uppercase; margin-bottom: 5px;">🏢 Dirección del Negocio</h4>
             <div style="background: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee; font-size: 12px; color: #444;">
-                {{ deudor.dir_negocio }}
+                {{ c.dir_negocio }}
             </div>
             {% endif %}
 
             <h4 style="color: #666; font-size: 11px; text-transform: uppercase; margin-bottom: 5px;">🤝 Firmantes y Avales</h4>
             <div style="background: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee; font-size: 12px;">
-                <p style="margin: 3px 0; color: #444;"><strong>Cónyuge Titular:</strong><br> {% if deudor.nom_conyuge %}{{ deudor.nom_conyuge }}{% else %}--{% endif %}</p>
-                {% if deudor.num_doc_conyuge %}<p style="margin: 2px 0; font-size: 11px; color: #888;">DNI: {{ deudor.num_doc_conyuge }}</p>{% endif %}
+                <p style="margin: 3px 0; color: #444;"><strong>Cónyuge Titular:</strong><br> {% if c.nom_conyuge %}{{ c.nom_conyuge }}{% else %}--{% endif %}</p>
+                {% if c.num_doc_conyuge %}<p style="margin: 2px 0; font-size: 11px; color: #888;">DNI: {{ c.num_doc_conyuge }}</p>{% endif %}
                 <hr style="border-top: 1px dashed #ddd; margin: 8px 0;">
-                <p style="margin: 3px 0; color: #444;"><strong>Aval 1:</strong><br> {% if deudor.nom_aval %}{{ deudor.nom_aval }}{% else %}--{% endif %}</p>
-                {% if deudor.num_doc_aval %}<p style="margin: 2px 0; font-size: 11px; color: #888;">DNI: {{ deudor.num_doc_aval }}</p>{% endif %}
-                {% if deudor.aval_direccion %}<p style="margin: 2px 0; font-size: 11px; color: #888;">📍 {{ deudor.aval_direccion }} {% if deudor.aval_distrito %}- {{ deudor.aval_distrito }}{% endif %}</p>{% endif %}
-                {% if deudor.link_gps_aval %}<p style="margin: 2px 0;"><a href="{{ deudor.link_gps_aval }}" target="_blank" style="color: #007bff; font-size: 11px; text-decoration: none;">📌 GPS Aval</a></p>{% endif %}
-                <p style="margin: 3px 0; color: #444;"><strong>Cónyuge Aval 1:</strong><br> {% if deudor.nom_conyuge_aval %}{{ deudor.nom_conyuge_aval }}{% else %}--{% endif %}</p>
+                <p style="margin: 3px 0; color: #444;"><strong>Aval 1:</strong><br> {% if c.nom_aval %}{{ c.nom_aval }}{% else %}--{% endif %}</p>
+                {% if c.num_doc_aval %}<p style="margin: 2px 0; font-size: 11px; color: #888;">DNI: {{ c.num_doc_aval }}</p>{% endif %}
+                {% if c.aval_direccion %}<p style="margin: 2px 0; font-size: 11px; color: #888;">📍 {{ c.aval_direccion }} {% if c.aval_distrito %}- {{ c.aval_distrito }}{% endif %}</p>{% endif %}
+                {% if c.link_gps_aval %}<p style="margin: 2px 0;"><a href="{{ c.link_gps_aval }}" target="_blank" style="color: #007bff; font-size: 11px; text-decoration: none;">📌 GPS Aval</a></p>{% endif %}
+                <p style="margin: 3px 0; color: #444;"><strong>Cónyuge Aval 1:</strong><br> {% if c.nom_conyuge_aval %}{{ c.nom_conyuge_aval }}{% else %}--{% endif %}</p>
             </div>
 
-            {% if deudor.expediente or deudor.juzgado or deudor.condicion %}
+            {% if c.expediente or c.juzgado or c.condicion %}
             <h4 style="color: #666; font-size: 11px; text-transform: uppercase; margin-bottom: 5px;">⚖️ Datos Judiciales</h4>
             <div style="background: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee; font-size: 12px;">
-                {% if deudor.condicion %}<p style="margin: 3px 0; color: #444;"><strong>Condición:</strong> <span style="color: #8a3a00; font-weight: bold;">{{ deudor.condicion }}</span></p>{% endif %}
-                {% if deudor.expediente %}<p style="margin: 3px 0; color: #444;"><strong>Expediente:</strong> {{ deudor.expediente }}</p>{% endif %}
-                {% if deudor.juzgado %}<p style="margin: 3px 0; color: #444;"><strong>Juzgado:</strong> {{ deudor.juzgado }}</p>{% endif %}
-                {% if deudor.fec_demanda %}<p style="margin: 3px 0; color: #444;"><strong>Fecha Demanda:</strong> {{ deudor.fec_demanda|date:"d/m/Y" }}</p>{% endif %}
-                {% if deudor.monto_demanda %}<p style="margin: 3px 0; color: #444;"><strong>Monto Demanda:</strong> S/ {{ deudor.monto_demanda|floatformat:2|intcomma }}</p>{% endif %}
-                {% if deudor.ingreso_judicial %}<p style="margin: 3px 0; color: #444;"><strong>Ingreso Judicial:</strong> {{ deudor.ingreso_judicial|date:"d/m/Y" }}</p>{% endif %}
-                {% if deudor.proceso %}<p style="margin: 3px 0; color: #444;"><strong>Proceso:</strong> {{ deudor.proceso }}</p>{% endif %}
+                {% if c.condicion %}<p style="margin: 3px 0; color: #444;"><strong>Condición:</strong> <span style="color: #8a3a00; font-weight: bold;">{{ c.condicion }}</span></p>{% endif %}
+                {% if c.expediente %}<p style="margin: 3px 0; color: #444;"><strong>Expediente:</strong> {{ c.expediente }}</p>{% endif %}
+                {% if c.juzgado %}<p style="margin: 3px 0; color: #444;"><strong>Juzgado:</strong> {{ c.juzgado }}</p>{% endif %}
+                {% if c.fec_demanda %}<p style="margin: 3px 0; color: #444;"><strong>Fecha Demanda:</strong> {{ c.fec_demanda|date:"d/m/Y" }}</p>{% endif %}
+                {% if c.monto_demanda %}<p style="margin: 3px 0; color: #444;"><strong>Monto Demanda:</strong> S/ {{ c.monto_demanda|floatformat:2|intcomma }}</p>{% endif %}
+                {% if c.ingreso_judicial %}<p style="margin: 3px 0; color: #444;"><strong>Ingreso Judicial:</strong> {{ c.ingreso_judicial|date:"d/m/Y" }}</p>{% endif %}
+                {% if c.proceso %}<p style="margin: 3px 0; color: #444;"><strong>Proceso:</strong> {{ c.proceso }}</p>{% endif %}
             </div>
             {% endif %}
 
-            {% if deudor.foto_evidencia %}
+            {% if c.foto_evidencia %}
             <h4 style="color: #666; font-size: 11px; text-transform: uppercase; margin-bottom: 5px;">📷 Evidencia de Campo</h4>
             <div style="background: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee;">
-                <a href="{{ deudor.foto_evidencia.url }}" target="_blank">
-                    <img src="{{ deudor.foto_evidencia.url }}" alt="Evidencia" style="max-width: 100%; border-radius: 6px; max-height: 200px; object-fit: cover;">
+                <a href="{{ c.foto_evidencia.url }}" target="_blank">
+                    <img src="{{ c.foto_evidencia.url }}" alt="Evidencia" style="max-width: 100%; border-radius: 6px; max-height: 200px; object-fit: cover;">
                 </a>
             </div>
             {% endif %}
             
             {% if es_gerente %}
             <div style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #ccc; text-align: center;">
-                <form method="POST" action="{% url 'eliminar_cliente' deudor.id %}" onsubmit="return confirm('⚠️ ¿Quiere eliminar este cliente de forma permanente? Esta acción no se puede deshacer.');" style="margin: 0;">
+                <form method="POST" action="{% url 'eliminar_cliente' c.id %}" onsubmit="return confirm('⚠️ ¿Quiere eliminar este cliente de forma permanente? Esta acción no se puede deshacer.');" style="margin: 0;">
                     {% csrf_token %}
                     <button type="submit" style="background: white; color: #dc3545; border: 2px solid #dc3545; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 12px; width: 100%; transition: all 0.2s;" onmouseover="this.style.background='#dc3545'; this.style.color='white';" onmouseout="this.style.background='white'; this.style.color='#dc3545';">
                         🗑️ ELIMINAR CLIENTE
@@ -163,6 +178,9 @@
                 </form>
             </div>
             {% endif %}
+
+            </div> <!-- FIN DE BLOQUE CUENTA -->
+            {% endfor %}
 
         </div>
     </div>
@@ -402,6 +420,35 @@
 </div>
 
 <script>
+function cambiarCuenta(id, obj) {
+    // 1. Ocultar todos los bloques de detalle y mostrar el seleccionado
+    document.querySelectorAll('.bloque-detalle-cuenta').forEach(el => el.style.display = 'none');
+    document.getElementById('detalle_cuenta_' + id).style.display = 'block';
+
+    // 2. Restablecer el estilo de todas las pestañas y resaltar la seleccionada
+    document.querySelectorAll('.tab-cuenta').forEach(el => {
+        el.style.background = '#e9ecef';
+        el.style.color = '#666';
+        el.style.borderBottom = '3px solid transparent';
+        el.style.boxShadow = 'none';
+    });
+    obj.style.background = 'white';
+    obj.style.color = '#003366';
+    obj.style.borderBottom = '3px solid #003366';
+    obj.style.boxShadow = '0 -3px 5px rgba(0,0,0,0.05)';
+
+    // 3. Cambiar el ID en el formulario de gestión para que guarde en la cuenta correcta
+    // Buscamos el formulario de Registrar Acción
+    const forms = document.querySelectorAll('form[method="POST"]');
+    forms.forEach(form => {
+        // Solo modificamos la URL si el action contiene '/gestionar/' y NO es para eliminar
+        if (form.action && form.action.includes('/gestionar/') && !form.action.includes('eliminar')) {
+            // Reemplazamos el ID actual por el nuevo ID
+            form.action = form.action.replace(/\/gestionar\/\d+\//, '/gestionar/' + id + '/');
+        }
+    });
+}
+
 /* ── LLAMADA SIP DIRECTA vía Janus WebRTC (IPB) ───────────────────────────────────
    - Se conecta al Webphone Nativo inyectado en base.html
    - Al presionar "Llamar" abre el teclado e inyecta el número
