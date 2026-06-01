@@ -85,23 +85,22 @@
         <div>
             <h3 style="margin-top: 0; color: #333; font-size: 16px;">📄 Detalles del Crédito</h3>
             
-            {% if cuentas_asociadas|length > 1 %}
-            <div style="display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap;">
-                {% for c in cuentas_asociadas %}
-                <button type="button" class="tab-cuenta" id="tab_{{ c.id }}" onclick="cambiarCuenta('{{ c.id }}', this)" 
-                        style="flex: 1; padding: 10px 5px; border: none; border-radius: 8px 8px 0 0; font-weight: bold; cursor: pointer; font-size: 13px; transition: all 0.2s;
-                               {% if c.id == deudor.id %}background: white; color: #003366; border-bottom: 3px solid #003366; box-shadow: 0 -3px 5px rgba(0,0,0,0.05);{% else %}background: #e9ecef; color: #666; border-bottom: 3px solid transparent;{% endif %}">
-                    💳 Cuenta {{ c.cuenta|default:"S/N" }}
-                </button>
-                {% endfor %}
-            </div>
-            {% endif %}
-
             {% for c in cuentas_asociadas %}
             <div id="detalle_cuenta_{{ c.id }}" class="bloque-detalle-cuenta" style="{% if c.id != deudor.id %}display: none;{% endif %}">
             
-            <div style="background: white; padding: 12px; border-radius: {% if cuentas_asociadas|length > 1 %}0 0 8px 8px{% else %}8px{% endif %}; margin-bottom: 15px; border: 1px solid #eee; {% if cuentas_asociadas|length > 1 %}border-top: none;{% endif %}">
-                <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Cuenta:</strong> <span style="font-weight: bold; color: #003366; font-size: 14px;">{{ c.cuenta }}</span></p>
+            <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee;">
+                <p style="margin: 3px 0; font-size: 12px; color: #555; display: flex; align-items: center; gap: 5px;">
+                    <strong>Cuenta:</strong>
+                    {% if cuentas_asociadas|length > 1 %}
+                        <select onchange="cambiarCuenta(this.value)" class="select-cuenta" style="font-weight: bold; color: #003366; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; padding: 2px; cursor: pointer;">
+                            {% for c_opt in cuentas_asociadas %}
+                            <option value="{{ c_opt.id }}" {% if c_opt.id == c.id %}selected{% endif %}>{{ c_opt.cuenta|default:"S/N" }}</option>
+                            {% endfor %}
+                        </select>
+                    {% else %}
+                        <span style="font-weight: bold; color: #003366; font-size: 14px;">{{ c.cuenta }}</span>
+                    {% endif %}
+                </p>
                 <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Cartera:</strong> <span style="color: #007bff; font-weight: bold;">{{ c.cartera }}</span></p>
                 <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Agencia:</strong> <span style="color: #8a5a00; font-weight: bold;">{{ c.agencia|default:"N/A" }}</span></p>
                 <p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>DNI:</strong> {{ c.documento }}</p>
@@ -420,22 +419,15 @@
 </div>
 
 <script>
-function cambiarCuenta(id, obj) {
+function cambiarCuenta(id) {
     // 1. Ocultar todos los bloques de detalle y mostrar el seleccionado
     document.querySelectorAll('.bloque-detalle-cuenta').forEach(el => el.style.display = 'none');
     document.getElementById('detalle_cuenta_' + id).style.display = 'block';
 
-    // 2. Restablecer el estilo de todas las pestañas y resaltar la seleccionada
-    document.querySelectorAll('.tab-cuenta').forEach(el => {
-        el.style.background = '#e9ecef';
-        el.style.color = '#666';
-        el.style.borderBottom = '3px solid transparent';
-        el.style.boxShadow = 'none';
+    // 2. Sincronizar todos los selects para que muestren la opción correcta
+    document.querySelectorAll('.select-cuenta').forEach(select => {
+        select.value = id;
     });
-    obj.style.background = 'white';
-    obj.style.color = '#003366';
-    obj.style.borderBottom = '3px solid #003366';
-    obj.style.boxShadow = '0 -3px 5px rgba(0,0,0,0.05)';
 
     // 3. Cambiar el ID en el formulario de gestión para que guarde en la cuenta correcta
     // Buscamos el formulario de Registrar Acción
