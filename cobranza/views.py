@@ -235,13 +235,14 @@ def subir_excel(request):
 
                 if documento_val:
                     dni_en_excel.add(documento_val)
+                    cuenta_val = str(row.get('COD_CREDITO', 'N/A')).strip()
                     Deudor.objects.update_or_create(
                           documento=documento_val,
+                          cuenta=cuenta_val,
                           defaults={
                               'cartera': str(row.get('CARTERA', 'GENERAL')).strip(),
                               'nombre_completo': str(row.get('NOM_CLI', 'SIN NOMBRE')).strip(),
                               'telefono_principal': str(row.get('TLF_CELULAR_CLIENTE', '')).strip(),
-                              'cuenta': str(row.get('COD_CREDITO', 'N/A')).strip(),
                               'agencia': str(row.get('NOM_AGENCIA', 'N/A')).strip(),
                               'monto_capital': cap,
                               'saldo_deuda': tot,
@@ -1031,12 +1032,12 @@ def cargar_telefonos(request):
                     fallidos += 1
                     continue
                 
-                try:
-                    deudor = Deudor.objects.get(documento=dni)
-                except Deudor.DoesNotExist:
+                deudores = Deudor.objects.filter(documento=dni)
+                if not deudores.exists():
                     errores.append(f"Fila {index+2}: DNI {dni} no encontrado en la base de datos")
                     fallidos += 1
                     continue
+                deudor = deudores.first()
                 
                 telefono_limpio = ''.join(filter(str.isdigit, telefono))
                 if len(telefono_limpio) != 9:
