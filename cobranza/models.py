@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 
 class Deudor(models.Model):
     # DATOS PRINCIPALES (Los que ya teníamos)
-    documento = models.CharField(max_length=20, unique=True) # DOC_DNI_RUC
+    documento = models.CharField(max_length=20) # DOC_DNI_RUC
     nombre_completo = models.CharField(max_length=200)       # NOM_CLI
     telefono_principal = models.CharField(max_length=50)     # TLF_CELULAR_CLIENTE
     cuenta = models.CharField(max_length=50, default='N/A')  # COD_CREDITO
@@ -62,6 +62,9 @@ class Deudor(models.Model):
     seguimiento_principal = models.TextField(null=True, blank=True)
     codigo_cautelar = models.CharField(max_length=100, null=True, blank=True)
     foto_evidencia = models.ImageField(upload_to='evidencias/', null=True, blank=True)
+
+    class Meta:
+        unique_together = ('documento', 'cuenta')
 
     def __str__(self):
         return self.nombre_completo
