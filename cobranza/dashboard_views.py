@@ -69,7 +69,6 @@ def dashboard_gerente(request):
     usuarios_online = []
     if request.user.username == 'JPAREDES' or es_gerente_flag:
         from django.core.cache import cache
-        from django.contrib.auth.models import User
         
         for u in User.objects.filter(is_active=True).order_by('username'):
             if cache.get(f'seen_{u.username}'):
