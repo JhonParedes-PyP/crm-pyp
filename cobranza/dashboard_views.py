@@ -39,6 +39,7 @@ def dashboard_gerente(request):
     total_recuperado = Gestion.objects.filter(
         fecha__date__gte=inicio_mes_actual,
         fecha__date__lte=hoy,
+        resultado__icontains='PAGÓ'
     ).aggregate(Sum('monto_pago'))['monto_pago__sum'] or 0
     
     stats_pago = Gestion.objects.filter(
@@ -57,7 +58,7 @@ def dashboard_gerente(request):
         total_gestiones=Count('gestion', filter=filtro_periodo_gestion),
         total_pagos=Count('gestion', filter=filtro_periodo_gestion & Q(gestion__resultado__icontains='PAGÓ')),
         total_promesas=Count('gestion', filter=filtro_periodo_gestion & Q(gestion__resultado__icontains='PROMESA')),
-        monto_recuperado=Sum('gestion__monto_pago', filter=filtro_periodo_gestion)
+        monto_recuperado=Sum('gestion__monto_pago', filter=filtro_periodo_gestion & Q(gestion__resultado__icontains='PAGÓ'))
     ).filter(total_gestiones__gt=0).order_by('-total_gestiones')
     
     gestores_nombres = [g.username.upper() for g in productividad]
@@ -94,7 +95,8 @@ def exportar_gestiones_excel(request):
     ws_gestiones.title = 'GESTIONES'
     ws_gestiones.append(['CARTERA', 'AGENCIA', 'CUENTA', 'CLIENTE', 'RESULTADO DE GESTION'])
     for g in gestiones_todas:
-        if g.monto_pago and g.monto_pago > 0:
+        es_pago = g.monto_pago and g.monto_pago > 0 and 'PAG' in g.resultado.upper()
+        if es_pago:
             continue
         deudor = g.deudor
         obs_limpia = re.sub(r'^\[.*?\]\s*', '', g.observacion or '').strip()
@@ -111,7 +113,8 @@ def exportar_gestiones_excel(request):
     ws_pagos = wb.create_sheet(title='PAGOS')
     ws_pagos.append(['FECHA', 'GESTOR', 'DNI', 'CLIENTE', 'RESULTADO', 'MONTO'])
     for g in gestiones_todas:
-        if not g.monto_pago or g.monto_pago <= 0:
+        es_pago = g.monto_pago and g.monto_pago > 0 and 'PAG' in g.resultado.upper()
+        if not es_pago:
             continue
         ws_pagos.append([
             g.fecha.strftime('%d/%m/%Y'),
