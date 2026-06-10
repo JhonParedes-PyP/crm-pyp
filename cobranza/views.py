@@ -804,7 +804,7 @@ def registrar_gestion(request, deudor_id):
             'numero': deudor.telefono_principal, 'tipo': 'TITULAR',
             'link_call': f"tel:{deudor.telefono_principal}",
             'link_wa': f"https://web.whatsapp.com/send?phone=51{deudor.telefono_principal}&text={urllib.parse.quote(msg_base)}",
-            'puede_eliminar': puede_depurar_telefonos(request.user) and numero_repetido_en_cliente(conteo_numeros_cliente, deudor.telefono_principal),
+            'puede_eliminar': True,
             'url_eliminar': reverse('eliminar_contacto_cliente', args=[deudor.id, 'titular']),
         })
     
@@ -814,7 +814,7 @@ def registrar_gestion(request, deudor_id):
             'numero': deudor.tlf_celular_aval, 'tipo': 'AVAL',
             'link_call': f"tel:{deudor.tlf_celular_aval}",
             'link_wa': f"https://web.whatsapp.com/send?phone=51{deudor.tlf_celular_aval}&text={urllib.parse.quote(msg_base)}",
-            'puede_eliminar': puede_depurar_telefonos(request.user) and numero_repetido_en_cliente(conteo_numeros_cliente, deudor.tlf_celular_aval),
+            'puede_eliminar': True,
             'url_eliminar': reverse('eliminar_contacto_cliente', args=[deudor.id, 'aval']),
         })
 
@@ -824,7 +824,7 @@ def registrar_gestion(request, deudor_id):
             'numero': tel.numero, 'tipo': tel.descripcion.upper(),
             'link_call': f"tel:{tel.numero}",
             'link_wa': f"https://web.whatsapp.com/send?phone=51{tel.numero}&text={urllib.parse.quote(msg_base)}",
-            'puede_eliminar': puede_depurar_telefonos(request.user) and numero_repetido_en_cliente(conteo_numeros_cliente, tel.numero),
+            'puede_eliminar': True,
             'url_eliminar': reverse('eliminar_telefono_extra', args=[tel.id]),
         })
 
@@ -1170,8 +1170,7 @@ def eliminar_gestion(request, gestion_id):
 @login_required
 @require_POST
 def eliminar_contacto_cliente(request, deudor_id, tipo_contacto):
-    if not puede_depurar_telefonos(request.user):
-        return HttpResponse("Acceso Denegado. Accion exclusiva para JPAREDES.", status=403)
+
 
     deudor = get_object_or_404(Deudor, id=deudor_id)
     parametros_url = request.POST.get('parametros_url', '').strip()
@@ -1192,7 +1191,7 @@ def eliminar_contacto_cliente(request, deudor_id, tipo_contacto):
         deudor=deudor,
         gestor=request.user,
         resultado="TELÉFONO ELIMINADO",
-        observacion=f"JPAREDES eliminó el {etiqueta}: {numero}.",
+        observacion=f"El gestor {request.user.username.upper()} eliminó el {etiqueta}: {numero}.",
         monto_pago=Decimal('0')
     )
 
@@ -1204,8 +1203,7 @@ def eliminar_contacto_cliente(request, deudor_id, tipo_contacto):
 @login_required
 @require_POST
 def eliminar_telefono_extra(request, telefono_id):
-    if not puede_depurar_telefonos(request.user):
-        return HttpResponse("Acceso Denegado. Accion exclusiva para JPAREDES.", status=403)
+
 
     telefono = get_object_or_404(TelefonoExtra.objects.select_related('deudor'), id=telefono_id)
     deudor = telefono.deudor
@@ -1218,7 +1216,7 @@ def eliminar_telefono_extra(request, telefono_id):
         deudor=deudor,
         gestor=request.user,
         resultado="TELÉFONO ELIMINADO",
-        observacion=f"JPAREDES eliminó el teléfono manual {numero} ({descripcion}).",
+        observacion=f"El gestor {request.user.username.upper()} eliminó el teléfono manual {numero} ({descripcion}).",
         monto_pago=Decimal('0')
     )
 
