@@ -130,12 +130,14 @@
     <div class="nav-bottom">
         <div class="menu">
             <a href="{% url 'dashboard_gerente' %}">📊 Dashboard</a>
-            <a id="agenda-link" href="{% url 'agenda_diaria' %}{% if es_gerente and puede_modo_agente and not user.is_superuser %}?modo=agente{% endif %}" style="position:relative;">
-                📅 Agenda de Supervisión
+            {% if not es_gerente %}
+            <a id="agenda-link" href="{% url 'agenda_diaria' %}" style="position:relative;">
+                📅 Agenda Diaria
                 {% if agenda_alertas_count > 0 %}
                 <span style="position:absolute; top:-8px; right:-10px; background:#dc3545; color:white; border-radius:50%; width:18px; height:18px; font-size:10px; font-weight:bold; display:flex; align-items:center; justify-content:center; line-height:1;">{{ agenda_alertas_count }}</span>
                 {% endif %}
             </a>
+            {% endif %}
             {% if es_gerente %}
             {% if puede_modo_agente %}
             <a href="{% url 'bandeja_gestor' %}?modo=agente" style="position:relative;">
