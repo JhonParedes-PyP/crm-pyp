@@ -489,8 +489,8 @@ def bandeja_gestor(request):
                 dias = (timezone.now() - d.ultima_llamada).days
                 d.color = "rojo" if dias >= 3 else ("amarillo" if dias >= 1 else "verde")
         
-        d.alerta_promesa = d.ultima_promesa_vencida_fecha is not None and d.pago_tras_promesa is None
-        d.proxima_promesa = d.ultima_promesa_fecha
+        d.alerta_promesa = getattr(d, 'ultima_promesa_vencida_fecha', None) is not None and getattr(d, 'pago_tras_promesa', None) is None
+        d.proxima_promesa = getattr(d, 'ultima_promesa_fecha', None)
 
     # 5. Guardar sesión para navegación (< Anterior / Siguiente >)
     # Limitar a 2000 IDs para evitar sesiones enormes en la BD
