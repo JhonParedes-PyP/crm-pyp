@@ -313,7 +313,7 @@ def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False, forza
         rango_deuda = filtros_sesion.get('rango_deuda', '')
         orden = filtros_sesion.get('orden', '')
 
-    deudores = Deudor.objects.annotate(ultima_llamada=Max('gestion__fecha'))
+    deudores = Deudor.objects.all()
 
     # Si es modo agente o no es gerente, ocultar los que ya gestionó hoy
     if forzar_asignaciones or not es_gerente(usuario):
@@ -391,6 +391,7 @@ def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False, forza
     
     if not es_vista_gerente:
         deudores = deudores.annotate(
+            ultima_llamada=Max('gestion__fecha'),
             ultima_promesa_fecha=Subquery(ultima_promesa_subquery),
             ultima_promesa_vencida_fecha=Subquery(ultima_promesa_vencida_fecha_subq),
             pago_tras_promesa=Subquery(pago_tras_promesa_subq),
@@ -405,8 +406,6 @@ def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False, forza
             output_field=IntegerField()
         )
         deudores = deudores.annotate(prioridad=prioridad_annotation)
-    else:
-        deudores = deudores.annotate(prioridad=Value(3, output_field=IntegerField()))
 
     if orden == 'nombre': deudores = deudores.order_by('nombre_completo')
     elif orden == '-nombre': deudores = deudores.order_by('-nombre_completo')
@@ -476,18 +475,27 @@ def bandeja_gestor(request):
     deudores_paginados = paginator.get_page(page_number)
     
     # 4. Establecer atributos visuales solo a los 20 objetos cargados
+    if deudores_paginados and not hasattr(deudores_paginados[0], 'ultima_llamada'):
+        ids_20 = [d.id for d in deudores_paginados]
+        ultimas_llamadas = Gestion.objects.filter(deudor_id__in=ids_20).values('deudor_id').annotate(ult=Max('fecha'))
+        mapa_ultima_llamada = {item['deudor_id']: item['ult'] for item in ultimas_llamadas}
+        for d in deudores_paginados:
+            d.ultima_llamada = mapa_ultima_llamada.get(d.id)
+
     for d in deudores_paginados:
-        if getattr(d, 'prioridad', 3) == 1:
+        prioridad_val = getattr(d, 'prioridad', None)
+        if prioridad_val == 1:
             d.color = 'rojo'
-        elif getattr(d, 'prioridad', 3) == 2:
+        elif prioridad_val == 2:
             d.color = 'amarillo'
-        elif getattr(d, 'prioridad', 3) == 3:
+        elif prioridad_val == 3:
             d.color = 'verde'
-        else: # Prioridad 0
-            if not d.ultima_llamada: 
+        else: # Prioridad 0 o no calculada
+            ultima = getattr(d, 'ultima_llamada', None)
+            if not ultima: 
                 d.color = "rojo"
             else:
-                dias = (timezone.now() - d.ultima_llamada).days
+                dias = (timezone.now() - ultima).days
                 d.color = "rojo" if dias >= 3 else ("amarillo" if dias >= 1 else "verde")
         
         d.alerta_promesa = getattr(d, 'ultima_promesa_vencida_fecha', None) is not None and getattr(d, 'pago_tras_promesa', None) is None
