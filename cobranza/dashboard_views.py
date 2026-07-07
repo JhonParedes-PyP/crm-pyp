@@ -2,7 +2,7 @@ import re
 from .models import *
 from .views import SUPERVISORES_CON_BANDEJA_AGENTE, es_gerente, puede_usar_modo_agente
 from .views import obtener_alertas_pago_proximo
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum, Q, Max, F, OuterRef, Subquery, DecimalField, Exists
 from django.utils import timezone
@@ -12,6 +12,21 @@ from django.views.decorators.http import require_http_methods
 import csv
 import openpyxl
 from .asignaciones import aplicar_visibilidad_por_asignaciones
+
+@login_required
+def buscar_cliente_rapido(request):
+    if not es_gerente(request.user):
+        return redirect('bandeja_gestor')
+        
+    q = request.GET.get('q', '').strip()
+    if not q:
+        return redirect('dashboard_gerente')
+        
+    deudores = Deudor.objects.filter(Q(documento__icontains=q) | Q(nombre_completo__icontains=q) | Q(cuenta__icontains=q))
+    if deudores.count() == 1:
+        return redirect('registrar_gestion', deudor_id=deudores.first().id)
+        
+    return render(request, 'cobranza/resultados_busqueda.html', {'deudores': deudores[:50], 'q': q})
 
 @login_required
 def dashboard_gerente(request):
@@ -74,6 +89,11 @@ def dashboard_gerente(request):
             if cache.get(f'seen_{u.username}'):
                 usuarios_online.append(u)
     
+    # --- ÚLTIMAS GESTIONES ---
+    ultimas_gestiones = []
+    if es_gerente_flag:
+        ultimas_gestiones = Gestion.objects.select_related('gestor', 'deudor').order_by('-fecha')[:15]
+
     return render(request, 'cobranza/dashboard.html', {
         'es_gerente': es_gerente_flag,
         'total_cartera': total_cartera,
@@ -83,6 +103,7 @@ def dashboard_gerente(request):
         'productividad': productividad,
         'grafico_labels': ['Pagos', 'Promesas'],
         'usuarios_online': usuarios_online,
+        'ultimas_gestiones': ultimas_gestiones,
         'grafico_data': [stats_pago, stats_promesa],
         'periodo': periodo,
         'periodo_texto': periodo_texto,

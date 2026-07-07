@@ -1,0 +1,45 @@
+{% extends 'cobranza/base.html' %}
+{% block content %}
+<div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="color: #003366; margin: 0;">🔍 Resultados de Búsqueda: "{{ q }}"</h3>
+        <a href="{% url 'dashboard_gerente' %}" style="background: #6c757d; color: white; padding: 8px 15px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold;">Volver al Dashboard</a>
+    </div>
+
+    {% if deudores %}
+    <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Se encontraron {{ deudores|length }} resultados (mostrando hasta 50):</p>
+    
+    <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 14px;">
+        <thead>
+            <tr style="background: #f8f9fa; border-bottom: 2px solid #ddd;">
+                <th style="padding: 12px;">DNI</th>
+                <th style="padding: 12px;">Nombre</th>
+                <th style="padding: 12px;">Cuenta</th>
+                <th style="padding: 12px;">Cartera</th>
+                <th style="padding: 12px; text-align: right;">Deuda</th>
+                <th style="padding: 12px; text-align: center;">Acción</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in deudores %}
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 12px; font-weight: bold;">{{ d.documento }}</td>
+                <td style="padding: 12px;">{{ d.nombre_completo }}</td>
+                <td style="padding: 12px;">{{ d.cuenta|default:"-" }}</td>
+                <td style="padding: 12px;">{{ d.cartera|default:"-" }}</td>
+                <td style="padding: 12px; text-align: right; color: #dc3545; font-weight: bold;">S/ {{ d.saldo_deuda|floatformat:2|default:"0.00" }}</td>
+                <td style="padding: 12px; text-align: center;">
+                    <a href="{% url 'registrar_gestion' d.id %}" style="background: #007bff; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 12px; font-weight: bold;">Supervisar</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="text-align: center; padding: 50px; background: #f8f9fa; border-radius: 8px; margin-top: 20px;">
+        <h4 style="color: #666; margin-bottom: 10px;">No se encontraron clientes</h4>
+        <p style="color: #999; margin: 0;">Intenta buscar con otro DNI, nombre o cuenta.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

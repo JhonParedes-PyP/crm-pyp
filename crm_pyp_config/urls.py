@@ -28,6 +28,7 @@ urlpatterns = [
     # Dashboard y Reportes
     path('', dashboard_views.dashboard_gerente, name='inicio'),
     path('dashboard/', dashboard_views.dashboard_gerente, name='dashboard_gerente'),
+    path('dashboard/buscar/', dashboard_views.buscar_cliente_rapido, name='buscar_cliente_rapido'),
     path('exportar-gestiones/', dashboard_views.exportar_gestiones_excel, name='exportar_gestiones_excel'),
 
     # Agenda Diaria
