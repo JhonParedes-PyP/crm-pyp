@@ -137,13 +137,13 @@
                 {% endif %}
             </a>
             {% if es_gerente %}
-            <a href="{% url 'bandeja_gestor' %}" style="position:relative;">
-                📞 Bandeja General
+            {% if puede_modo_agente %}
+            <a href="{% url 'bandeja_gestor' %}?modo=agente" style="position:relative;">
+                📞 Mi Bandeja
                 {% if pagos_proximos_count > 0 %}
                 <span class="badge-pagos-proximos" style="position:absolute; top:-8px; right:-10px; background:#ff8c00; color:white; border-radius:50%; width:18px; height:18px; font-size:10px; font-weight:bold; display:flex; align-items:center; justify-content:center; line-height:1; box-shadow:0 0 5px rgba(0,0,0,0.3);" title="Pagos por vencer">{{ pagos_proximos_count }}</span>
                 {% endif %}
             </a>
-            {% if puede_modo_agente %}
             <a href="{% url 'agenda_diaria' %}?modo=agente">📅 Mi Agenda</a>
             {% endif %}
             {% else %}

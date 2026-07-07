@@ -441,6 +441,9 @@ def bandeja_gestor(request):
     es_gerente_flag = es_gerente(request.user)
     modo_agente = es_gerente_flag and puede_usar_modo_agente(request.user) and request.GET.get('modo') == 'agente'
     
+    if es_gerente_flag and not modo_agente:
+        return redirect('dashboard_gerente')
+    
     # 1. Obtener el QuerySet delegado a Base de Datos
     deudores, filtros = obtener_queryset_bandeja(
         request,
