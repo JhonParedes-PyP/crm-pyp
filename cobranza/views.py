@@ -386,7 +386,8 @@ def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False, forza
     hace_3_dias = hoy_datetime - timedelta(days=3)
     hace_1_dia = hoy_datetime - timedelta(days=1)
 
-    es_vista_gerente = es_gerente(usuario) and not forzar_asignaciones
+    es_modo_agente = request.GET.get('modo') == 'agente' if request else False
+    es_vista_gerente = es_gerente(usuario) and not es_modo_agente
     
     if not es_vista_gerente:
         deudores = deudores.annotate(
@@ -417,7 +418,7 @@ def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False, forza
     elif orden == '-deuda_total': deudores = deudores.order_by(F('saldo_deuda').desc(nulls_last=True))
     else:
         if es_vista_gerente:
-            deudores = deudores.order_by(F('ultima_llamada').desc(nulls_last=True))
+            deudores = deudores.order_by('-id')
         else:
             deudores = deudores.order_by('prioridad', F('ultima_llamada').asc(nulls_first=True))
 
