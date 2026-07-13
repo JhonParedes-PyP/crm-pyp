@@ -318,12 +318,13 @@ def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False, forza
     # Si es modo agente o no es gerente, ocultar los que ya gestionó hoy
     if forzar_asignaciones or not es_gerente(usuario):
         deudores = aplicar_asignaciones_de_gestor(deudores, usuario)
-        # Ocultar los que el agente ya gestionó el día de hoy
-        hoy_date = timezone.now().date()
-        deudores = deudores.exclude(
-            gestion__gestor=usuario,
-            gestion__fecha__date=hoy_date
-        )
+        # Ocultar los que el agente ya gestionó el día de hoy, EXCEPTO si es una búsqueda específica
+        if not q:
+            hoy_date = timezone.now().date()
+            deudores = deudores.exclude(
+                gestion__gestor=usuario,
+                gestion__fecha__date=hoy_date
+            )
 
     if q: 
         deudores = deudores.filter(
