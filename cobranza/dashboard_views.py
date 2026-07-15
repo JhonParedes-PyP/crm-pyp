@@ -64,10 +64,6 @@ def dashboard_gerente(request):
         monto_recuperado=Sum('gestion__monto_pago', filter=filtro_periodo_gestion & Q(gestion__resultado__icontains='PAGÓ'))
     ).filter(total_gestiones__gt=0).order_by('-total_gestiones')
     
-    gestores_nombres = [g.username.upper() for g in productividad]
-    gestores_gestiones = [g.total_gestiones for g in productividad]
-    gestores_montos = [float(g.monto_recuperado or 0) for g in productividad]
-    
     # --- USUARIOS EN LÍNEA (Solo para JPAREDES o gerentes) ---
     usuarios_online = []
     if request.user.username == 'JPAREDES' or es_gerente_flag:
@@ -87,9 +83,6 @@ def dashboard_gerente(request):
         'usuarios_online': usuarios_online,
         'periodo': periodo,
         'periodo_texto': periodo_texto,
-        'gestores_nombres': gestores_nombres,
-        'gestores_gestiones': gestores_gestiones,
-        'gestores_montos': gestores_montos,
     })
 
 @login_required
