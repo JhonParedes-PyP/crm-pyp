@@ -88,8 +88,72 @@
     </div>
 </div>
 {% endif %}
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+    
+    {% if convenios_atrasados %}
+    <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 4px solid #dc3545;">
+        <h3 style="color: #dc3545; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 20px;">🚨</span> Convenios Atrasados
+        </h3>
+        <div style="max-height: 400px; overflow-y: auto;">
+            <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 12px;">
+                <thead>
+                    <tr style="background: #f8f9fa; border-bottom: 2px solid #ddd;">
+                        <th style="padding: 10px;">Cliente</th>
+                        <th style="padding: 10px;">Vencimiento</th>
+                        <th style="padding: 10px;">Monto</th>
+                        <th style="padding: 10px; text-align: center;">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in convenios_atrasados %}
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 10px; font-weight: bold;">{{ c.deudor.nombre_completo|truncatechars:30 }}</td>
+                        <td style="padding: 10px; color: #dc3545; font-weight: bold;">{{ c.fecha_pago|date:"d/m/Y" }}</td>
+                        <td style="padding: 10px;">S/ {{ c.monto_cuota|floatformat:0|intcomma }}</td>
+                        <td style="padding: 10px; text-align: center;">
+                            <a href="{% url 'registrar_gestion' c.deudor.id %}" style="background: #e9ecef; color: #003366; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 11px; font-weight: bold;">Revisar</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
 
+    {% if convenios_proximos %}
+    <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 4px solid #ffc107;">
+        <h3 style="color: #d39e00; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 20px;">⚠️</span> Próximos a Vencer (3 días)
+        </h3>
+        <div style="max-height: 400px; overflow-y: auto;">
+            <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 12px;">
+                <thead>
+                    <tr style="background: #f8f9fa; border-bottom: 2px solid #ddd;">
+                        <th style="padding: 10px;">Cliente</th>
+                        <th style="padding: 10px;">Vencimiento</th>
+                        <th style="padding: 10px;">Monto</th>
+                        <th style="padding: 10px; text-align: center;">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in convenios_proximos %}
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 10px; font-weight: bold;">{{ c.deudor.nombre_completo|truncatechars:30 }}</td>
+                        <td style="padding: 10px; color: #d39e00; font-weight: bold;">{{ c.fecha_pago|date:"d/m/Y" }}</td>
+                        <td style="padding: 10px;">S/ {{ c.monto_cuota|floatformat:0|intcomma }}</td>
+                        <td style="padding: 10px; text-align: center;">
+                            <a href="{% url 'registrar_gestion' c.deudor.id %}" style="background: #e9ecef; color: #003366; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 11px; font-weight: bold;">Revisar</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
 
-
+</div>
 
 {% endblock %}

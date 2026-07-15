@@ -190,3 +190,21 @@ class AgenteSIP(models.Model):
         
     def __str__(self):
         return f"{self.user.username} - Anexo {self.anexo}"
+
+# --- CONVENIOS ---
+class Convenio(models.Model):
+    deudor = models.ForeignKey(Deudor, on_delete=models.CASCADE, related_name='convenios')
+    cuenta = models.CharField(max_length=50, null=True, blank=True)
+    cuota_pendiente = models.CharField(max_length=100, null=True, blank=True)
+    fecha_pago = models.DateField(null=True, blank=True)
+    monto_cuota = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    dias_atraso = models.IntegerField(default=0)
+    situacion = models.TextField(null=True, blank=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Convenio"
+        verbose_name_plural = "Convenios"
+
+    def __str__(self):
+        return f"Convenio de {self.deudor.nombre_completo} - {self.fecha_pago}"

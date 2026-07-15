@@ -98,6 +98,17 @@ try:
     print("Aplicando migraciones...")
     run_cmd(ssh, f"{project_dir}/venv/bin/python {project_dir}/manage.py migrate --noinput")
 
+    # 5.1 Importar Convenios
+    try:
+        print("Importando Convenios al servidor...")
+        sftp = ssh.open_sftp()
+        sftp.put("import_convenios.py", f"{project_dir}/import_convenios.py")
+        sftp.put("CONVENIOS.xlsx", f"{project_dir}/CONVENIOS.xlsx")
+        sftp.close()
+        run_cmd(ssh, f"cd {project_dir} && {project_dir}/venv/bin/python import_convenios.py")
+    except Exception as e:
+        print(f"[ERROR] importando Convenios: {e}")
+
     # 6. Recolectar archivos estáticos
     print("Recolectando archivos estáticos...")
     run_cmd(ssh, f"{project_dir}/venv/bin/python {project_dir}/manage.py collectstatic --noinput")

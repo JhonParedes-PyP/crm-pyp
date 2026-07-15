@@ -73,6 +73,14 @@ def dashboard_gerente(request):
             if cache.get(f'seen_{u.username}'):
                 usuarios_online.append(u)
     
+    # --- CONVENIOS ---
+    convenios_atrasados = []
+    convenios_proximos = []
+    if es_gerente_flag:
+        convenios_atrasados = Convenio.objects.select_related('deudor').filter(fecha_pago__lt=hoy).order_by('fecha_pago')[:50]
+        limite_proximos = hoy + timedelta(days=3)
+        convenios_proximos = Convenio.objects.select_related('deudor').filter(fecha_pago__gte=hoy, fecha_pago__lte=limite_proximos).order_by('fecha_pago')[:50]
+
     return render(request, 'cobranza/dashboard.html', {
         'es_gerente': es_gerente_flag,
         'total_cartera': total_cartera,
@@ -83,6 +91,8 @@ def dashboard_gerente(request):
         'usuarios_online': usuarios_online,
         'periodo': periodo,
         'periodo_texto': periodo_texto,
+        'convenios_atrasados': convenios_atrasados,
+        'convenios_proximos': convenios_proximos,
     })
 
 @login_required
