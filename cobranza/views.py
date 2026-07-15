@@ -876,7 +876,7 @@ def registrar_gestion(request, deudor_id):
             resultado_principal = request.POST.get('resultado_principal')
             sub_resultado = request.POST.get('sub_resultado')
             
-            if resultado_principal == 'CONTACTO CON TITULAR' and sub_resultado:
+            if resultado_principal in ['CONTACTO CON TITULAR', 'OTROS PRESENCIAL'] and sub_resultado:
                 resultado_final = f"{resultado_principal} - {sub_resultado}"
             else:
                 resultado_final = resultado_principal

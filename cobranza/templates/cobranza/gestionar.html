@@ -235,11 +235,12 @@
                         <option value="NO CONTESTA">NO CONTESTA</option>
                         <option value="INUBICABLE">INUBICABLE</option>
                         <option value="FALLECIDO">FALLECIDO</option>
+                        <option value="OTROS PRESENCIAL">OTROS PRESENCIAL</option>
                     </select>
                 </div>
 
                 <div id="div_sub_resultado" style="display: none; margin-bottom: 10px; background: #e9ecef; padding: 10px; border-radius: 6px;">
-                    <label style="font-size: 11px; font-weight: bold; color: #0056b3;">➡ Detalle del Contacto Titular:</label>
+                    <label id="label_sub_resultado" style="font-size: 11px; font-weight: bold; color: #0056b3;">➡ Detalle del Contacto Titular:</label>
                     <select name="sub_resultado" id="sub_resultado" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #0056b3; font-size: 12px;" onchange="manejarMenuDinamico()">
                         <option value="">-- Seleccione Detalle --</option>
                         <option value="PROMESA DE PAGO">PROMESA DE PAGO</option>
@@ -248,6 +249,7 @@
                         <option value="RECORDATORIO DE PAGO POR WHATSAPP">RECORDATORIO DE PAGO POR WHATSAPP</option>
                         <option value="VOLVER A LLAMAR">VOLVER A LLAMAR</option>
                         <option value="RENUENTE">RENUENTE</option>
+                        <option value="SE NOTIFICO BAJO PUERTA(BAJO PUERTA)" class="opt-otros" style="display: none;">SE NOTIFICO BAJO PUERTA(BAJO PUERTA)</option>
                     </select>
                 </div>
 
@@ -487,10 +489,24 @@ function manejarMenuDinamico() {
     document.getElementById("fecha_promesa").required = false;
     document.getElementById("monto_pago").required = false;
 
-    // 3. Lógica para Contacto con Titular
-    if (principal === "CONTACTO CON TITULAR") {
+    // 3. Lógica para Contacto con Titular y Otros Presencial
+    if (principal === "CONTACTO CON TITULAR" || principal === "OTROS PRESENCIAL") {
         divSub.style.display = "block";
         document.getElementById("sub_resultado").required = true;
+        
+        var labelSub = document.getElementById("label_sub_resultado");
+        var optsOtros = document.querySelectorAll('.opt-otros');
+        var optsTitular = document.querySelectorAll('#sub_resultado option:not(.opt-otros):not([value=""])');
+        
+        if (principal === "OTROS PRESENCIAL") {
+            if (labelSub) labelSub.innerText = "➡ Detalle de Otros Presencial:";
+            optsOtros.forEach(opt => { opt.style.display = ""; opt.disabled = false; });
+            optsTitular.forEach(opt => { opt.style.display = "none"; opt.disabled = true; });
+        } else {
+            if (labelSub) labelSub.innerText = "➡ Detalle del Contacto Titular:";
+            optsOtros.forEach(opt => { opt.style.display = "none"; opt.disabled = true; });
+            optsTitular.forEach(opt => { opt.style.display = ""; opt.disabled = false; });
+        }
         
         if (sub === "PROMESA DE PAGO" || sub === "CLIENTE PAGÓ (TOTAL)" || sub === "CLIENTE PAGÓ (PARCIAL)" || sub === "VOLVER A LLAMAR") {
             divFechaMonto.style.display = "grid";
