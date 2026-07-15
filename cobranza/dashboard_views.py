@@ -57,18 +57,6 @@ def dashboard_gerente(request):
         resultado__icontains='PAGÓ'
     ).aggregate(Sum('monto_pago'))['monto_pago__sum'] or 0
     
-    stats_pago = Gestion.objects.filter(
-        resultado__icontains='PAGÓ',
-    ).filter(
-        filtro_periodo
-    ).count()
-    
-    stats_promesa = Gestion.objects.filter(
-        resultado__icontains='PROMESA',
-    ).filter(
-        filtro_periodo
-    ).count()
-    
     productividad = User.objects.annotate(
         total_gestiones=Count('gestion', filter=filtro_periodo_gestion),
         total_pagos=Count('gestion', filter=filtro_periodo_gestion & Q(gestion__resultado__icontains='PAGÓ')),
@@ -89,11 +77,6 @@ def dashboard_gerente(request):
             if cache.get(f'seen_{u.username}'):
                 usuarios_online.append(u)
     
-    # --- ÚLTIMAS GESTIONES ---
-    ultimas_gestiones = []
-    if es_gerente_flag:
-        ultimas_gestiones = Gestion.objects.select_related('gestor', 'deudor').order_by('-fecha')[:15]
-
     return render(request, 'cobranza/dashboard.html', {
         'es_gerente': es_gerente_flag,
         'total_cartera': total_cartera,
@@ -101,10 +84,7 @@ def dashboard_gerente(request):
         'inicio_mes_actual': inicio_mes_actual,
         'total_deudores': total_deudores,
         'productividad': productividad,
-        'grafico_labels': ['Pagos', 'Promesas'],
         'usuarios_online': usuarios_online,
-        'ultimas_gestiones': ultimas_gestiones,
-        'grafico_data': [stats_pago, stats_promesa],
         'periodo': periodo,
         'periodo_texto': periodo_texto,
         'gestores_nombres': gestores_nombres,
