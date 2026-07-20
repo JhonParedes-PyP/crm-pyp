@@ -110,8 +110,10 @@ function ordenarPorDistrito() {
     let rows = Array.from(tbody.querySelectorAll("tr.fila-cliente"));
     
     rows.sort((a, b) => {
-        let distA = (a.dataset.distrito || "").toLowerCase();
-        let distB = (b.dataset.distrito || "").toLowerCase();
+        let cbA = a.querySelector('.client-check');
+        let cbB = b.querySelector('.client-check');
+        let distA = (cbA && cbA.dataset.distrito ? cbA.dataset.distrito : "").toLowerCase();
+        let distB = (cbB && cbB.dataset.distrito ? cbB.dataset.distrito : "").toLowerCase();
         
         if (distA < distB) return sortDistritoAsc ? -1 : 1;
         if (distA > distB) return sortDistritoAsc ? 1 : -1;
