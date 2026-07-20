@@ -150,15 +150,50 @@ Incluye notas entre [CORCHETES] con instrucciones para el gestor."""
 {perfil}"""
 
     response = client.chat.completions.create(
-        model="deepseek-chat",
-        messages=[
-            {"role": "system", "content": prompt_sistema},
-            {"role": "user", "content": prompt_usuario},
-        ],
-        stream=False,
-    )
+            model="deepseek-chat",
+            messages=[
+                {"role": "system", "content": prompt_sistema},
+                {"role": "user", "content": prompt_usuario}
+            ],
+            temperature=0.3,
+            max_tokens=300
+        )
+    return response.choices[0].message.content.strip()
 
-    return response.choices[0].message.content
+
+def optimizar_ruta_ia(clientes):
+    """
+    Recibe una lista de diccionarios con la información de los clientes (nombre, distrito, direccion)
+    y usa DeepSeek para sugerir el orden geográfico óptimo de visita.
+    """
+    client = _get_client()
+    
+    texto_clientes = "LISTA DE CLIENTES A VISITAR:\n"
+    for i, c in enumerate(clientes, 1):
+        texto_clientes += f"{i}. {c.get('nombre')} | Distrito: {c.get('distrito')} | Dirección: {c.get('direccion')}\n"
+        
+    prompt_sistema = """Eres un experto en logística urbana y conocimiento geográfico del Perú (especialmente Huancayo, Junín y Lima).
+Tu objetivo es organizar una lista de direcciones de deudores para sugerir la RUTA DE COBRANZA MÁS EFICIENTE posible.
+Agrupa los clientes por distritos cercanos o zonas adyacentes para evitar cruzar la ciudad innecesariamente.
+Devuelve el resultado enumerado paso a paso, recomendando en qué orden visitarlos.
+Sé directo y conciso. No uses introducciones largas."""
+
+    prompt_usuario = f"""Por favor, ordena la siguiente lista de clientes en la ruta más óptima:
+{texto_clientes}"""
+
+    try:
+        response = client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[
+                {"role": "system", "content": prompt_sistema},
+                {"role": "user", "content": prompt_usuario}
+            ],
+            temperature=0.2,
+            max_tokens=600
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"No se pudo optimizar la ruta con IA: {str(e)}"
 
 
 def chat_asistente_streaming(deudor, gestiones, mensajes_historial, consulta_usuario, gestor=None):

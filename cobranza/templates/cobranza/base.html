@@ -148,6 +148,9 @@
             </a>
             <a href="{% url 'agenda_diaria' %}?modo=agente">📅 Mi Agenda</a>
             {% endif %}
+            {% if request.user.username == 'JPAREDES' %}
+            <a href="{% url 'rutas_cobranza' %}">🗺️ Rutas de Cobranza</a>
+            {% endif %}
             {% else %}
             <a href="{% url 'bandeja_gestor' %}" style="position:relative;">
                 📞 Bandeja

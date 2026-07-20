@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
-from cobranza import views, api_views, campanas_views, dashboard_views
+from cobranza import views, api_views, campanas_views, dashboard_views, views_rutas
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
@@ -35,6 +35,11 @@ urlpatterns = [
     path('agenda/', dashboard_views.agenda_diaria, name='agenda_diaria'),
     path('agenda/completar/<int:seguimiento_id>/', dashboard_views.marcar_seguimiento_completado, name='marcar_seguimiento_completado'),
     path('agenda/alertas/', dashboard_views.comprobar_alertas_seguimiento, name='comprobar_alertas_seguimiento'),
+
+    # Rutas de Cobranza (Gerencia)
+    path('rutas/', views_rutas.rutas_cobranza, name='rutas_cobranza'),
+    path('rutas/guardar-gps/', views_rutas.guardar_coordenadas, name='guardar_coordenadas'),
+    path('rutas/optimizar-ia/', views_rutas.optimizar_ruta_ia_ajax, name='optimizar_ruta_ia'),
 
     # Rutas Principales del CRM
     path('subir-excel/', views.subir_excel, name='subir_excel'),
