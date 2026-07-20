@@ -183,6 +183,10 @@ function generarRutaMultiple() {
         alert("Selecciona al menos un cliente para armar la ruta.");
         return;
     }
+    if (seleccionados.length > 10) {
+        alert("Google Maps sólo permite trazar rutas con un máximo de 10 destinos a la vez. Por favor, desmarca algunos clientes (máximo 10).");
+        return;
+    }
     
     let waypoints = [];
     let destino = "";
