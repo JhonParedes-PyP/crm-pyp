@@ -13,7 +13,7 @@ def rutas_cobranza(request):
         return HttpResponseForbidden("Acceso denegado. Solo gerencia puede acceder a este módulo.")
 
     # Obtener todos los deudores
-    todos_deudores = Deudor.objects.all().prefetch_related('convenio_set')
+    todos_deudores = Deudor.objects.all().prefetch_related('convenios')
 
     deudores = []
     carteras = set()
@@ -24,7 +24,7 @@ def rutas_cobranza(request):
         if d.agencia: agencias.add(d.agencia.strip())
         
         # Determinar motivo (si tiene convenio próximo/vencido)
-        convenios = d.convenio_set.all()
+        convenios = d.convenios.all()
         motivo = "Gestión / Visita"
         if convenios:
             c = convenios.order_by('fecha_pago').first()
