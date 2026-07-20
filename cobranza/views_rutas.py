@@ -23,21 +23,35 @@ def rutas_cobranza(request):
     # Deudores prioritarios
     deudores = []
     ids_agregados = set()
+    carteras = set()
+    agencias = set()
+    
     for c in convenios:
         if c.deudor.id not in ids_agregados:
+            d = c.deudor
+            
+            if d.cartera: carteras.add(d.cartera.strip())
+            if d.agencia: agencias.add(d.agencia.strip())
+            
             deudores.append({
-                'id': c.deudor.id,
-                'nombre': c.deudor.nombre_completo,
-                'distrito': c.deudor.distrito or '',
-                'direccion': c.deudor.dir_casa or '',
-                'referencia': c.deudor.referencia or '',
-                'link_gps': c.deudor.link_gps or '',
-                'motivo': f'Convenio vencimiento: {c.fecha_pago.strftime("%d/%m/%Y")}' if c.fecha_pago else 'Convenio pendiente'
+                'id': d.id,
+                'nombre': d.nombre_completo,
+                'documento': d.documento,
+                'telefono': d.telefono_principal,
+                'cartera': d.cartera or '',
+                'agencia': d.agencia or '',
+                'distrito': d.distrito or '',
+                'direccion': d.dir_casa or '',
+                'referencia': d.referencia or '',
+                'link_gps': d.link_gps or '',
+                'motivo': f'Convenio: {c.fecha_pago.strftime("%d/%m/%Y")}' if c.fecha_pago else 'Convenio'
             })
-            ids_agregados.add(c.deudor.id)
+            ids_agregados.add(d.id)
 
     return render(request, 'cobranza/rutas_cobranza.html', {
-        'deudores': deudores
+        'deudores': deudores,
+        'carteras': sorted(list(carteras)),
+        'agencias': sorted(list(agencias))
     })
 
 @login_required

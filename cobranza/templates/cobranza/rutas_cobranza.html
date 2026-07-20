@@ -17,8 +17,29 @@
         </div>
     </div>
 
-    <div style="margin-bottom: 20px;">
-        <input type="text" id="buscador-rutas" onkeyup="filtrarTabla()" placeholder="🔍 Buscar cliente, distrito o dirección..." style="width: 100%; max-width: 400px; padding: 10px 15px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+    <div style="margin-bottom: 20px; display: flex; gap: 15px; flex-wrap: wrap; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+        <div style="flex: 1; min-width: 250px;">
+            <label style="font-size: 12px; font-weight: bold; color: #555; display: block; margin-bottom: 5px;">🔍 Buscar</label>
+            <input type="text" id="buscador-rutas" onkeyup="filtrarTabla()" placeholder="DNI, Nombre o Teléfono..." style="width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div style="width: 200px;">
+            <label style="font-size: 12px; font-weight: bold; color: #555; display: block; margin-bottom: 5px;">💼 Cartera</label>
+            <select id="filtro-cartera" onchange="filtrarTabla()" style="width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                <option value="">-- Todas --</option>
+                {% for c in carteras %}
+                <option value="{{ c }}">{{ c }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="width: 200px;">
+            <label style="font-size: 12px; font-weight: bold; color: #555; display: block; margin-bottom: 5px;">🏢 Agencia</label>
+            <select id="filtro-agencia" onchange="filtrarTabla()" style="width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                <option value="">-- Todas --</option>
+                {% for a in agencias %}
+                <option value="{{ a }}">{{ a }}</option>
+                {% endfor %}
+            </select>
+        </div>
     </div>
 
     <div id="ia-result" style="display: none; background: #f8f9fa; border-left: 4px solid #6f42c1; padding: 15px; margin-bottom: 20px; border-radius: 4px; white-space: pre-wrap; font-size: 13px; color: #333;"></div>
@@ -38,7 +59,11 @@
             </thead>
             <tbody>
                 {% for d in deudores %}
-                <tr style="border-bottom: 1px solid #eee;">
+                <tr style="border-bottom: 1px solid #eee;" class="fila-cliente" 
+                    data-dni="{{ d.documento }}" 
+                    data-telefono="{{ d.telefono }}" 
+                    data-cartera="{{ d.cartera }}" 
+                    data-agencia="{{ d.agencia }}">
                     <td style="padding: 10px; text-align: center;">
                         <input type="checkbox" class="client-check" 
                             data-id="{{ d.id }}" 
@@ -79,20 +104,28 @@
 <script>
 function filtrarTabla() {
     let input = document.getElementById("buscador-rutas").value.toLowerCase();
-    let table = document.getElementById("tabla-rutas");
-    let tr = table.getElementsByTagName("tr");
+    let cartera = document.getElementById("filtro-cartera").value;
+    let agencia = document.getElementById("filtro-agencia").value;
     
-    for (let i = 1; i < tr.length; i++) { // Evitar el thead
-        if (tr[i].getElementsByTagName("td").length > 1) { // Evitar fila vacía
-            let nombre = tr[i].getElementsByTagName("td")[1].textContent.toLowerCase();
-            let distrito = tr[i].getElementsByTagName("td")[3].textContent.toLowerCase();
-            let direccion = tr[i].getElementsByTagName("td")[4].textContent.toLowerCase();
-            
-            if (nombre.indexOf(input) > -1 || distrito.indexOf(input) > -1 || direccion.indexOf(input) > -1) {
-                tr[i].style.display = "";
-            } else {
-                tr[i].style.display = "none";
-            }
+    let table = document.getElementById("tabla-rutas");
+    let tr = table.getElementsByClassName("fila-cliente");
+    
+    for (let i = 0; i < tr.length; i++) {
+        let fila = tr[i];
+        let nombre = fila.getElementsByTagName("td")[1].textContent.toLowerCase();
+        let dni = fila.dataset.dni.toLowerCase();
+        let telefono = fila.dataset.telefono.toLowerCase();
+        let filaCartera = fila.dataset.cartera;
+        let filaAgencia = fila.dataset.agencia;
+        
+        let matchTexto = (nombre.includes(input) || dni.includes(input) || telefono.includes(input));
+        let matchCartera = (cartera === "" || filaCartera === cartera);
+        let matchAgencia = (agencia === "" || filaAgencia === agencia);
+        
+        if (matchTexto && matchCartera && matchAgencia) {
+            fila.style.display = "";
+        } else {
+            fila.style.display = "none";
         }
     }
 }
