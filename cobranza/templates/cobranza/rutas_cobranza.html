@@ -254,7 +254,7 @@ function autolocalizarGeodir(id, direccion, distrito) {
         return;
     }
     
-    let query = `${direccion} ${distrito} Peru`.trim();
+    let query = `${direccion} Peru`.trim(); // Removemos el distrito del texto principal para evitar confusión
     let input = document.getElementById(`gps-${id}`);
     let oldVal = input.value;
     input.value = "Buscando en Geodir...";
@@ -266,15 +266,40 @@ function autolocalizarGeodir(id, direccion, distrito) {
     .then(r => r.json())
     .then(data => {
         let lat, lng;
+        let distritoEncontrado = "";
         
         if (data.results && data.results.length > 0) {
-            let res = data.results[0];
-            if (res.geometry && res.geometry.coordinates) {
-                lat = res.geometry.coordinates.lat;
-                lng = res.geometry.coordinates.lon;
-            } else if (res.geometry && res.geometry.location) {
-                lat = res.geometry.location.lat;
-                lng = res.geometry.location.lng || res.geometry.location.lon;
+            let resToUse = null;
+            let distStr = distrito.toLowerCase().trim();
+            
+            for (let res of data.results) {
+                if (res.address_segments) {
+                    let seg = res.address_segments.find(s => s.types.includes("admin_level_3"));
+                    if (seg) {
+                        let segName = seg.name.toLowerCase();
+                        if (segName.includes(distStr) || distStr.includes(segName)) {
+                            resToUse = res;
+                            distritoEncontrado = seg.name;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            if (resToUse) {
+                if (resToUse.geometry && resToUse.geometry.coordinates) {
+                    lat = resToUse.geometry.coordinates.lat;
+                    lng = resToUse.geometry.coordinates.lon;
+                } else if (resToUse.geometry && resToUse.geometry.location) {
+                    lat = resToUse.geometry.location.lat;
+                    lng = resToUse.geometry.location.lng || resToUse.geometry.location.lon;
+                }
+            } else {
+                // Hay resultados pero ninguno es del distrito del cliente
+                input.value = oldVal;
+                let wrongDist = data.results[0].address_segments ? data.results[0].address_segments.find(s => s.types.includes("admin_level_3"))?.name : "otro distrito";
+                alert(`❌ Geodir encontró una coincidencia pero en ${wrongDist}, no en ${distrito}. Verifica la dirección.`);
+                return;
             }
         }
         
@@ -294,7 +319,7 @@ function autolocalizarGeodir(id, direccion, distrito) {
             .then(res => {
                 if(res.status === 'success') {
                     document.querySelector(`.client-check[data-id="${id}"]`).dataset.gps = mapsUrl;
-                    alert("✅ Autolocalizado y guardado exitosamente con Geodir.");
+                    alert(`✅ Autolocalizado en ${distritoEncontrado} y guardado con Geodir.`);
                 } else {
                     alert("Encontrado pero error al guardar: " + res.message);
                 }
