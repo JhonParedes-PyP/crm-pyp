@@ -24,7 +24,7 @@
         </div>
         <div style="width: 200px;">
             <label style="font-size: 12px; font-weight: bold; color: #555; display: block; margin-bottom: 5px;">💼 Cartera</label>
-            <select id="filtro-cartera" onchange="filtrarTabla()" style="width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+            <select id="filtro-cartera" onchange="actualizarAgencias()" style="width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
                 <option value="">-- Todas --</option>
                 {% for c in carteras %}
                 <option value="{{ c }}">{{ c }}</option>
@@ -51,7 +51,7 @@
                     <th style="padding: 10px; text-align: center;"><input type="checkbox" id="check-all" onclick="toggleAll()"></th>
                     <th style="padding: 10px; text-align: left;">Cliente</th>
                     <th style="padding: 10px; text-align: left;">Motivo</th>
-                    <th style="padding: 10px; text-align: left;">Distrito</th>
+                    <th style="padding: 10px; text-align: left; cursor: pointer;" onclick="ordenarPorDistrito()" title="Ordenar por Distrito">Distrito <span id="distrito-sort-icon">↕️</span></th>
                     <th style="padding: 10px; text-align: left;">Dirección y Referencia</th>
                     <th style="padding: 10px; text-align: center;">Coordenadas (GPS)</th>
                     <th style="padding: 10px; text-align: center;">Acción</th>
@@ -103,6 +103,68 @@
 </div>
 
 <script>
+let sortDistritoAsc = true;
+function ordenarPorDistrito() {
+    let table = document.getElementById("tabla-rutas");
+    let tbody = table.querySelector("tbody");
+    let rows = Array.from(tbody.querySelectorAll("tr.fila-cliente"));
+    
+    rows.sort((a, b) => {
+        let distA = (a.dataset.distrito || "").toLowerCase();
+        let distB = (b.dataset.distrito || "").toLowerCase();
+        
+        if (distA < distB) return sortDistritoAsc ? -1 : 1;
+        if (distA > distB) return sortDistritoAsc ? 1 : -1;
+        return 0;
+    });
+    
+    sortDistritoAsc = !sortDistritoAsc;
+    document.getElementById("distrito-sort-icon").textContent = sortDistritoAsc ? "🔼" : "🔽";
+    
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+function actualizarAgencias() {
+    let cartera = document.getElementById("filtro-cartera").value;
+    let table = document.getElementById("tabla-rutas");
+    let tr = table.getElementsByClassName("fila-cliente");
+    
+    let agenciasUnicas = new Set();
+    
+    for (let i = 0; i < tr.length; i++) {
+        let fila = tr[i];
+        let filaCartera = fila.dataset.cartera;
+        let filaAgencia = fila.dataset.agencia;
+        
+        if (cartera === "" || filaCartera === cartera) {
+            if (filaAgencia) {
+                agenciasUnicas.add(filaAgencia);
+            }
+        }
+    }
+    
+    let selectAgencia = document.getElementById("filtro-agencia");
+    let valorActual = selectAgencia.value;
+    
+    selectAgencia.innerHTML = '<option value="">-- Todas --</option>';
+    
+    let agenciasArray = Array.from(agenciasUnicas).sort();
+    agenciasArray.forEach(ag => {
+        let opt = document.createElement('option');
+        opt.value = ag;
+        opt.textContent = ag;
+        selectAgencia.appendChild(opt);
+    });
+    
+    if (agenciasUnicas.has(valorActual)) {
+        selectAgencia.value = valorActual;
+    }
+    
+    filtrarTabla();
+}
+
+document.addEventListener("DOMContentLoaded", actualizarAgencias);
+
 function filtrarTabla() {
     let input = document.getElementById("buscador-rutas").value.toLowerCase();
     let cartera = document.getElementById("filtro-cartera").value;
