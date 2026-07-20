@@ -12,41 +12,38 @@ def rutas_cobranza(request):
     if request.user.username != 'JPAREDES':
         return HttpResponseForbidden("Acceso denegado. Solo gerencia puede acceder a este módulo.")
 
-    hoy = now().date()
-    limite_proximos = hoy + timedelta(days=7)
+    # Obtener todos los deudores
+    todos_deudores = Deudor.objects.all().prefetch_related('convenio_set')
 
-    # Filtrar clientes con convenios atrasados o próximos (hasta 7 días)
-    convenios = Convenio.objects.select_related('deudor').filter(
-        fecha_pago__lte=limite_proximos
-    ).order_by('fecha_pago')
-
-    # Deudores prioritarios
     deudores = []
-    ids_agregados = set()
     carteras = set()
     agencias = set()
     
-    for c in convenios:
-        if c.deudor.id not in ids_agregados:
-            d = c.deudor
-            
-            if d.cartera: carteras.add(d.cartera.strip())
-            if d.agencia: agencias.add(d.agencia.strip())
-            
-            deudores.append({
-                'id': d.id,
-                'nombre': d.nombre_completo,
-                'documento': d.documento,
-                'telefono': d.telefono_principal,
-                'cartera': d.cartera or '',
-                'agencia': d.agencia or '',
-                'distrito': d.distrito or '',
-                'direccion': d.dir_casa or '',
-                'referencia': d.referencia or '',
-                'link_gps': d.link_gps or '',
-                'motivo': f'Convenio: {c.fecha_pago.strftime("%d/%m/%Y")}' if c.fecha_pago else 'Convenio'
-            })
-            ids_agregados.add(d.id)
+    for d in todos_deudores:
+        if d.cartera: carteras.add(d.cartera.strip())
+        if d.agencia: agencias.add(d.agencia.strip())
+        
+        # Determinar motivo (si tiene convenio próximo/vencido)
+        convenios = d.convenio_set.all()
+        motivo = "Gestión / Visita"
+        if convenios:
+            c = convenios.order_by('fecha_pago').first()
+            if c and c.fecha_pago:
+                motivo = f'Convenio: {c.fecha_pago.strftime("%d/%m/%Y")}'
+        
+        deudores.append({
+            'id': d.id,
+            'nombre': d.nombre_completo,
+            'documento': d.documento,
+            'telefono': d.telefono_principal,
+            'cartera': d.cartera or '',
+            'agencia': d.agencia or '',
+            'distrito': d.distrito or '',
+            'direccion': d.dir_casa or '',
+            'referencia': d.referencia or '',
+            'link_gps': d.link_gps or '',
+            'motivo': motivo
+        })
 
     return render(request, 'cobranza/rutas_cobranza.html', {
         'deudores': deudores,
