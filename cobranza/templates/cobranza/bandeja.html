@@ -126,6 +126,7 @@
                             Últ. Pago <span style="font-size: 0.8em;">{% if orden_actual == '-ultimo_dia_pago' %}⬇️{% elif orden_actual == 'ultimo_dia_pago' %}⬆️{% else %}↕️{% endif %}</span>
                         </a>
                     </th>
+                    <th style="padding: 8px; text-align: center;">Negociación</th>
                     <th style="padding: 8px;">
                         <a href="?{% if modo_bandeja_agente %}modo=agente&{% endif %}q={{ q }}&cartera={{ cartera_filtro }}&agencia={{ agencia_filtro }}&fecha_pago_desde={{ fecha_pago_desde }}&fecha_pago_hasta={{ fecha_pago_hasta }}&rango_deuda={{ rango_deuda }}&orden={% if orden_actual == '-deuda_total' %}deuda_total{% else %}-deuda_total{% endif %}" 
                            style="color: white; text-decoration: none; display: flex; align-items: center; gap: 5px;">
@@ -154,6 +155,13 @@
                     <td style="padding: 8px; font-weight: bold; color: #003366;">{{ d.nombre_completo }}</td>
                     <td style="padding: 8px; color: #666;">{{ d.agencia }}</td>
                     <td style="padding: 8px; color: #17a2b8; font-weight: bold;">{{ d.ultimo_dia_pago|date:"d/m/Y"|default:"—" }}</td>
+                    <td style="padding: 8px; text-align: center;">
+                        {% if d.negociacion %}
+                            <span style="background: #e3f2fd; color: #0056b3; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 10px;">{{ d.negociacion }}</span>
+                        {% else %}
+                            <span style="color: #ccc;">—</span>
+                        {% endif %}
+                    </td>
                     <td style="padding: 8px; font-weight: bold;">S/ {{ d.saldo_deuda|floatformat:2|intcomma }}</td>
                     <td style="padding: 8px; text-align: center;">
                         <a href="{% url 'registrar_gestion' d.id %}" style="background: #28a745; color: white; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 11px;">GESTIONAR</a>
@@ -161,7 +169,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="9" style="padding: 30px; text-align: center; color: #999;">
+                    <td colspan="10" style="padding: 30px; text-align: center; color: #999;">
                         No se encontraron clientes con estos filtros.
                     </td>
                 </tr>
