@@ -83,6 +83,7 @@
                         <div style="display: flex; gap: 5px; justify-content: center; align-items: center;">
                             <input type="text" id="gps-{{ d.id }}" value="{{ d.link_gps }}" placeholder="Link Maps o Lat,Lng" style="width: 130px; padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 11px;">
                             <button onclick="guardarGPS({{ d.id }})" style="background: #007bff; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;" title="Guardar">💾</button>
+                            <button onclick="autolocalizarGeodir({{ d.id }}, '{{ d.direccion|escapejs }}', '{{ d.distrito|escapejs }}')" style="background: #28a745; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;" title="Autolocalizar con Geodir">🔍</button>
                         </div>
                     </td>
                     <td style="padding: 10px; text-align: center;">
@@ -244,6 +245,73 @@ function optimizarRutaIA() {
         } else {
             divRes.innerHTML = `<span style="color:red">Error: ${data.message}</span>`;
         }
+    });
+}
+
+function autolocalizarGeodir(id, direccion, distrito) {
+    if (!direccion) {
+        alert("El cliente no tiene dirección registrada.");
+        return;
+    }
+    
+    let query = `${direccion} ${distrito} Peru`.trim();
+    let input = document.getElementById(`gps-${id}`);
+    let oldVal = input.value;
+    input.value = "Buscando en Geodir...";
+    
+    let key = "b5abb242-39a3-4179-a6c3-8eaf4269ea85";
+    let url = `https://apis.geodir.co/geocoding/v1/json?search=${encodeURIComponent(query)}&key=${key}`;
+    
+    fetch(url)
+    .then(r => r.json())
+    .then(data => {
+        let lat, lng;
+        
+        if (data.results && data.results.length > 0 && data.results[0].geometry) {
+            lat = data.results[0].geometry.location.lat;
+            lng = data.results[0].geometry.location.lng || data.results[0].geometry.location.lon;
+        } else if (Array.isArray(data) && data.length > 0) {
+            lat = data[0].lat || data[0].latitud || (data[0].geometry && data[0].geometry.coordinates ? data[0].geometry.coordinates.lat : null);
+            lng = data[0].lon || data[0].lng || data[0].longitud || (data[0].geometry && data[0].geometry.coordinates ? data[0].geometry.coordinates.lon : null);
+        } else if (data.geometry && data.geometry.coordinates) {
+            lat = data.geometry.coordinates.lat;
+            lng = data.geometry.coordinates.lon || data.geometry.coordinates.lng;
+        } else if (data.lat && data.lon) {
+            lat = data.lat;
+            lng = data.lon || data.lng;
+        }
+        
+        if (lat && lng) {
+            let mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+            input.value = mapsUrl;
+            
+            fetch("{% url 'guardar_coordenadas' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: JSON.stringify({ deudor_id: id, link_gps: mapsUrl })
+            })
+            .then(r => r.json())
+            .then(res => {
+                if(res.status === 'success') {
+                    document.querySelector(`.client-check[data-id="${id}"]`).dataset.gps = mapsUrl;
+                    alert("✅ Autolocalizado y guardado con Geodir.");
+                } else {
+                    alert("Encontrado pero error al guardar: " + res.message);
+                }
+            });
+        } else {
+            input.value = oldVal;
+            console.log("Geodir Res:", data);
+            alert("❌ Geodir no pudo encontrar una coordenada exacta.");
+        }
+    })
+    .catch(err => {
+        input.value = oldVal;
+        console.error("Geodir Error:", err);
+        alert("⚠️ Error al contactar con la API de Geodir (Revisar consola).");
     });
 }
 </script>
