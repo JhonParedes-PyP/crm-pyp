@@ -257,17 +257,28 @@ function autolocalizarGeodir(id, direccion, distrito) {
     let query = `${direccion} ${distrito} Peru`.trim();
     let input = document.getElementById(`gps-${id}`);
     let oldVal = input.value;
-    input.value = "Buscando coordenadas...";
+    input.value = "Buscando en Geodir...";
     
-    // Usamos Nominatim (OpenStreetMap) que es gratis y más confiable para texto libre
-    let url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
+    let key = "e06bc536-47da-46d7-a795-b12bb1aa1141";
+    let url = `https://apis.geodir.co/geocoding/v1/json?address=${encodeURIComponent(query)}&key=${key}`;
     
     fetch(url)
     .then(r => r.json())
     .then(data => {
-        if (data && data.length > 0) {
-            let lat = data[0].lat;
-            let lng = data[0].lon;
+        let lat, lng;
+        
+        if (data.results && data.results.length > 0) {
+            let res = data.results[0];
+            if (res.geometry && res.geometry.coordinates) {
+                lat = res.geometry.coordinates.lat;
+                lng = res.geometry.coordinates.lon;
+            } else if (res.geometry && res.geometry.location) {
+                lat = res.geometry.location.lat;
+                lng = res.geometry.location.lng || res.geometry.location.lon;
+            }
+        }
+        
+        if (lat && lng) {
             let mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
             input.value = mapsUrl;
             
@@ -283,20 +294,20 @@ function autolocalizarGeodir(id, direccion, distrito) {
             .then(res => {
                 if(res.status === 'success') {
                     document.querySelector(`.client-check[data-id="${id}"]`).dataset.gps = mapsUrl;
-                    alert("✅ Autolocalizado y guardado exitosamente.");
+                    alert("✅ Autolocalizado y guardado exitosamente con Geodir.");
                 } else {
                     alert("Encontrado pero error al guardar: " + res.message);
                 }
             });
         } else {
             input.value = oldVal;
-            alert("❌ No se pudo encontrar la ubicación exacta en el mapa con esta dirección. Intenta agregar más detalles o corregir el distrito.");
+            alert("❌ Geodir no pudo encontrar la ubicación exacta en el mapa con esta dirección. Verifica si está bien escrita.");
         }
     })
     .catch(err => {
         input.value = oldVal;
         console.error("Geocoding Error:", err);
-        alert("⚠️ Ocurrió un error de red al buscar la ubicación.");
+        alert("⚠️ Ocurrió un error de red al buscar la ubicación en Geodir.");
     });
 }
 </script>
