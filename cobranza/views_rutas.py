@@ -9,9 +9,6 @@ import json
 
 @login_required
 def rutas_cobranza(request):
-    if request.user.username != 'JPAREDES':
-        return HttpResponseForbidden("Acceso denegado. Solo gerencia puede acceder a este módulo.")
-
     # Obtener todos los deudores
     todos_deudores = Deudor.objects.all().prefetch_related('convenios')
 
@@ -53,7 +50,7 @@ def rutas_cobranza(request):
 
 @login_required
 def guardar_coordenadas(request):
-    if request.method == 'POST' and request.user.username == 'JPAREDES':
+    if request.method == 'POST':
         try:
             data = json.loads(request.body)
             deudor_id = data.get('deudor_id')
@@ -70,7 +67,7 @@ def guardar_coordenadas(request):
 
 @login_required
 def optimizar_ruta_ia_ajax(request):
-    if request.method == 'POST' and request.user.username == 'JPAREDES':
+    if request.method == 'POST':
         try:
             data = json.loads(request.body)
             clientes = data.get('clientes', [])
