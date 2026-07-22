@@ -187,6 +187,10 @@ def salir_sistema(request):
         pass
     return redirect('login')
 
+import os
+import uuid
+from django.core.files.storage import FileSystemStorage
+
 # --- CARGA DE CARTERA ---
 @login_required
 def subir_excel(request):
@@ -194,104 +198,138 @@ def subir_excel(request):
         return HttpResponse("Acceso Denegado. Solo Gerencia puede cargar carteras.", status=403)
     mensajes = ""
     columnas_detectadas = []
-    if request.method == 'POST' and request.FILES.get('archivo_excel'):
-        try:
-            archivo = request.FILES['archivo_excel']
-            df = pd.read_excel(archivo, dtype=str).fillna('')
-            columnas_detectadas = list(df.columns)
+    
+    if request.method == 'POST':
+        accion = request.POST.get('accion', 'previsualizar')
+        
+        if accion == 'previsualizar' and request.FILES.get('archivo_excel'):
+            try:
+                archivo = request.FILES['archivo_excel']
+                temp_dir = os.path.join(settings.MEDIA_ROOT, 'temp')
+                os.makedirs(temp_dir, exist_ok=True)
+                fs = FileSystemStorage(location=temp_dir)
+                filename = fs.save(f"{uuid.uuid4()}_{archivo.name}", archivo)
+                file_path = fs.path(filename)
+                
+                df = pd.read_excel(file_path, dtype=str).fillna('')
+                columnas_detectadas = list(df.columns)
+                
+                dni_en_excel = set()
+                for index, row in df.iterrows():
+                    documento_val = str(row.get('DOC_DNI_RUC', '')).strip()
+                    if documento_val:
+                        dni_en_excel.add(documento_val)
+                        
+                nuevos_y_actualizados = len(dni_en_excel)
+                desactivados_estimados = Deudor.objects.filter(activo=True).exclude(documento__in=dni_en_excel).count()
+                
+                return render(request, 'cobranza/subir_excel.html', {
+                    'vista_previa': True,
+                    'nuevos_y_actualizados': nuevos_y_actualizados,
+                    'desactivados_estimados': desactivados_estimados,
+                    'file_path': file_path,
+                    'columnas_detectadas': columnas_detectadas,
+                })
+            except Exception as e:
+                mensajes = f"Error al procesar el Excel para previsualización: {e}"
+                
+        elif accion == 'confirmar':
+            file_path = request.POST.get('file_path')
+            if file_path and os.path.exists(file_path):
+                try:
+                    df = pd.read_excel(file_path, dtype=str).fillna('')
+                    columnas_detectadas = list(df.columns)
 
-            # Buscar columna de último día de pago con variantes de nombre
-            VARIANTES_FECHA = [
-                'FEC_ULT_PAGO_ACTUAL',
-                'ULTIMO_DIA_PAGO', 'ULTIMO DIA PAGO', 'ULTIMO_DIA_DE_PAGO',
-                'FEC_ULTIMO_PAGO', 'FECHA_ULTIMO_PAGO', 'FECHA ULTIMO PAGO',
-                'FEC_ULT_PAGO', 'ULT_PAGO', 'ULTIMO_PAGO',
-            ]
-            col_fecha = None
-            cols_upper = {c.strip().upper(): c for c in df.columns}
-            for variante in VARIANTES_FECHA:
-                if variante in cols_upper:
-                    col_fecha = cols_upper[variante]
-                    break
+                    VARIANTES_FECHA = [
+                        'FEC_ULT_PAGO_ACTUAL',
+                        'ULTIMO_DIA_PAGO', 'ULTIMO DIA PAGO', 'ULTIMO_DIA_DE_PAGO',
+                        'FEC_ULTIMO_PAGO', 'FECHA_ULTIMO_PAGO', 'FECHA ULTIMO PAGO',
+                        'FEC_ULT_PAGO', 'ULT_PAGO', 'ULTIMO_PAGO',
+                    ]
+                    col_fecha = None
+                    cols_upper = {c.strip().upper(): c for c in df.columns}
+                    for variante in VARIANTES_FECHA:
+                        if variante in cols_upper:
+                            col_fecha = cols_upper[variante]
+                            break
 
-            dni_en_excel = set()
+                    dni_en_excel = set()
 
-            # Envolver en transacción atómica para evitar auto-commit por fila
-            # (mejora de rendimiento 5-10x en cargas masivas)
-            with transaction.atomic():
-              for index, row in df.iterrows():
-                cap_str = str(row.get('DEUDA_CAP', '0')).strip()
-                tot_str = str(row.get('DEUDA_TOTAL', '0')).strip()
-                cap = Decimal(cap_str) if cap_str else Decimal('0')
-                tot = Decimal(tot_str) if tot_str else Decimal('0')
+                    with transaction.atomic():
+                      for index, row in df.iterrows():
+                        cap_str = str(row.get('DEUDA_CAP', '0')).strip()
+                        tot_str = str(row.get('DEUDA_TOTAL', '0')).strip()
+                        cap = Decimal(cap_str) if cap_str else Decimal('0')
+                        tot = Decimal(tot_str) if tot_str else Decimal('0')
 
-                documento_val = str(row.get('DOC_DNI_RUC', '')).strip()
+                        documento_val = str(row.get('DOC_DNI_RUC', '')).strip()
 
-                ultimo_dia_pago_val = None
-                if col_fecha:
-                    raw = str(row.get(col_fecha, '')).strip()
-                    if raw and raw not in ('', 'nan', 'None'):
-                        ultimo_dia_pago_val = safe_date(raw)
+                        ultimo_dia_pago_val = None
+                        if col_fecha:
+                            raw = str(row.get(col_fecha, '')).strip()
+                            if raw and raw not in ('', 'nan', 'None'):
+                                ultimo_dia_pago_val = safe_date(raw)
 
-                if documento_val:
-                    dni_en_excel.add(documento_val)
-                    cuenta_val = str(row.get('COD_CREDITO', 'N/A')).strip()
-                    Deudor.objects.update_or_create(
-                          documento=documento_val,
-                          cuenta=cuenta_val,
-                          defaults={
-                              'cartera': str(row.get('CARTERA', 'GENERAL')).strip(),
-                              'nombre_completo': str(row.get('NOM_CLI', 'SIN NOMBRE')).strip(),
-                              'telefono_principal': str(row.get('TLF_CELULAR_CLIENTE', '')).strip(),
-                              'agencia': str(row.get('NOM_AGENCIA', 'N/A')).strip(),
-                              'monto_capital': cap,
-                              'saldo_deuda': tot,
-                              'dir_casa': str(row.get('DIR_CASA', '')).strip(),
-                              'distrito': str(row.get('DISTRITO', '')).strip(),
-                              'nom_conyuge': str(row.get('NOM_CONYUGE', '')).strip(),
-                              'nom_aval': str(row.get('NOM_AVAL', '')).strip(),
-                              'tlf_celular_aval': str(row.get('TLF_CELULAR_AVAL', '')).strip(),
-                              'nom_conyuge_aval': str(row.get('NOM_CONYUGE_AVAL', '')).strip(),
-                              'rango_dias_mora': str(row.get('RANGO_DIAS_MORA', '')).strip(),
-                              'ultimo_dia_pago': ultimo_dia_pago_val,
-                              # Datos aval extendidos
-                              'aval_direccion': str(row.get('DIR_CASA_AVAL', '')).strip(),
-                              'aval_distrito': str(row.get('DISTRITO_AVAL', '')).strip(),
-                              # Datos judiciales
-                              'expediente': str(row.get('EXPEDIENTE', '')).strip(),
-                              'juzgado': str(row.get('JUZGADO', '')).strip(),
-                              'condicion': str(row.get('CONDICION', row.get('SITUACION', ''))).strip(),
-                              'referencia': str(row.get('REFERENCIA', '')).strip(),
-                              'proceso': str(row.get('PROCESO_JUDICIAL', '')).strip(),
-                              'fec_demanda': safe_date(row.get('FEC_DEMANDA', '')),
-                              'monto_demanda': Decimal(str(row.get('MONTO_DEMANDA', '0')).strip()) if str(row.get('MONTO_DEMANDA', '0')).strip() not in ('', 'nan', 'None') else None,
-                              'ingreso_judicial': safe_date(row.get('FEC_INGRESO_JUDICIAL', '')),
-                              # Campos requeridos por _CAMPO_MAP (app móvil)
-                              'producto': str(row.get('PRODUCTO', '')).strip(),
-                              'nmes': str(row.get('NMES', '')).strip(),
-                              'departamento': str(row.get('DEPARTAMENTO', '')).strip(),
-                              'provincia': str(row.get('PROVINCIA', '')).strip(),
-                              'dir_negocio': str(row.get('DIR_NEGOCIO', '')).strip(),
-                              'imp_recup': Decimal(str(row.get('IMP_RECUP', '0')).strip()) if str(row.get('IMP_RECUP', '0')).strip() not in ('', 'nan', 'None') else None,
-                              'imp_capital_rec': Decimal(str(row.get('IMP_CAPITAL_REC', '0')).strip()) if str(row.get('IMP_CAPITAL_REC', '0')).strip() not in ('', 'nan', 'None') else None,
-                              'num_doc_conyuge': str(row.get('NUM_DOC_CONYUGE', '')).strip(),
-                              'num_doc_aval': str(row.get('NUM_DOC_AVAL', '')).strip(),
-                              'zona': str(row.get('ZONA', '')).strip(),
-                              'negociacion': str(row.get('NEGOCIACION', '')).strip(),
-                              'activo': True,
-                          }
-                      )
+                        if documento_val:
+                            dni_en_excel.add(documento_val)
+                            cuenta_val = str(row.get('COD_CREDITO', 'N/A')).strip()
+                            Deudor.objects.update_or_create(
+                                  documento=documento_val,
+                                  cuenta=cuenta_val,
+                                  defaults={
+                                      'cartera': str(row.get('CARTERA', 'GENERAL')).strip(),
+                                      'nombre_completo': str(row.get('NOM_CLI', 'SIN NOMBRE')).strip(),
+                                      'telefono_principal': str(row.get('TLF_CELULAR_CLIENTE', '')).strip(),
+                                      'agencia': str(row.get('NOM_AGENCIA', 'N/A')).strip(),
+                                      'monto_capital': cap,
+                                      'saldo_deuda': tot,
+                                      'dir_casa': str(row.get('DIR_CASA', '')).strip(),
+                                      'distrito': str(row.get('DISTRITO', '')).strip(),
+                                      'nom_conyuge': str(row.get('NOM_CONYUGE', '')).strip(),
+                                      'nom_aval': str(row.get('NOM_AVAL', '')).strip(),
+                                      'tlf_celular_aval': str(row.get('TLF_CELULAR_AVAL', '')).strip(),
+                                      'nom_conyuge_aval': str(row.get('NOM_CONYUGE_AVAL', '')).strip(),
+                                      'rango_dias_mora': str(row.get('RANGO_DIAS_MORA', '')).strip(),
+                                      'ultimo_dia_pago': ultimo_dia_pago_val,
+                                      'aval_direccion': str(row.get('DIR_CASA_AVAL', '')).strip(),
+                                      'aval_distrito': str(row.get('DISTRITO_AVAL', '')).strip(),
+                                      'expediente': str(row.get('EXPEDIENTE', '')).strip(),
+                                      'juzgado': str(row.get('JUZGADO', '')).strip(),
+                                      'condicion': str(row.get('CONDICION', row.get('SITUACION', ''))).strip(),
+                                      'referencia': str(row.get('REFERENCIA', '')).strip(),
+                                      'proceso': str(row.get('PROCESO_JUDICIAL', '')).strip(),
+                                      'fec_demanda': safe_date(row.get('FEC_DEMANDA', '')),
+                                      'monto_demanda': Decimal(str(row.get('MONTO_DEMANDA', '0')).strip()) if str(row.get('MONTO_DEMANDA', '0')).strip() not in ('', 'nan', 'None') else None,
+                                      'ingreso_judicial': safe_date(row.get('FEC_INGRESO_JUDICIAL', '')),
+                                      'producto': str(row.get('PRODUCTO', '')).strip(),
+                                      'nmes': str(row.get('NMES', '')).strip(),
+                                      'departamento': str(row.get('DEPARTAMENTO', '')).strip(),
+                                      'provincia': str(row.get('PROVINCIA', '')).strip(),
+                                      'dir_negocio': str(row.get('DIR_NEGOCIO', '')).strip(),
+                                      'imp_recup': Decimal(str(row.get('IMP_RECUP', '0')).strip()) if str(row.get('IMP_RECUP', '0')).strip() not in ('', 'nan', 'None') else None,
+                                      'imp_capital_rec': Decimal(str(row.get('IMP_CAPITAL_REC', '0')).strip()) if str(row.get('IMP_CAPITAL_REC', '0')).strip() not in ('', 'nan', 'None') else None,
+                                      'num_doc_conyuge': str(row.get('NUM_DOC_CONYUGE', '')).strip(),
+                                      'num_doc_aval': str(row.get('NUM_DOC_AVAL', '')).strip(),
+                                      'zona': str(row.get('ZONA', '')).strip(),
+                                      'negociacion': str(row.get('NEGOCIACION', '')).strip(),
+                                      'activo': True,
+                                  }
+                              )
 
-            # Ocultar (Soft Delete) clientes que NO vienen en el nuevo Excel
-            eliminados = Deudor.objects.exclude(documento__in=dni_en_excel).update(activo=False)
+                    eliminados = Deudor.objects.exclude(documento__in=dni_en_excel).update(activo=False)
 
-            resumen = f"{len(dni_en_excel)} clientes cargados/actualizados. {eliminados} desactivados (no estaban en el archivo)."
-            if col_fecha:
-                mensajes = f"¡Cartera sincronizada! {resumen} Columna de fecha: '{col_fecha}'"
+                    resumen = f"{len(dni_en_excel)} clientes cargados/actualizados. {eliminados} desactivados (no estaban en el archivo)."
+                    if col_fecha:
+                        mensajes = f"¡Cartera sincronizada! {resumen} Columna de fecha: '{col_fecha}'"
+                    else:
+                        mensajes = f"¡Cartera sincronizada! {resumen} ADVERTENCIA: No se encontró columna de fecha de pago."
+                        
+                    os.remove(file_path)
+                except Exception as e:
+                    mensajes = f"Error al procesar el Excel: {e}"
             else:
-                mensajes = f"¡Cartera sincronizada! {resumen} ADVERTENCIA: No se encontró columna de fecha de pago."
-        except Exception as e:
-            mensajes = f"Error al procesar el Excel: {e}"
+                mensajes = "Error: No se encontró el archivo temporal o caducó."
+                
     return render(request, 'cobranza/subir_excel.html', {'mensajes': mensajes, 'columnas_detectadas': columnas_detectadas})
 
 # --- FUNCIÓN BASE: OBTENER QUERYSET UNIFICADO PARA BANDEJA ---

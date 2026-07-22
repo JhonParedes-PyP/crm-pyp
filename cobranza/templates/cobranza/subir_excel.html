@@ -9,17 +9,49 @@
 </div>
 
 <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.07); max-width: 600px;">
-    <form method="post" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 15px;">
-        {% csrf_token %}
-        <div>
-            <label style="font-size: 13px; font-weight: bold; color: #555; display: block; margin-bottom: 6px;">Archivo Excel (.xlsx / .xls):</label>
-            <input type="file" name="archivo_excel" accept=".xlsx, .xls" required
-                   style="width: 100%; padding: 10px; border: 2px dashed #ccc; border-radius: 8px; font-size: 14px; cursor: pointer;">
-        </div>
-        <button type="submit" style="background: #28a745; color: white; padding: 12px; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer;">
-            📤 Cargar Cartera
-        </button>
-    </form>
+    {% if vista_previa %}
+        <!-- PASO 2: Confirmación -->
+        <form method="post" style="display: flex; flex-direction: column; gap: 15px;">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="confirmar">
+            <input type="hidden" name="file_path" value="{{ file_path }}">
+            
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #003366;">
+                <h4 style="margin-top: 0; color: #003366;">📋 Resumen de Carga</h4>
+                <ul style="font-size: 15px; color: #444; line-height: 1.6;">
+                    <li><strong>{{ nuevos_y_actualizados }}</strong> clientes serán creados/actualizados con este archivo.</li>
+                    {% if desactivados_estimados > 0 %}
+                    <li style="color: #dc3545; font-weight: bold;">⚠️ {{ desactivados_estimados }} clientes actuales no están en este archivo y pasarán a Inactivos.</li>
+                    {% else %}
+                    <li style="color: #28a745;">✅ Ningún cliente activo será desactivado.</li>
+                    {% endif %}
+                </ul>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button type="submit" style="background: #28a745; color: white; padding: 12px 20px; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; flex: 1;">
+                    ✅ Sí, Confirmar Carga
+                </button>
+                <a href="{% url 'subir_excel' %}" style="background: #dc3545; color: white; padding: 12px 20px; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; flex: 1;">
+                    ❌ Cancelar
+                </a>
+            </div>
+        </form>
+    {% else %}
+        <!-- PASO 1: Subida de Archivo -->
+        <form method="post" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 15px;">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="previsualizar">
+            <div>
+                <label style="font-size: 13px; font-weight: bold; color: #555; display: block; margin-bottom: 6px;">Archivo Excel (.xlsx / .xls):</label>
+                <input type="file" name="archivo_excel" accept=".xlsx, .xls" required
+                       style="width: 100%; padding: 10px; border: 2px dashed #ccc; border-radius: 8px; font-size: 14px; cursor: pointer;">
+            </div>
+            <button type="submit" style="background: #007bff; color: white; padding: 12px; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer;">
+                🔍 Analizar y Previsualizar
+            </button>
+        </form>
+    {% endif %}
 
     {% if mensajes %}
         <div style="margin-top: 20px; padding: 14px; border-radius: 8px;
