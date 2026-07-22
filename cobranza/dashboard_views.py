@@ -76,21 +76,26 @@ def dashboard_gerente(request):
     # --- CONVENIOS ---
     convenios_atrasados = []
     convenios_proximos = []
-    if es_gerente_flag:
-        # Excluir si el deudor tiene una gestión de PAGO registrada en los últimos 15 días
-        gestiones_recientes_pago = Gestion.objects.filter(
-            deudor=OuterRef('deudor'),
-            resultado__icontains='PAG',
-            fecha__gte=hoy - timedelta(days=15)
-        )
-        
-        convenios_base = Convenio.objects.select_related('deudor').annotate(
-            ya_pago=Exists(gestiones_recientes_pago)
-        ).filter(ya_pago=False)
+    
+    # Excluir si el deudor tiene una gestión de PAGO registrada en los últimos 15 días
+    gestiones_recientes_pago = Gestion.objects.filter(
+        deudor=OuterRef('deudor'),
+        resultado__icontains='PAG',
+        fecha__gte=hoy - timedelta(days=15)
+    )
+    
+    convenios_base = Convenio.objects.select_related('deudor').annotate(
+        ya_pago=Exists(gestiones_recientes_pago)
+    ).filter(ya_pago=False)
 
-        convenios_atrasados = convenios_base.filter(fecha_pago__lt=hoy).order_by('fecha_pago')[:50]
-        limite_proximos = hoy + timedelta(days=3)
-        convenios_proximos = convenios_base.filter(fecha_pago__gte=hoy, fecha_pago__lte=limite_proximos).order_by('fecha_pago')[:50]
+    if not es_gerente_flag:
+        from .views import aplicar_asignaciones_de_gestor
+        deudores_asignados = aplicar_asignaciones_de_gestor(Deudor.objects.all(), request.user)
+        convenios_base = convenios_base.filter(deudor__in=deudores_asignados)
+
+    convenios_atrasados = convenios_base.filter(fecha_pago__lt=hoy).order_by('fecha_pago')[:50]
+    limite_proximos = hoy + timedelta(days=3)
+    convenios_proximos = convenios_base.filter(fecha_pago__gte=hoy, fecha_pago__lte=limite_proximos).order_by('fecha_pago')[:50]
 
     return render(request, 'cobranza/dashboard.html', {
         'es_gerente': es_gerente_flag,
