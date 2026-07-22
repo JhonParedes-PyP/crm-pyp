@@ -32,6 +32,30 @@
     </div>
 </div>
 
+<div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px;">
+    <h3 style="color: #003366; margin-bottom: 15px; margin-top: 0;">🎯 Recuperación y Metas por Cartera (Mes Actual)</h3>
+    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; align-items: center;">
+        <div style="position: relative; height: 250px;">
+            <canvas id="carterasChart"></canvas>
+        </div>
+        <div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                <thead>
+                    <tr style="background: #f8f9fa; border-bottom: 2px solid #ddd; text-align: left;">
+                        <th style="padding: 10px;">Cartera</th>
+                        <th style="padding: 10px;">Recuperado</th>
+                        <th style="padding: 10px;">Meta</th>
+                        <th style="padding: 10px;">Progreso</th>
+                    </tr>
+                </thead>
+                <tbody id="carterasTableBody">
+                    <!-- Javascript will populate this -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <div style="margin-bottom: 25px;">
     <!-- Selector de período y Ranking de Gestores mejorado -->
     <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
@@ -157,3 +181,91 @@
 </div>
 
 {% endblock %}
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // --- Gráfico de Torta para Carteras ---
+    var dataCarteras = {{ recuperacion_carteras_json|safe|default:"{}" }};
+    var metas = {
+        'PROEMPRESA': 213674.00,
+        'CAJA HUANCAYO': 457116.49,
+        'FOCMAC': null // Libre
+    };
+    
+    var labels = [];
+    var values = [];
+    var backgroundColors = ['#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff'];
+    
+    var tbody = document.getElementById('carterasTableBody');
+    if (tbody && Object.keys(dataCarteras).length > 0) {
+        var i = 0;
+        
+        for (var cartera in dataCarteras) {
+            var recuperado = dataCarteras[cartera];
+            var meta = metas[cartera] || null;
+            
+            labels.push(cartera);
+            values.push(recuperado);
+            
+            var progresoTexto = "-";
+            var barraProgreso = "";
+            var metaTexto = "Libre";
+            
+            if (meta) {
+                var pct = (recuperado / meta) * 100;
+                progresoTexto = pct.toFixed(1) + "%";
+                metaTexto = "S/ " + meta.toLocaleString('en-US', {minimumFractionDigits: 2});
+                var colorBarra = pct >= 100 ? '#28a745' : (pct >= 50 ? '#ffc107' : '#dc3545');
+                var pctVisual = pct > 100 ? 100 : pct;
+                
+                barraProgreso = `
+                    <div style="width: 100%; background: #e9ecef; border-radius: 4px; height: 10px; margin-top: 5px; overflow: hidden;">
+                        <div style="width: ${pctVisual}%; background: ${colorBarra}; height: 100%;"></div>
+                    </div>
+                `;
+            }
+            
+            var colorBolita = backgroundColors[i % backgroundColors.length];
+            
+            var tr = document.createElement('tr');
+            tr.style.borderBottom = "1px solid #eee";
+            tr.innerHTML = `
+                <td style="padding: 10px; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                    <span style="display:inline-block; width:12px; height:12px; background:${colorBolita}; border-radius:50%;"></span>
+                    ${cartera}
+                </td>
+                <td style="padding: 10px; font-weight: bold; color: #28a745;">S/ ${recuperado.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                <td style="padding: 10px;">${metaTexto}</td>
+                <td style="padding: 10px; font-weight: bold;">
+                    ${progresoTexto}
+                    ${barraProgreso}
+                </td>
+            `;
+            tbody.appendChild(tr);
+            i++;
+        }
+        
+        var ctx = document.getElementById('carterasChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: backgroundColors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+});
+</script>

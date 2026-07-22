@@ -97,6 +97,37 @@ def dashboard_gerente(request):
     limite_proximos = hoy + timedelta(days=3)
     convenios_proximos = convenios_base.filter(fecha_pago__gte=hoy, fecha_pago__lte=limite_proximos).order_by('fecha_pago')[:50]
 
+    # Recuperación por cartera en el mes actual
+    recuperacion_qs = Gestion.objects.filter(
+        fecha__date__gte=inicio_mes_actual,
+        fecha__date__lte=hoy,
+        resultado__icontains='PAGÓ'
+    ).values('deudor__cartera').annotate(
+        total=Sum('monto_pago')
+    )
+    
+    recuperacion_carteras = {
+        'PROEMPRESA': 0.0,
+        'CAJA HUANCAYO': 0.0,
+        'FOCMAC': 0.0
+    }
+    
+    for r in recuperacion_qs:
+        cartera = r['deudor__cartera']
+        total = float(r['total'] or 0)
+        if cartera:
+            c_upper = cartera.upper()
+            if 'PROEMPRESA' in c_upper:
+                recuperacion_carteras['PROEMPRESA'] += total
+            elif 'CAJA HUANCAYO' in c_upper or 'HUANCAYO' in c_upper:
+                recuperacion_carteras['CAJA HUANCAYO'] += total
+            elif 'FOCMAC' in c_upper:
+                recuperacion_carteras['FOCMAC'] += total
+            else:
+                # Fallback for others if any
+                recuperacion_carteras[c_upper] = recuperacion_carteras.get(c_upper, 0.0) + total
+
+    import json
     return render(request, 'cobranza/dashboard.html', {
         'es_gerente': es_gerente_flag,
         'total_cartera': total_cartera,
@@ -109,6 +140,7 @@ def dashboard_gerente(request):
         'periodo_texto': periodo_texto,
         'convenios_atrasados': convenios_atrasados,
         'convenios_proximos': convenios_proximos,
+        'recuperacion_carteras_json': json.dumps(recuperacion_carteras),
     })
 
 @login_required
