@@ -18,7 +18,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 
 
 # --- AQUÍ ESTÁ LA LÍNEA ACTUALIZADA CON LAS CAMPAÑAS ---
-from .models import Deudor, Gestion, TelefonoExtra, AsignacionCartera, AsignacionDiaria, CampanaAsterisk, DetalleCampanaAsterisk, SeguimientoProgramado
+from .models import Deudor, Gestion, TelefonoExtra, AsignacionCartera, AsignacionDiaria, CampanaAsterisk, DetalleCampanaAsterisk, SeguimientoProgramado, VoucherPago
 from .asignaciones import aplicar_visibilidad_por_asignaciones
 
 from django.db import models, transaction
@@ -1303,4 +1303,80 @@ def eliminar_telefono_extra(request, telefono_id):
 @login_required
 def webphone_popup(request):
     return render(request, 'cobranza/webphone.html')
+
+# --- PORTAL DE AUTOGESTIÓN PARA CLIENTES ---
+def portal_login(request):
+    error = None
+    if request.method == 'POST':
+        dni = request.POST.get('dni', '').strip()
+        deudor = Deudor.objects.filter(documento=dni, activo=True).first()
+        if deudor:
+            request.session['portal_deudor_id'] = deudor.id
+            return redirect('portal_dashboard')
+        else:
+            error = "DNI no encontrado o no tiene deuda activa."
+    return render(request, 'portal/login.html', {'error': error})
+
+def portal_logout(request):
+    if 'portal_deudor_id' in request.session:
+        del request.session['portal_deudor_id']
+    return redirect('portal_login')
+
+def portal_dashboard(request):
+    deudor_id = request.session.get('portal_deudor_id')
+    if not deudor_id:
+        return redirect('portal_login')
+    
+    deudor = get_object_or_404(Deudor, id=deudor_id, activo=True)
+    mensaje = None
+    
+    if request.method == 'POST':
+        monto = request.POST.get('monto')
+        fecha_pago = request.POST.get('fecha_pago')
+        imagen = request.FILES.get('imagen')
+        
+        if monto and fecha_pago and imagen:
+            VoucherPago.objects.create(
+                deudor=deudor,
+                monto=monto,
+                fecha_pago=fecha_pago,
+                imagen=imagen,
+                estado='PENDIENTE'
+            )
+            mensaje = "Su voucher ha sido enviado exitosamente y está pendiente de revisión."
+            
+    vouchers = deudor.vouchers.all().order_by('-fecha_subida')
+    
+    context = {
+        'deudor': deudor,
+        'vouchers': vouchers,
+        'mensaje': mensaje
+    }
+    return render(request, 'portal/dashboard.html', context)
+
+# --- VISTAS INTERNAS (GERENTE / SUPERVISOR) ---
+@login_required
+def vouchers_pendientes(request):
+    vouchers = VoucherPago.objects.filter(estado='PENDIENTE').order_by('-fecha_subida')
+    return render(request, 'cobranza/vouchers_pendientes.html', {'vouchers': vouchers})
+
+@login_required
+def aprobar_voucher(request, voucher_id):
+    voucher = get_object_or_404(VoucherPago, id=voucher_id)
+    if request.method == 'POST':
+        accion = request.POST.get('accion') # aprobar o rechazar
+        if accion == 'aprobar':
+            voucher.estado = 'APROBADO'
+            # Automáticamente podríamos registrar una gestión aquí si es necesario
+            Gestion.objects.create(
+                deudor=voucher.deudor,
+                gestor=request.user,
+                resultado="PAGÓ",
+                monto_pago=voucher.monto,
+                observacion=f"Voucher aprobado desde el Portal. Fecha reporte: {voucher.fecha_pago}"
+            )
+        elif accion == 'rechazar':
+            voucher.estado = 'RECHAZADO'
+        voucher.save()
+    return redirect('vouchers_pendientes')
 

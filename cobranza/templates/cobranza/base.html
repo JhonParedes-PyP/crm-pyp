@@ -139,6 +139,7 @@
             </a>
             {% endif %}
             {% if es_gerente %}
+            <a href="{% url 'vouchers_pendientes' %}">📑 Vouchers</a>
             {% if puede_modo_agente %}
             <a href="{% url 'bandeja_gestor' %}?modo=agente" style="position:relative;">
                 📞 Mi Bandeja

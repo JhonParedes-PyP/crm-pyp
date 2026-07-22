@@ -25,6 +25,15 @@ urlpatterns = [
     # WebPhone Popup
     path('webphone/', views.webphone_popup, name='webphone_popup'),
 
+    # --- PORTAL DE AUTOGESTIÓN CLIENTES ---
+    path('portal/', views.portal_login, name='portal_login'),
+    path('portal/dashboard/', views.portal_dashboard, name='portal_dashboard'),
+    path('portal/salir/', views.portal_logout, name='portal_logout'),
+
+    # --- REVISIÓN DE VOUCHERS (GERENCIA) ---
+    path('vouchers/pendientes/', views.vouchers_pendientes, name='vouchers_pendientes'),
+    path('vouchers/aprobar/<int:voucher_id>/', views.aprobar_voucher, name='aprobar_voucher'),
+
     # Dashboard y Reportes
     path('', dashboard_views.dashboard_gerente, name='inicio'),
     path('dashboard/', dashboard_views.dashboard_gerente, name='dashboard_gerente'),

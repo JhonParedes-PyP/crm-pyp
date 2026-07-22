@@ -1,0 +1,68 @@
+{% extends 'cobranza/base.html' %}
+
+{% block title %}Vouchers Pendientes - P&P{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 mt-3">
+    <h2 style="color: #003366; font-weight: 700;">
+        <i class="fa-solid fa-file-invoice-dollar me-2"></i> Vouchers Pendientes de Revisión
+    </h2>
+</div>
+
+<div class="card" style="border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-radius: 12px;">
+    <div class="card-body p-0">
+        {% if vouchers %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Fecha Subida</th>
+                        <th>Cliente</th>
+                        <th>Documento</th>
+                        <th>Monto Reportado</th>
+                        <th>Fecha de Pago</th>
+                        <th class="text-center">Voucher</th>
+                        <th class="text-center pe-4">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in vouchers %}
+                    <tr>
+                        <td class="ps-4 text-muted"><small>{{ v.fecha_subida|date:"d/m/Y H:i" }}</small></td>
+                        <td style="font-weight: 600;">
+                            <a href="{% url 'detalle_deudor' v.deudor.id %}" class="text-decoration-none" target="_blank">{{ v.deudor.nombre_completo }}</a>
+                        </td>
+                        <td>{{ v.deudor.documento }}</td>
+                        <td style="color: #28a745; font-weight: bold;">S/ {{ v.monto }}</td>
+                        <td>{{ v.fecha_pago|date:"d/m/Y" }}</td>
+                        <td class="text-center">
+                            <a href="{{ v.imagen.url }}" target="_blank" class="btn btn-sm btn-outline-info">
+                                <i class="fa-solid fa-image"></i> Ver Foto
+                            </a>
+                        </td>
+                        <td class="text-center pe-4">
+                            <form method="post" action="{% url 'aprobar_voucher' v.id %}" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" name="accion" value="aprobar" class="btn btn-sm btn-success" title="Aprobar Pago" onclick="return confirm('¿Confirmas que el dinero ingresó a la cuenta oficial?');">
+                                    <i class="fa-solid fa-check"></i>
+                                </button>
+                                <button type="submit" name="accion" value="rechazar" class="btn btn-sm btn-danger" title="Rechazar" onclick="return confirm('¿Rechazar este voucher?');">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center p-5">
+            <i class="fa-solid fa-check-double text-muted mb-3" style="font-size: 3rem;"></i>
+            <h5 class="text-muted">No hay vouchers pendientes de revisión</h5>
+            <p class="text-muted">Todos los pagos reportados por el portal han sido procesados.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

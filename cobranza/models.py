@@ -211,3 +211,25 @@ class Convenio(models.Model):
 
     def __str__(self):
         return f"Convenio de {self.deudor.nombre_completo} - {self.fecha_pago}"
+
+# --- VOUCHERS DE PAGO (PORTAL CLIENTES) ---
+class VoucherPago(models.Model):
+    ESTADOS = (
+        ('PENDIENTE', 'Pendiente de Revisión'),
+        ('APROBADO', 'Aprobado'),
+        ('RECHAZADO', 'Rechazado'),
+    )
+    deudor = models.ForeignKey(Deudor, on_delete=models.CASCADE, related_name='vouchers')
+    monto = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Monto Pagado")
+    fecha_pago = models.DateField(verbose_name="Fecha de Pago (según cliente)")
+    imagen = models.ImageField(upload_to='vouchers/', verbose_name="Foto del Voucher")
+    estado = models.CharField(max_length=20, choices=ESTADOS, default='PENDIENTE')
+    fecha_subida = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-fecha_subida']
+        verbose_name = "Voucher de Pago"
+        verbose_name_plural = "Vouchers de Pago"
+
+    def __str__(self):
+        return f"Voucher {self.monto} - {self.deudor.documento} ({self.estado})"

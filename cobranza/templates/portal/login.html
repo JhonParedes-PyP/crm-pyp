@@ -1,0 +1,27 @@
+{% extends 'portal/base.html' %}
+
+{% block content %}
+<div class="portal-container">
+    <h3 class="text-center mb-4" style="color: #003366; font-weight: 700;">Consulta tu Estado</h3>
+    <p class="text-center text-muted mb-4">Ingresa tu número de documento para conocer las opciones de regularización o enviar tu voucher de pago.</p>
+    
+    {% if error %}
+    <div class="alert alert-danger" role="alert">
+        <i class="fa-solid fa-circle-exclamation"></i> {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="post" action="{% url 'portal_login' %}">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="dni" class="form-label" style="font-weight: 600;">DNI / RUC:</label>
+            <input type="text" class="form-control form-control-lg" id="dni" name="dni" required placeholder="Ej. 12345678" style="border-radius: 8px;">
+        </div>
+        <div class="d-grid gap-2 mt-4">
+            <button type="submit" class="btn btn-primary-custom text-white">
+                <i class="fa-solid fa-magnifying-glass"></i> Consultar Estado
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
