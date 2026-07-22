@@ -127,14 +127,26 @@ def dashboard_gerente(request):
                 # Fallback for others if any
                 recuperacion_carteras[c_upper] = recuperacion_carteras.get(c_upper, 0.0) + total
 
-    # Cruce de Convenios Caja Huancayo sin pago reflejado (Solo para Gerente)
-    convenios_huancayo_sin_pago = []
+    # Cruce de Pagos No Registrados (Caja Huancayo) - Para Gerente
+    # Clientes cuya base dice que pagaron en el mes actual, pero no tienen gestión de "PAGÓ" en el CRM
+    pagos_no_reflejados_huancayo = []
     if es_gerente_flag:
-        convenios_huancayo_sin_pago = convenios_base.filter(
-            deudor__cartera__icontains='HUANCAYO',
-            fecha_pago__year=hoy.year,
-            fecha_pago__month=hoy.month
-        ).order_by('fecha_pago')[:100]
+        gestiones_pago_mes = Gestion.objects.filter(
+            deudor=OuterRef('pk'),
+            resultado__icontains='PAG',
+            fecha__year=hoy.year,
+            fecha__month=hoy.month
+        )
+        
+        pagos_no_reflejados_huancayo = Deudor.objects.filter(
+            cartera__icontains='HUANCAYO',
+            ultimo_dia_pago__year=hoy.year,
+            ultimo_dia_pago__month=hoy.month
+        ).annotate(
+            tiene_gestion_pago=Exists(gestiones_pago_mes)
+        ).filter(
+            tiene_gestion_pago=False
+        ).order_by('-ultimo_dia_pago')[:100]
 
     import json
     return render(request, 'cobranza/dashboard.html', {
@@ -149,7 +161,7 @@ def dashboard_gerente(request):
         'periodo_texto': periodo_texto,
         'convenios_atrasados': convenios_atrasados,
         'convenios_proximos': convenios_proximos,
-        'convenios_huancayo_sin_pago': convenios_huancayo_sin_pago,
+        'pagos_no_reflejados_huancayo': pagos_no_reflejados_huancayo,
         'recuperacion_carteras_json': json.dumps(recuperacion_carteras),
     })
 
