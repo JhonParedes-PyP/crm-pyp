@@ -5,6 +5,7 @@ from datetime import timedelta
 from django.utils.timezone import now
 from .models import Convenio, Deudor
 from .ai_service import optimizar_ruta_ia
+from .views import es_gerente, puede_usar_modo_agente
 import json
 
 @login_required
@@ -45,7 +46,9 @@ def rutas_cobranza(request):
     return render(request, 'cobranza/rutas_cobranza.html', {
         'deudores': deudores,
         'carteras': sorted(list(carteras)),
-        'agencias': sorted(list(agencias))
+        'agencias': sorted(list(agencias)),
+        'es_gerente': es_gerente(request.user),
+        'puede_modo_agente': puede_usar_modo_agente(request.user)
     })
 
 @login_required
