@@ -121,7 +121,7 @@ def obtener_alertas_pago_proximo(usuario):
     hoy = timezone.now().date()
     fecha_tope = hoy + timedelta(days=2)
 
-    deudores_base = Deudor.objects.filter(ultimo_dia_pago__isnull=False).annotate(
+    deudores_base = Deudor.objects.filter(activo=True, ultimo_dia_pago__isnull=False).annotate(
         fecha_pago_calc=ExpressionWrapper(
             F('ultimo_dia_pago') + Value(timedelta(days=30)),
             output_field=DateField()
@@ -278,13 +278,14 @@ def subir_excel(request):
                               'num_doc_aval': str(row.get('NUM_DOC_AVAL', '')).strip(),
                               'zona': str(row.get('ZONA', '')).strip(),
                               'negociacion': str(row.get('NEGOCIACION', '')).strip(),
+                              'activo': True,
                           }
                       )
 
-            # Eliminar clientes que NO vienen en el nuevo Excel
-            eliminados, _ = Deudor.objects.exclude(documento__in=dni_en_excel).delete()
+            # Ocultar (Soft Delete) clientes que NO vienen en el nuevo Excel
+            eliminados = Deudor.objects.exclude(documento__in=dni_en_excel).update(activo=False)
 
-            resumen = f"{len(dni_en_excel)} clientes cargados/actualizados. {eliminados} eliminados (no estaban en el archivo)."
+            resumen = f"{len(dni_en_excel)} clientes cargados/actualizados. {eliminados} desactivados (no estaban en el archivo)."
             if col_fecha:
                 mensajes = f"¡Cartera sincronizada! {resumen} Columna de fecha: '{col_fecha}'"
             else:
@@ -311,9 +312,14 @@ def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False, forza
         fecha_pago_desde = filtros_sesion.get('fecha_pago_desde', '')
         fecha_pago_hasta = filtros_sesion.get('fecha_pago_hasta', '')
         rango_deuda = filtros_sesion.get('rango_deuda', '')
+        rango_deuda = filtros_sesion.get('rango_deuda', '')
         orden = filtros_sesion.get('orden', '')
 
-    deudores = Deudor.objects.all()
+    # Solo el gerente puede ver clientes inactivos
+    if es_gerente(usuario) and not forzar_asignaciones:
+        deudores = Deudor.objects.all()
+    else:
+        deudores = Deudor.objects.filter(activo=True)
 
     # Si es modo agente o no es gerente, ocultar los que ya gestionó hoy
     if forzar_asignaciones or not es_gerente(usuario):

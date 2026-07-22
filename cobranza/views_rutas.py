@@ -11,7 +11,7 @@ import json
 @login_required
 def rutas_cobranza(request):
     # Obtener todos los deudores
-    todos_deudores = Deudor.objects.all().prefetch_related('convenios')
+    todos_deudores = Deudor.objects.filter(activo=True).prefetch_related('convenios')
 
     deudores = []
     carteras = set()

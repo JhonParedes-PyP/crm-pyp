@@ -49,8 +49,8 @@ def dashboard_gerente(request):
     filtro_periodo = Q(fecha__date=hoy) if periodo == 'hoy' else Q(fecha__date__gte=fecha_inicio)
     filtro_periodo_gestion = Q(gestion__fecha__date=hoy) if periodo == 'hoy' else Q(gestion__fecha__date__gte=fecha_inicio)
     
-    total_deudores = Deudor.objects.count()
-    total_cartera = Deudor.objects.aggregate(Sum('saldo_deuda'))['saldo_deuda__sum'] or 0
+    total_deudores = Deudor.objects.filter(activo=True).count()
+    total_cartera = Deudor.objects.filter(activo=True).aggregate(Sum('saldo_deuda'))['saldo_deuda__sum'] or 0
     total_recuperado = Gestion.objects.filter(
         fecha__date__gte=inicio_mes_actual,
         fecha__date__lte=hoy,
@@ -90,7 +90,7 @@ def dashboard_gerente(request):
 
     if not es_gerente_flag:
         from .views import aplicar_asignaciones_de_gestor
-        deudores_asignados = aplicar_asignaciones_de_gestor(Deudor.objects.all(), request.user)
+        deudores_asignados = aplicar_asignaciones_de_gestor(Deudor.objects.filter(activo=True), request.user)
         convenios_base = convenios_base.filter(deudor__in=deudores_asignados)
 
     convenios_atrasados = convenios_base.filter(fecha_pago__lt=hoy).order_by('fecha_pago')[:50]
@@ -364,7 +364,7 @@ def agenda_diaria(request):
 
     # ── Sin contacto ───────────────────────────────────────────────────────
     fecha_limite = hoy - timedelta(days=dias_sin_contacto)
-    deudores_base = Deudor.objects.annotate(ultima_gestion=Max('gestion__fecha'))
+    deudores_base = Deudor.objects.filter(activo=True).annotate(ultima_gestion=Max('gestion__fecha'))
     deudores_base = aplicar_visibilidad_por_asignaciones(deudores_base, usuario)
 
     sin_contacto = deudores_base.filter(

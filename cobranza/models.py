@@ -14,6 +14,9 @@ class Deudor(models.Model):
     monto_capital = models.DecimalField(max_digits=12, decimal_places=2, default=0) # DEUDA_CAP
     saldo_deuda = models.DecimalField(max_digits=12, decimal_places=2, default=0)   # DEUDA_TOTAL
     
+    # ESTADO (Soft Delete)
+    activo = models.BooleanField(default=True)
+    
     # NUEVOS DATOS (Hoja 2) - Se permite que estén vacíos (null=True, blank=True)
     dir_casa = models.TextField(null=True, blank=True)
     distrito = models.CharField(max_length=100, null=True, blank=True)

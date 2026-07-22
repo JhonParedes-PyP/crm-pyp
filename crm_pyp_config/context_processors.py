@@ -58,7 +58,7 @@ def agenda_alertas(request):
         from datetime import timedelta
         
         fecha_tope = hoy + timedelta(days=2)
-        deudores_base = Deudor.objects.filter(ultimo_dia_pago__isnull=False).annotate(
+        deudores_base = Deudor.objects.filter(activo=True, ultimo_dia_pago__isnull=False).annotate(
             fecha_pago_calc=ExpressionWrapper(
                 F('ultimo_dia_pago') + Value(timedelta(days=30)),
                 output_field=DateField()
