@@ -127,6 +127,15 @@ def dashboard_gerente(request):
                 # Fallback for others if any
                 recuperacion_carteras[c_upper] = recuperacion_carteras.get(c_upper, 0.0) + total
 
+    # Cruce de Convenios Caja Huancayo sin pago reflejado (Solo para Gerente)
+    convenios_huancayo_sin_pago = []
+    if es_gerente_flag:
+        convenios_huancayo_sin_pago = convenios_base.filter(
+            deudor__cartera__icontains='HUANCAYO',
+            fecha_pago__year=hoy.year,
+            fecha_pago__month=hoy.month
+        ).order_by('fecha_pago')[:100]
+
     import json
     return render(request, 'cobranza/dashboard.html', {
         'es_gerente': es_gerente_flag,
@@ -140,6 +149,7 @@ def dashboard_gerente(request):
         'periodo_texto': periodo_texto,
         'convenios_atrasados': convenios_atrasados,
         'convenios_proximos': convenios_proximos,
+        'convenios_huancayo_sin_pago': convenios_huancayo_sin_pago,
         'recuperacion_carteras_json': json.dumps(recuperacion_carteras),
     })
 

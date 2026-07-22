@@ -180,6 +180,41 @@
 
 </div>
 
+    {% if convenios_huancayo_sin_pago %}
+    <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 4px solid #17a2b8; margin-bottom: 25px;">
+        <h3 style="color: #117a8b; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 20px;">🔍</span> Convenios Caja Huancayo sin Pago Reflejado (Mes Actual)
+        </h3>
+        <p style="font-size: 13px; color: #666; margin-top: -10px; margin-bottom: 15px;">Clientes con convenios vencidos o por vencer en este mes, cuyo pago aún no está registrado en el sistema. Utilice esta lista para validar con los ingresos del banco.</p>
+        <div style="max-height: 400px; overflow-y: auto;">
+            <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 12px;">
+                <thead>
+                    <tr style="background: #f8f9fa; border-bottom: 2px solid #ddd;">
+                        <th style="padding: 10px;">Cliente</th>
+                        <th style="padding: 10px;">Vencimiento</th>
+                        <th style="padding: 10px;">Monto Esperado</th>
+                        <th style="padding: 10px; text-align: center;">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in convenios_huancayo_sin_pago %}
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 10px; font-weight: bold;">{{ c.deudor.nombre_completo|truncatechars:45 }}</td>
+                        <td style="padding: 10px; color: #17a2b8; font-weight: bold;">{{ c.fecha_pago|date:"d/m/Y" }}</td>
+                        <td style="padding: 10px; font-weight: bold;">S/ {{ c.monto_cuota|floatformat:2|intcomma }}</td>
+                        <td style="padding: 10px; text-align: center;">
+                            <a href="{% url 'registrar_gestion' c.deudor.id %}" style="background: #17a2b8; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 11px; font-weight: bold;">Validar</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     // --- Gráfico de Torta para Carteras ---
