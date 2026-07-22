@@ -123,6 +123,7 @@
             <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 12px;">
                 <thead>
                     <tr style="background: #f8f9fa; border-bottom: 2px solid #ddd;">
+                        <th style="padding: 10px; text-align: center; width: 30px;">#</th>
                         <th style="padding: 10px;">Cliente</th>
                         <th style="padding: 10px;">Vencimiento</th>
                         <th style="padding: 10px;">Monto</th>
@@ -132,6 +133,7 @@
                 <tbody>
                     {% for c in convenios_atrasados %}
                     <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 10px; text-align: center; font-weight: bold; color: #888;">{{ forloop.counter }}</td>
                         <td style="padding: 10px; font-weight: bold;">{{ c.deudor.nombre_completo|truncatechars:30 }}</td>
                         <td style="padding: 10px; color: #dc3545; font-weight: bold;">{{ c.fecha_pago|date:"d/m/Y" }}</td>
                         <td style="padding: 10px;">S/ {{ c.monto_cuota|floatformat:0|intcomma }}</td>
@@ -155,6 +157,7 @@
             <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 12px;">
                 <thead>
                     <tr style="background: #f8f9fa; border-bottom: 2px solid #ddd;">
+                        <th style="padding: 10px; text-align: center; width: 30px;">#</th>
                         <th style="padding: 10px;">Cliente</th>
                         <th style="padding: 10px;">Vencimiento</th>
                         <th style="padding: 10px;">Monto</th>
@@ -164,6 +167,7 @@
                 <tbody>
                     {% for c in convenios_proximos %}
                     <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 10px; text-align: center; font-weight: bold; color: #888;">{{ forloop.counter }}</td>
                         <td style="padding: 10px; font-weight: bold;">{{ c.deudor.nombre_completo|truncatechars:30 }}</td>
                         <td style="padding: 10px; color: #d39e00; font-weight: bold;">{{ c.fecha_pago|date:"d/m/Y" }}</td>
                         <td style="padding: 10px;">S/ {{ c.monto_cuota|floatformat:0|intcomma }}</td>
@@ -190,6 +194,7 @@
             <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 12px;">
                 <thead>
                     <tr style="background: #f8f9fa; border-bottom: 2px solid #ddd;">
+                        <th style="padding: 10px; text-align: center; width: 30px;">#</th>
                         <th style="padding: 10px;">Cliente</th>
                         <th style="padding: 10px;">Última Fecha Pago (Base)</th>
                         <th style="padding: 10px;">Saldo Deuda</th>
@@ -199,6 +204,7 @@
                 <tbody>
                     {% for d in pagos_no_reflejados_huancayo %}
                     <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 10px; text-align: center; font-weight: bold; color: #888;">{{ forloop.counter }}</td>
                         <td style="padding: 10px; font-weight: bold;">{{ d.nombre_completo|truncatechars:45 }}</td>
                         <td style="padding: 10px; color: #17a2b8; font-weight: bold;">{{ d.ultimo_dia_pago|date:"d/m/Y" }}</td>
                         <td style="padding: 10px; font-weight: bold;">S/ {{ d.saldo_deuda|floatformat:2|intcomma }}</td>
