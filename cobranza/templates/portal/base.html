@@ -17,7 +17,8 @@
             color: #333;
         }
         .portal-header {
-            background-color: #003366;
+            /* Degradado combinando Azul (P&P), Rojo (Caja Huancayo) y Verde (Proempresa) */
+            background: linear-gradient(135deg, #003366 0%, #dc3545 50%, #28a745 100%);
             color: white;
             padding: 15px 20px;
             text-align: center;
@@ -35,14 +36,14 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.05);
         }
         .btn-primary-custom {
-            background-color: #007bff;
+            background: linear-gradient(to right, #003366, #0056b3);
             border: none;
             border-radius: 8px;
             padding: 12px;
             font-weight: 600;
         }
         .btn-primary-custom:hover {
-            background-color: #0056b3;
+            background: linear-gradient(to right, #002244, #004494);
         }
     </style>
 </head>
@@ -50,7 +51,7 @@
 
     <div class="portal-header d-flex justify-content-between align-items-center">
         <div>
-            <strong>P&P ASOCIADOS</strong>
+            <strong style="letter-spacing: 1px;">P&P SOLUCIONES</strong>
         </div>
         {% if request.session.portal_deudor_id %}
         <div>
