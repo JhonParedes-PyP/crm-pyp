@@ -170,7 +170,13 @@ def optimizar_ruta_ia(clientes, instrucciones_adicionales=None):
     
     texto_clientes = "LISTA DE CLIENTES A VISITAR:\n"
     for i, c in enumerate(clientes, 1):
-        texto_clientes += f"{i}. {c.get('nombre')} | Distrito: {c.get('distrito')} | Dirección: {c.get('direccion')}\n"
+        texto = f"{i}. {c.get('nombre')} | Cartera: {c.get('cartera')} | Deuda: S/ {c.get('deuda')}\n"
+        texto += f"   Ubicación: {c.get('distrito')} - {c.get('direccion')}\n"
+        if c.get('negociacion'):
+            texto += f"   Negociación actual: {c.get('negociacion')}\n"
+        if c.get('ultimo_pago'):
+            texto += f"   Último pago reportado: {c.get('ultimo_pago')}\n"
+        texto_clientes += texto + "\n"
         
     prompt_sistema = """Eres un experto en logística urbana y conocimiento geográfico del Perú (especialmente Huancayo, Junín y Lima).
 Tu objetivo es organizar una lista de direcciones de deudores para sugerir la RUTA DE COBRANZA MÁS EFICIENTE posible.

@@ -71,7 +71,11 @@
                             data-nombre="{{ d.nombre }}" 
                             data-distrito="{{ d.distrito }}"
                             data-direccion="{{ d.direccion }} {{ d.referencia }}"
-                            data-gps="{{ d.link_gps }}">
+                            data-gps="{{ d.link_gps }}"
+                            data-cartera="{{ d.cartera }}"
+                            data-deuda="{{ d.saldo_deuda }}"
+                            data-negociacion="{{ d.negociacion }}"
+                            data-ultimopago="{{ d.ultimo_dia_pago }}">
                     </td>
                     <td style="padding: 10px; font-weight: bold; color: #003366;">{{ d.nombre }}</td>
                     <td style="padding: 10px; color: #dc3545; font-weight: bold; font-size: 11px;">{{ d.motivo }}</td>
@@ -288,7 +292,11 @@ function optimizarRutaIA() {
     const clientes = seleccionados.map(cb => ({
         nombre: cb.dataset.nombre,
         distrito: cb.dataset.distrito,
-        direccion: cb.dataset.direccion
+        direccion: cb.dataset.direccion,
+        cartera: cb.dataset.cartera,
+        deuda: cb.dataset.deuda,
+        negociacion: cb.dataset.negociacion,
+        ultimo_pago: cb.dataset.ultimopago
     }));
     const instrucciones = document.getElementById('ia-instrucciones').value;
     

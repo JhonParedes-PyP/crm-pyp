@@ -40,7 +40,10 @@ def rutas_cobranza(request):
             'direccion': d.dir_casa or '',
             'referencia': d.referencia or '',
             'link_gps': d.link_gps or '',
-            'motivo': motivo
+            'motivo': motivo,
+            'saldo_deuda': float(d.saldo_deuda) if d.saldo_deuda else 0,
+            'negociacion': d.negociacion or '',
+            'ultimo_dia_pago': d.ultimo_dia_pago.strftime("%Y-%m-%d") if d.ultimo_dia_pago else ''
         })
 
     return render(request, 'cobranza/rutas_cobranza.html', {
