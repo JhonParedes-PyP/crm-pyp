@@ -32,14 +32,11 @@
                 {% endfor %}
             </select>
         </div>
-        <div style="width: 200px;">
-            <label style="font-size: 12px; font-weight: bold; color: #555; display: block; margin-bottom: 5px;">🏢 Agencia</label>
-            <select id="filtro-agencia" onchange="filtrarTabla()" style="width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
-                <option value="">-- Todas --</option>
-                {% for a in agencias %}
-                <option value="{{ a }}">{{ a }}</option>
-                {% endfor %}
-            </select>
+        <div style="width: 250px;">
+            <label style="font-size: 12px; font-weight: bold; color: #555; display: block; margin-bottom: 5px;">🏢 Agencias (Múltiples)</label>
+            <div id="filtro-agencia-container" style="width: 100%; height: 70px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px; background: white; padding: 5px; box-sizing: border-box; font-size: 13px;">
+                <!-- JS populated checkboxes -->
+            </div>
         </div>
     </div>
 
@@ -150,22 +147,36 @@ function actualizarAgencias() {
         }
     }
     
-    let selectAgencia = document.getElementById("filtro-agencia");
-    let valorActual = selectAgencia.value;
+    let container = document.getElementById("filtro-agencia-container");
     
-    selectAgencia.innerHTML = '<option value="">-- Todas --</option>';
+    // Guardar selecciones actuales
+    let checkboxesActuales = container.querySelectorAll('input[type="checkbox"]:checked');
+    let seleccionados = new Set(Array.from(checkboxesActuales).map(cb => cb.value));
+    
+    container.innerHTML = '';
     
     let agenciasArray = Array.from(agenciasUnicas).sort();
     agenciasArray.forEach(ag => {
-        let opt = document.createElement('option');
-        opt.value = ag;
-        opt.textContent = ag;
-        selectAgencia.appendChild(opt);
+        let label = document.createElement('label');
+        label.style.display = 'block';
+        label.style.cursor = 'pointer';
+        label.style.marginBottom = '3px';
+        
+        let cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.value = ag;
+        cb.className = 'filtro-agencia-cb';
+        cb.style.marginRight = '5px';
+        cb.onchange = filtrarTabla;
+        
+        if (seleccionados.has(ag)) {
+            cb.checked = true;
+        }
+        
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(ag));
+        container.appendChild(label);
     });
-    
-    if (agenciasUnicas.has(valorActual)) {
-        selectAgencia.value = valorActual;
-    }
     
     filtrarTabla();
 }
@@ -175,7 +186,8 @@ document.addEventListener("DOMContentLoaded", actualizarAgencias);
 function filtrarTabla() {
     let input = document.getElementById("buscador-rutas").value.toLowerCase();
     let cartera = document.getElementById("filtro-cartera").value;
-    let agencia = document.getElementById("filtro-agencia").value;
+    
+    let agenciasSeleccionadas = Array.from(document.querySelectorAll('.filtro-agencia-cb:checked')).map(cb => cb.value);
     
     let table = document.getElementById("tabla-rutas");
     let tr = table.getElementsByClassName("fila-cliente");
@@ -190,7 +202,7 @@ function filtrarTabla() {
         
         let matchTexto = (nombre.includes(input) || dni.includes(input) || telefono.includes(input));
         let matchCartera = (cartera === "" || filaCartera === cartera);
-        let matchAgencia = (agencia === "" || filaAgencia === agencia);
+        let matchAgencia = (agenciasSeleccionadas.length === 0 || agenciasSeleccionadas.includes(filaAgencia));
         
         if (matchTexto && matchCartera && matchAgencia) {
             fila.style.display = "";
