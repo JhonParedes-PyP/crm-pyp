@@ -161,7 +161,7 @@ Incluye notas entre [CORCHETES] con instrucciones para el gestor."""
     return response.choices[0].message.content.strip()
 
 
-def optimizar_ruta_ia(clientes):
+def optimizar_ruta_ia(clientes, instrucciones_adicionales=None):
     """
     Recibe una lista de diccionarios con la información de los clientes (nombre, distrito, direccion)
     y usa DeepSeek para sugerir el orden geográfico óptimo de visita.
@@ -180,6 +180,9 @@ Sé directo y conciso. No uses introducciones largas."""
 
     prompt_usuario = f"""Por favor, ordena la siguiente lista de clientes en la ruta más óptima:
 {texto_clientes}"""
+
+    if instrucciones_adicionales:
+        prompt_usuario += f"\n\nInstrucciones adicionales del usuario:\n{instrucciones_adicionales}"
 
     try:
         response = client.chat.completions.create(

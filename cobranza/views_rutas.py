@@ -74,11 +74,12 @@ def optimizar_ruta_ia_ajax(request):
         try:
             data = json.loads(request.body)
             clientes = data.get('clientes', [])
+            instrucciones = data.get('instrucciones', '')
             
             if not clientes:
                 return JsonResponse({'status': 'error', 'message': 'No hay clientes seleccionados'})
                 
-            recomendacion = optimizar_ruta_ia(clientes)
+            recomendacion = optimizar_ruta_ia(clientes, instrucciones_adicionales=instrucciones)
             return JsonResponse({'status': 'success', 'recomendacion': recomendacion})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})

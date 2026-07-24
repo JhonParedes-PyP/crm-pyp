@@ -7,7 +7,8 @@
         <h2 style="color: #003366; margin: 0; display: flex; align-items: center; gap: 10px;">
             <span style="font-size: 24px;">🗺️</span> Rutas de Cobranza (Gestión de Campo)
         </h2>
-        <div style="display: flex; gap: 10px;">
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="ia-instrucciones" placeholder="Instrucciones IA (Ej. Empieza por el centro...)" style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; width: 300px; font-size: 14px;">
             <button onclick="optimizarRutaIA()" style="background: #6f42c1; color: white; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px;">
                 🧠 Optimizar con IA
             </button>
@@ -289,6 +290,7 @@ function optimizarRutaIA() {
         distrito: cb.dataset.distrito,
         direccion: cb.dataset.direccion
     }));
+    const instrucciones = document.getElementById('ia-instrucciones').value;
     
     const divRes = document.getElementById('ia-result');
     divRes.style.display = 'block';
@@ -300,7 +302,7 @@ function optimizarRutaIA() {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCSRFToken()
         },
-        body: JSON.stringify({ clientes: clientes })
+        body: JSON.stringify({ clientes: clientes, instrucciones: instrucciones })
     })
     .then(r => r.json())
     .then(data => {
