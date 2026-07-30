@@ -211,10 +211,11 @@
         var agencias = cartera && mapa[cartera] ? mapa[cartera] : null;
 
         var checkboxesActuales = containerAgencia.querySelectorAll('input[type="checkbox"]:checked');
+        var checkboxesTotales = containerAgencia.querySelectorAll('input[type="checkbox"]');
         var valoresSeleccionados = new Set(agenciasSeleccionadas);
         
-        // Si ya hay opciones renderizadas y el usuario está interactuando, preservar esas.
-        if (containerAgencia.innerHTML.trim() !== '') {
+        // Si ya hay checkboxes renderizados y el usuario está interactuando, preservar los marcados.
+        if (checkboxesTotales.length > 0) {
             valoresSeleccionados = new Set(Array.from(checkboxesActuales).map(cb => cb.value));
         }
 
@@ -249,6 +250,7 @@
 
     selCartera.addEventListener('change', function() {
         agenciasSeleccionadas = []; // Al cambiar de cartera, limpiamos la preselección
+        containerAgencia.innerHTML = ''; // Limpiamos para forzar el reinicio
         actualizarAgencias();
     });
 
