@@ -336,7 +336,7 @@ def subir_excel(request):
 def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False, forzar_asignaciones=False):
     q = request.GET.get('q', '') 
     cartera_filtro = request.GET.get('cartera', '')
-    agencia_filtro = request.GET.get('agencia', '')
+    agencia_filtro = request.GET.getlist('agencia')
     fecha_pago_desde = request.GET.get('fecha_pago_desde', '')
     fecha_pago_hasta = request.GET.get('fecha_pago_hasta', '')
     rango_deuda = request.GET.get('rango_deuda', '')
@@ -346,7 +346,9 @@ def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False, forza
         filtros_sesion = request.session.get('filtros_bandeja', {})
         q = filtros_sesion.get('q', '')
         cartera_filtro = filtros_sesion.get('cartera', '')
-        agencia_filtro = filtros_sesion.get('agencia', '')
+        agencia_filtro = filtros_sesion.get('agencia', [])
+        if isinstance(agencia_filtro, str):
+            agencia_filtro = [agencia_filtro] if agencia_filtro else []
         fecha_pago_desde = filtros_sesion.get('fecha_pago_desde', '')
         fecha_pago_hasta = filtros_sesion.get('fecha_pago_hasta', '')
         rango_deuda = filtros_sesion.get('rango_deuda', '')
@@ -381,7 +383,7 @@ def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False, forza
     if cartera_filtro: 
         deudores = deudores.filter(cartera=cartera_filtro)
     if agencia_filtro: 
-        deudores = deudores.filter(agencia=agencia_filtro)
+        deudores = deudores.filter(agencia__in=agencia_filtro)
     if fecha_pago_desde:
         from django.utils.dateparse import parse_date
         d = parse_date(fecha_pago_desde)
@@ -575,6 +577,7 @@ def bandeja_gestor(request):
         'q': filtros['q'],
         'cartera_filtro': filtros['cartera'],
         'agencia_filtro': filtros['agencia'],
+        'agencias_filtro_json': json.dumps(filtros['agencia']),
         'fecha_pago_desde': filtros['fecha_pago_desde'],
         'fecha_pago_hasta': filtros['fecha_pago_hasta'],
         'rango_deuda': filtros['rango_deuda'],

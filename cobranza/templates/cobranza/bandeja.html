@@ -58,14 +58,11 @@
             </select>
         </div>
         
-        <div style="min-width: 140px;">
-            <label style="font-size: 11px; font-weight: bold; color: #555; display: block; margin-bottom: 3px;">🏢 Agencia</label>
-            <select id="sel-agencia" name="agencia" style="width: 100%; padding: 6px 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px;">
-                <option value="">-- Todas --</option>
-                {% for ag in lista_agencias %}
-                    <option value="{{ ag }}" {% if ag == agencia_filtro %}selected{% endif %}>{{ ag }}</option>
-                {% endfor %}
-            </select>
+        <div style="min-width: 140px; position: relative;">
+            <label style="font-size: 11px; font-weight: bold; color: #555; display: block; margin-bottom: 3px;">🏢 Agencia(s)</label>
+            <div id="agencia-checkboxes" style="width: 100%; height: 60px; overflow-y: auto; border: 1px solid #ccc; border-radius: 5px; background: white; padding: 5px; box-sizing: border-box; font-size: 12px; margin-bottom: -5px;">
+                <!-- js poblado -->
+            </div>
         </div>
         
         <div style="min-width: 130px;">
@@ -208,18 +205,22 @@
 (function() {
     var mapa = {{ mapa_cartera_agencias|safe }};
     var selCartera = document.getElementById('sel-cartera');
-    var selAgencia = document.getElementById('sel-agencia');
-    var agenciaActual = "{{ agencia_filtro }}";
+    var containerAgencia = document.getElementById('agencia-checkboxes');
+    var agenciasSeleccionadas = {{ agencias_filtro_json|safe }};
 
     function actualizarAgencias() {
         var cartera = selCartera.value;
         var agencias = cartera && mapa[cartera] ? mapa[cartera] : null;
 
-        // Guardar selección actual
-        var valorAnterior = selAgencia.value;
+        var checkboxesActuales = containerAgencia.querySelectorAll('input[type="checkbox"]:checked');
+        var valoresSeleccionados = new Set(agenciasSeleccionadas);
+        
+        // Si ya hay opciones renderizadas y el usuario está interactuando, preservar esas.
+        if (containerAgencia.innerHTML.trim() !== '') {
+            valoresSeleccionados = new Set(Array.from(checkboxesActuales).map(cb => cb.value));
+        }
 
-        // Limpiar opciones
-        selAgencia.innerHTML = '<option value="">-- Todas --</option>';
+        containerAgencia.innerHTML = '';
 
         var lista = agencias || Object.values(mapa).reduce(function(acc, arr) {
             arr.forEach(function(a) { if (acc.indexOf(a) === -1) acc.push(a); });
@@ -227,31 +228,33 @@
         }, []).sort();
 
         lista.forEach(function(ag) {
-            var opt = document.createElement('option');
-            opt.value = ag;
-            opt.textContent = ag;
-            if (ag === valorAnterior) opt.selected = true;
-            selAgencia.appendChild(opt);
+            var label = document.createElement('label');
+            label.style.display = 'block';
+            label.style.cursor = 'pointer';
+            label.style.marginBottom = '2px';
+            
+            var cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.name = 'agencia';
+            cb.value = ag;
+            cb.style.marginRight = '5px';
+            
+            if (valoresSeleccionados.has(ag)) {
+                cb.checked = true;
+            }
+            
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode(ag));
+            containerAgencia.appendChild(label);
         });
     }
 
     selCartera.addEventListener('change', function() {
+        agenciasSeleccionadas = []; // Al cambiar de cartera, limpiamos la preselección
         actualizarAgencias();
     });
 
-    // Al cargar, si hay cartera seleccionada, filtrar agencias y remarcar la agencia actual
-    if (selCartera.value) {
-        var cartera = selCartera.value;
-        var agencias = mapa[cartera] || [];
-        selAgencia.innerHTML = '<option value="">-- Todas --</option>';
-        agencias.forEach(function(ag) {
-            var opt = document.createElement('option');
-            opt.value = ag;
-            opt.textContent = ag;
-            if (ag === agenciaActual) opt.selected = true;
-            selAgencia.appendChild(opt);
-        });
-    }
+    actualizarAgencias();
 })();
 </script>
 
