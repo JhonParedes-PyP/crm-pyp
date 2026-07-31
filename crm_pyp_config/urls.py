@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
-from cobranza import views, api_views, campanas_views, dashboard_views, views_rutas
+from cobranza import views, api_views, campanas_views, dashboard_views, views_rutas, estrategia_ia_views
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
@@ -89,5 +89,9 @@ urlpatterns = [
     path('api/ai/resumen/<int:deudor_id>/', api_views.api_ai_resumen, name='api_ai_resumen'),
     path('api/ai/guion/<int:deudor_id>/', api_views.api_ai_guion, name='api_ai_guion'),
     path('api/ai/chat/<int:deudor_id>/', api_views.api_ai_chat, name='api_ai_chat'),
+    
+    # --- 🤖 ESTRATEGIA IA GERENCIAL ---
+    path('estrategia-ia/', estrategia_ia_views.panel_estrategia_ia, name='panel_estrategia_ia'),
+    path('api/v1/ai/estrategia/', estrategia_ia_views.api_generar_estrategia, name='api_generar_estrategia'),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

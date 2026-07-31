@@ -256,3 +256,52 @@ REGLA ESTRICTA: Tu propósito EXCLUSIVO es ayudar en labores de cobranza, gesti�
     for chunk in stream:
         if chunk.choices and chunk.choices[0].delta.content:
             yield chunk.choices[0].delta.content
+
+def generar_estrategia_cartera(datos_agrupados):
+    """
+    Genera un informe estratégico de cobranza usando DeepSeek basado en datos estadísticos de la cartera.
+    """
+    import json
+    client = _get_client()
+    
+    prompt_sistema = """Eres un Estratega Senior de Recuperaciones y Cobranza para P&P Soluciones Jurídicas (estudio de abogados en Perú).
+Tu objetivo es analizar un resumen de una cartera (o agencia específica) y elaborar una ESTRATEGIA DE COBRANZA accionable para la gerencia y el equipo de gestores.
+
+Instrucciones:
+1. Revisa los datos estadísticos y los listados de clientes críticos (Top deudas, Embargos, Pagos recientes).
+2. Determina y recomienda QUÉ HACER y CÓMO ATACAR la cartera. 
+   - ¿Qué casos ameritan VISITA FÍSICA URGENTE?
+   - ¿A quiénes hacer LLAMADAS DE SEGUIMIENTO?
+   - ¿A quiénes derivar a MENSAJES (WhatsApp/SMS) masivos?
+   - ¿Qué acciones legales continuar para los procesos de EMBARGO?
+3. Genera un plan de trabajo claro, usando viñetas, tablas Markdown, y un lenguaje directo, corporativo pero motivador.
+4. (Importante) Haz recomendaciones basadas EXCLUSIVAMENTE en los datos que te proveen.
+
+Tu salida debe usar formato Markdown (negritas, listas, tablas) y estar estructurada en:
+## 1. Diagnóstico de la Cartera
+## 2. Estrategia de Segmentación (Visitas vs Llamadas vs Mensajes)
+## 3. Plan de Acción Inmediato (Casos Críticos / Top Deudas)
+## 4. Gestión de Embargos y Medidas Cautelares
+## 5. Recomendaciones Finales
+"""
+
+    prompt_usuario = f"""A continuación te presento los datos de la cartera a analizar:
+
+```json
+{json.dumps(datos_agrupados, indent=2, default=str)}
+```
+
+Por favor, genera la estrategia.
+"""
+
+    response = client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[
+            {"role": "system", "content": prompt_sistema},
+            {"role": "user", "content": prompt_usuario}
+        ],
+        temperature=0.7,
+        max_tokens=2500
+    )
+    
+    return response.choices[0].message.content

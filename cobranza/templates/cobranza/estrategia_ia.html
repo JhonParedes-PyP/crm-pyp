@@ -1,0 +1,184 @@
+{% extends 'cobranza/base.html' %}
+{% block title %}Estrategia IA - Gerencia{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="padding: 20px;">
+    <!-- Encabezado con IA -->
+    <div style="background: linear-gradient(135deg, #001f3f, #003366); padding: 25px; border-radius: 12px; color: white; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 25px;">
+        <div>
+            <h2 style="margin: 0; font-size: 24px; font-weight: bold; letter-spacing: 0.5px;">🤖 Estratega IA DeepSeek</h2>
+            <p style="margin: 8px 0 0; font-size: 14px; opacity: 0.9;">Módulo exclusivo para Gerencia. Selecciona una cartera para que la IA genere un plan de ataque y recuperación.</p>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); padding: 10px 20px; border-radius: 8px; font-weight: bold; text-align: center;">
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8;">Motor</div>
+            <div style="font-size: 16px; color: #00d2ff;">DeepSeek-V3</div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Selector -->
+        <div class="col-md-4">
+            <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; border-top: 4px solid #003366;">
+                <h4 style="color: #003366; font-size: 16px; font-weight: bold; margin-top: 0; margin-bottom: 15px;">Parámetros del Análisis</h4>
+                
+                <form id="estrategia-form">
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-size: 12px; font-weight: bold; color: #555; display: block; margin-bottom: 5px;">💼 Cartera</label>
+                        <select id="sel-cartera" name="cartera" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 14px;" required>
+                            <option value="">-- Selecciona una Cartera --</option>
+                            {% for c in carteras %}
+                                <option value="{{ c }}">{{ c }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom: 15px; display: none;" id="div-agencias">
+                        <label style="font-size: 12px; font-weight: bold; color: #555; display: block; margin-bottom: 5px;">🏢 Filtrar Agencias (Opcional)</label>
+                        <div id="agencias-container" style="max-height: 120px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 10px; background: #f9f9f9;">
+                            <!-- Checks JS -->
+                        </div>
+                        <small style="color: #888; font-size: 11px;">Si no seleccionas ninguna, se analizarán todas.</small>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-size: 12px; font-weight: bold; color: #555; display: block; margin-bottom: 5px;">📝 Instrucciones Adicionales para la IA (Opcional)</label>
+                        <textarea id="txt-instrucciones" rows="3" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 13px; resize: none;" placeholder="Ej. Enfócate en los clientes que viven en Lima Norte, o recomiéndame qué decirle a los avales."></textarea>
+                    </div>
+
+                    <button type="submit" id="btn-analizar" style="width: 100%; background: #003366; color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s;">
+                        <span>🧠</span> Generar Estrategia
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Resultado IA -->
+        <div class="col-md-8">
+            <div style="background: white; border-radius: 12px; padding: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); min-height: 400px; position: relative;">
+                
+                <h4 style="color: #003366; font-size: 16px; font-weight: bold; margin-top: 0; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">📋 Reporte Estratégico</h3>
+
+                <!-- Loader (oculto por defecto) -->
+                <div id="loader-ia" style="display: none; text-align: center; padding: 50px 0;">
+                    <div style="display: inline-block; width: 60px; height: 60px; border: 4px solid #f3f3f3; border-top: 4px solid #003366; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px;"></div>
+                    <div style="color: #003366; font-weight: bold; font-size: 14px; margin-bottom: 5px;">La Inteligencia Artificial está analizando la cartera...</div>
+                    <div style="color: #777; font-size: 12px;">Esto puede tomar entre 10 y 20 segundos dependiendo del volumen de datos.</div>
+                </div>
+
+                <!-- Contenido IA -->
+                <div id="resultado-ia" style="font-size: 14px; line-height: 1.6; color: #333;">
+                    <div style="text-align: center; color: #aaa; padding: 60px 0; font-style: italic;">
+                        Esperando configuración... Selecciona una cartera y haz clic en "Generar Estrategia".
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+/* Estilos Markdown */
+#resultado-ia h2 { color: #003366; font-size: 18px; margin-top: 25px; border-bottom: 2px solid #eee; padding-bottom: 5px; }
+#resultado-ia h3 { color: #00509e; font-size: 15px; margin-top: 15px; }
+#resultado-ia ul { padding-left: 20px; }
+#resultado-ia li { margin-bottom: 5px; }
+#resultado-ia strong { color: #111; }
+#resultado-ia table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 15px; font-size: 13px; }
+#resultado-ia th { background: #f4f6f8; border: 1px solid #ddd; padding: 8px; text-align: left; }
+#resultado-ia td { border: 1px solid #ddd; padding: 8px; }
+</style>
+
+<!-- Librería Marked.js para renderizar Markdown a HTML -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<script>
+    var mapaAgencias = {{ mapa_agencias|safe }};
+    var selCartera = document.getElementById('sel-cartera');
+    var divAgencias = document.getElementById('div-agencias');
+    var containerAgencias = document.getElementById('agencias-container');
+    var form = document.getElementById('estrategia-form');
+    var btnAnalizar = document.getElementById('btn-analizar');
+    var loader = document.getElementById('loader-ia');
+    var resultado = document.getElementById('resultado-ia');
+
+    selCartera.addEventListener('change', function() {
+        var c = this.value;
+        containerAgencias.innerHTML = '';
+        if (c && mapaAgencias[c] && mapaAgencias[c].length > 0) {
+            divAgencias.style.display = 'block';
+            mapaAgencias[c].forEach(function(ag) {
+                var label = document.createElement('label');
+                label.style.display = 'block';
+                label.style.cursor = 'pointer';
+                label.style.marginBottom = '4px';
+                label.style.fontSize = '12px';
+                
+                var cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.value = ag;
+                cb.name = 'agencias';
+                cb.style.marginRight = '8px';
+                
+                label.appendChild(cb);
+                label.appendChild(document.createTextNode(ag));
+                containerAgencias.appendChild(label);
+            });
+        } else {
+            divAgencias.style.display = 'none';
+        }
+    });
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        var cartera = selCartera.value;
+        if (!cartera) return;
+
+        var checkboxes = containerAgencias.querySelectorAll('input[type="checkbox"]:checked');
+        var agenciasSeleccionadas = Array.from(checkboxes).map(c => c.value);
+        var intrucciones = document.getElementById('txt-instrucciones').value;
+
+        // UI Loading
+        btnAnalizar.disabled = true;
+        btnAnalizar.style.opacity = '0.7';
+        btnAnalizar.innerHTML = 'Procesando...';
+        resultado.innerHTML = '';
+        loader.style.display = 'block';
+
+        fetch('/api/v1/ai/estrategia/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                cartera: cartera,
+                agencias: agenciasSeleccionadas,
+                instrucciones: intrucciones
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            loader.style.display = 'none';
+            btnAnalizar.disabled = false;
+            btnAnalizar.style.opacity = '1';
+            btnAnalizar.innerHTML = '<span>🧠</span> Generar Estrategia';
+
+            if (data.error) {
+                resultado.innerHTML = '<div style="color: #dc3545; background: #f8d7da; padding: 15px; border-radius: 5px;"><strong>Error:</strong> ' + data.error + '</div>';
+            } else if (data.estrategia_md) {
+                resultado.innerHTML = marked.parse(data.estrategia_md);
+            }
+        })
+        .catch(err => {
+            loader.style.display = 'none';
+            btnAnalizar.disabled = false;
+            btnAnalizar.style.opacity = '1';
+            btnAnalizar.innerHTML = '<span>🧠</span> Generar Estrategia';
+            resultado.innerHTML = '<div style="color: #dc3545; background: #f8d7da; padding: 15px; border-radius: 5px;"><strong>Error de conexión:</strong> No se pudo conectar con el motor IA.</div>';
+        });
+    });
+</script>
+{% endblock %}
