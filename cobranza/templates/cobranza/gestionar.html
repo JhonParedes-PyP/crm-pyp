@@ -122,7 +122,9 @@
                     <p style="margin: 4px 0 0 0;"><strong>Referencia:</strong> {{ c.referencia }}</p>
                     {% endif %}
                 {% if c.link_gps %}
-                <p style="margin: 4px 0 0 0;"><a href="{{ c.link_gps }}" target="_blank" style="color: #007bff; font-size: 11px; text-decoration: none;">📌 Ver ubicación GPS</a></p>
+                <p style="margin: 4px 0 0 0;">
+                    <a href="{% if 'http' in c.link_gps %}{{ c.link_gps }}{% else %}https://www.google.com/maps?q={{ c.link_gps|urlencode }}{% endif %}" target="_blank" style="color: #007bff; font-size: 11px; text-decoration: none;">📌 Ver ubicación GPS</a>
+                </p>
                 {% endif %}
             </div>
 
@@ -141,7 +143,7 @@
                 <p style="margin: 3px 0; color: #444;"><strong>Aval 1:</strong><br> {% if c.nom_aval %}{{ c.nom_aval }}{% else %}--{% endif %}</p>
                 {% if c.num_doc_aval %}<p style="margin: 2px 0; font-size: 11px; color: #888;">DNI: {{ c.num_doc_aval }}</p>{% endif %}
                 {% if c.aval_direccion %}<p style="margin: 2px 0; font-size: 11px; color: #888;">📍 {{ c.aval_direccion }} {% if c.aval_distrito %}- {{ c.aval_distrito }}{% endif %}</p>{% endif %}
-                {% if c.link_gps_aval %}<p style="margin: 2px 0;"><a href="{{ c.link_gps_aval }}" target="_blank" style="color: #007bff; font-size: 11px; text-decoration: none;">📌 GPS Aval</a></p>{% endif %}
+                {% if c.link_gps_aval %}<p style="margin: 2px 0;"><a href="{% if 'http' in c.link_gps_aval %}{{ c.link_gps_aval }}{% else %}https://www.google.com/maps?q={{ c.link_gps_aval|urlencode }}{% endif %}" target="_blank" style="color: #007bff; font-size: 11px; text-decoration: none;">📌 GPS Aval</a></p>{% endif %}
                 <p style="margin: 3px 0; color: #444;"><strong>Cónyuge Aval 1:</strong><br> {% if c.nom_conyuge_aval %}{{ c.nom_conyuge_aval }}{% else %}--{% endif %}</p>
             </div>
 
