@@ -56,7 +56,12 @@
         <div class="col-md-8">
             <div style="background: white; border-radius: 12px; padding: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); min-height: 400px; position: relative;">
                 
-                <h4 style="color: #003366; font-size: 16px; font-weight: bold; margin-top: 0; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">📋 Reporte Estratégico</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 20px;">
+                    <h4 style="color: #003366; font-size: 16px; font-weight: bold; margin: 0;">📋 Reporte Estratégico</h4>
+                    <button id="btn-descargar-pdf" style="display: none; background: #dc3545; color: white; padding: 6px 12px; border: none; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                        📄 Descargar PDF
+                    </button>
+                </div>
 
                 <!-- Loader (oculto por defecto) -->
                 <div id="loader-ia" style="display: none; text-align: center; padding: 50px 0;">
@@ -92,6 +97,8 @@
 
 <!-- Librería Marked.js para renderizar Markdown a HTML -->
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<!-- Librería html2pdf.js para exportar a PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <script>
     var mapaAgencias = {{ mapa_agencias|safe }};
@@ -100,8 +107,45 @@
     var containerAgencias = document.getElementById('agencias-container');
     var form = document.getElementById('estrategia-form');
     var btnAnalizar = document.getElementById('btn-analizar');
+    var btnDescargarPdf = document.getElementById('btn-descargar-pdf');
     var loader = document.getElementById('loader-ia');
     var resultado = document.getElementById('resultado-ia');
+    
+    // Ocultar botón PDF por defecto
+    btnDescargarPdf.style.display = 'none';
+
+    // Función para descargar PDF
+    btnDescargarPdf.addEventListener('click', function() {
+        var carteraStr = selCartera.value;
+        var checkboxes = containerAgencias.querySelectorAll('input[type="checkbox"]:checked');
+        var agenciasStr = Array.from(checkboxes).map(c => c.value).join('_') || 'Todas';
+        var fechaStr = new Date().toISOString().split('T')[0];
+        
+        var filename = `Estrategia_${carteraStr}_${agenciasStr}_${fechaStr}.pdf`.replace(/[^a-zA-Z0-9_\-\.]/g, '');
+
+        var opt = {
+            margin:       10,
+            filename:     filename,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2 },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        // Clonamos el resultado para aplicarle estilos específicos de impresión si es necesario
+        var element = document.createElement('div');
+        element.innerHTML = `
+            <div style="font-family: Arial, sans-serif; padding: 20px;">
+                <h1 style="color: #003366; text-align: center; border-bottom: 2px solid #003366; padding-bottom: 10px;">Reporte Estratégico de Cobranza</h1>
+                <p><strong>Cartera:</strong> ${carteraStr}</p>
+                <p><strong>Agencias:</strong> ${agenciasStr.replace(/_/g, ', ')}</p>
+                <p><strong>Fecha:</strong> ${fechaStr}</p>
+                <hr>
+                ${resultado.innerHTML}
+            </div>
+        `;
+
+        html2pdf().set(opt).from(element).save();
+    });
 
     selCartera.addEventListener('change', function() {
         var c = this.value;
@@ -145,6 +189,7 @@
         btnAnalizar.style.opacity = '0.7';
         btnAnalizar.innerHTML = 'Procesando...';
         resultado.innerHTML = '';
+        btnDescargarPdf.style.display = 'none';
         loader.style.display = 'block';
 
         fetch('/api/v1/ai/estrategia/', {
@@ -170,6 +215,7 @@
                 resultado.innerHTML = '<div style="color: #dc3545; background: #f8d7da; padding: 15px; border-radius: 5px;"><strong>Error:</strong> ' + data.error + '</div>';
             } else if (data.estrategia_md) {
                 resultado.innerHTML = marked.parse(data.estrategia_md);
+                btnDescargarPdf.style.display = 'inline-flex';
             }
         })
         .catch(err => {
