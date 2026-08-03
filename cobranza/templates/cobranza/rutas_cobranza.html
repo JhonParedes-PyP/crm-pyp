@@ -391,6 +391,22 @@ function autolocalizarGeodir(id, direccion, distrito) {
         
         if (lat && lng) {
             let mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+            let direccionEncontrada = resToUse.standard_address || distritoEncontrado;
+            
+            // Verificamos si es una dirección exacta o solo una zona (sublocality)
+            let isExact = false;
+            if (resToUse.result_types && (resToUse.result_types.includes('address') || resToUse.result_types.includes('route') || resToUse.result_types.includes('street_address') || resToUse.result_types.includes('premise'))) {
+                isExact = true;
+            }
+
+            if (!isExact) {
+                let conf = confirm(`⚠️ Geodir no encontró la dirección exacta.\n\nUbicación aproximada encontrada:\n📍 ${direccionEncontrada}\n\n¿Deseas usar este punto referencial en el mapa?`);
+                if (!conf) {
+                    input.value = oldVal;
+                    return; // Cancelar
+                }
+            }
+
             input.value = mapsUrl;
             
             fetch("{% url 'guardar_coordenadas' %}", {
@@ -405,7 +421,11 @@ function autolocalizarGeodir(id, direccion, distrito) {
             .then(res => {
                 if(res.status === 'success') {
                     document.querySelector(`.client-check[data-id="${id}"]`).dataset.gps = mapsUrl;
-                    alert(`✅ Autolocalizado en ${distritoEncontrado} y guardado con Geodir.`);
+                    if (isExact) {
+                        alert(`✅ Autolocalizado en ${distritoEncontrado} y guardado con Geodir.`);
+                    } else {
+                        alert(`✅ Ubicación aproximada guardada.`);
+                    }
                 } else {
                     alert("Encontrado pero error al guardar: " + res.message);
                 }
