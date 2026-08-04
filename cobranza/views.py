@@ -170,7 +170,11 @@ def safe_date(valor):
     if raw in ('', 'nan', 'None', 'NaT'):
         return None
     try:
-        resultado = pd.to_datetime(raw, dayfirst=True, errors='coerce')
+        if '-' in raw and len(raw) >= 10 and raw[4] == '-':
+            resultado = pd.to_datetime(raw, errors='coerce')
+        else:
+            resultado = pd.to_datetime(raw, dayfirst=True, errors='coerce')
+            
         if pd.isna(resultado):
             return None
         return resultado.date()
