@@ -15,6 +15,7 @@
             {% csrf_token %}
             <input type="hidden" name="accion" value="confirmar">
             <input type="hidden" name="file_path" value="{{ file_path }}">
+            <input type="hidden" name="formato" value="{{ formato_seleccionado|default:'Estandar' }}">
             
             <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #003366;">
                 <h4 style="margin-top: 0; color: #003366;">📋 Resumen de Carga</h4>
@@ -42,6 +43,15 @@
         <form method="post" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 15px;">
             {% csrf_token %}
             <input type="hidden" name="accion" value="previsualizar">
+            
+            <div>
+                <label style="font-size: 13px; font-weight: bold; color: #555; display: block; margin-bottom: 6px;">Formato de Plantilla:</label>
+                <select name="formato" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; background: #fff;">
+                    <option value="Estandar">Estándar (Plantilla PyP)</option>
+                    <option value="Caja_Huancayo">Caja Huancayo</option>
+                </select>
+            </div>
+
             <div>
                 <label style="font-size: 13px; font-weight: bold; color: #555; display: block; margin-bottom: 6px;">Archivo Excel (.xlsx / .xls):</label>
                 <input type="file" name="archivo_excel" accept=".xlsx, .xls" required

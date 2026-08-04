@@ -211,12 +211,18 @@ def subir_excel(request):
                 filename = fs.save(f"{uuid.uuid4()}_{archivo.name}", archivo)
                 file_path = fs.path(filename)
                 
+                formato_seleccionado = request.POST.get('formato', 'Estandar')
+                
                 df = pd.read_excel(file_path, dtype=str).fillna('')
                 columnas_detectadas = list(df.columns)
                 
                 dni_en_excel = set()
                 for index, row in df.iterrows():
-                    documento_val = str(row.get('DOC_DNI_RUC', '')).strip()
+                    if formato_seleccionado == 'Caja_Huancayo':
+                        documento_val = str(row.get('DNI', row.get('RUC', ''))).strip()
+                    else:
+                        documento_val = str(row.get('DOC_DNI_RUC', '')).strip()
+                        
                     if documento_val:
                         dni_en_excel.add(documento_val)
                         
@@ -229,12 +235,14 @@ def subir_excel(request):
                     'desactivados_estimados': desactivados_estimados,
                     'file_path': file_path,
                     'columnas_detectadas': columnas_detectadas,
+                    'formato_seleccionado': formato_seleccionado,
                 })
             except Exception as e:
                 mensajes = f"Error al procesar el Excel para previsualización: {e}"
                 
         elif accion == 'confirmar':
             file_path = request.POST.get('file_path')
+            formato = request.POST.get('formato', 'Estandar')
             if file_path and os.path.exists(file_path):
                 try:
                     df = pd.read_excel(file_path, dtype=str).fillna('')
@@ -257,63 +265,145 @@ def subir_excel(request):
 
                     with transaction.atomic():
                       for index, row in df.iterrows():
-                        cap_str = str(row.get('DEUDA_CAP', '0')).strip()
-                        tot_str = str(row.get('DEUDA_TOTAL', '0')).strip()
-                        cap = Decimal(cap_str) if cap_str else Decimal('0')
-                        tot = Decimal(tot_str) if tot_str else Decimal('0')
+                        if formato == 'Caja_Huancayo':
+                            cap_str = str(row.get('Saldo Capital', '0')).strip()
+                            tot_str = str(row.get('Saldo Total', str(row.get('Deuda Total', '0')))).strip()
+                            cap = Decimal(cap_str) if cap_str and cap_str != 'nan' else Decimal('0')
+                            tot = Decimal(tot_str) if tot_str and tot_str != 'nan' else Decimal('0')
+                            
+                            documento_val = str(row.get('DNI', row.get('RUC', ''))).strip()
+                            cuenta_val = str(row.get('Cuenta', 'N/A')).strip()
+                            
+                            raw_fecha = str(row.get('Fecha Ult. Pago', '')).strip()
+                            ultimo_dia_pago_val = safe_date(raw_fecha) if raw_fecha and raw_fecha not in ('', 'nan', 'None') else None
+                            
+                            negociacion_str = str(row.get('Negociación', '')).strip()
+                            condicion_val = str(row.get('Situación del Proceso', str(row.get('Estado', '')))).strip()
+                            if negociacion_str and negociacion_str.lower() != 'nan':
+                                condicion_val = f"CONVENIO - {condicion_val}" if condicion_val else "CONVENIO"
+                            
+                            telefono = str(row.get('Nº_Telefono', '')).strip()
+                            telefono2 = str(row.get('TELEFONO', '')).strip()
+                            if telefono and telefono2 and telefono != telefono2:
+                                telefono = f"{telefono} / {telefono2}"
+                            elif not telefono:
+                                telefono = telefono2
+                                
+                            ref = str(row.get('REFERENCIA', '')).strip()
+                            zona = str(row.get('ZONA', '')).strip()
+                            if zona and zona.lower() != 'nan':
+                                ref = f"ZONA: {zona} - {ref}" if ref else f"ZONA: {zona}"
+                                
+                            fec_dem_raw = str(row.get('Fecha de Inicio de Demanda', str(row.get('Fecha Ingreso Judicial', '')))).strip()
+                            fec_dem = safe_date(fec_dem_raw) if fec_dem_raw and fec_dem_raw not in ('', 'nan', 'None') else None
+                            
+                            ing_jud_raw = str(row.get('Fecha Ingreso Judicial', '')).strip()
+                            ing_jud = safe_date(ing_jud_raw) if ing_jud_raw and ing_jud_raw not in ('', 'nan', 'None') else None
+                            
+                            monto_dem_str = str(row.get('Monto de Demanda', '0')).strip()
+                            monto_dem = Decimal(monto_dem_str) if monto_dem_str and monto_dem_str not in ('', 'nan', 'None') else None
 
-                        documento_val = str(row.get('DOC_DNI_RUC', '')).strip()
+                            defaults = {
+                                'cartera': 'CAJA HUANCAYO',
+                                'nombre_completo': str(row.get('Cliente', 'SIN NOMBRE')).strip(),
+                                'telefono_principal': telefono,
+                                'agencia': str(row.get('Agencia', 'N/A')).strip(),
+                                'monto_capital': cap,
+                                'saldo_deuda': tot,
+                                'dir_casa': str(row.get('Dirección del Cliente', '')).strip(),
+                                'distrito': str(row.get('Distrito', '')).strip(),
+                                'nom_conyuge': '',
+                                'nom_aval': str(row.get('Fiador', '')).strip(),
+                                'tlf_celular_aval': str(row.get('TELEFONO AVAL', str(row.get('Nº_FonFue', '')))).strip(),
+                                'nom_conyuge_aval': '',
+                                'rango_dias_mora': str(row.get('Días de Atraso de Cuota', str(row.get('Atraso', '')))).strip(),
+                                'ultimo_dia_pago': ultimo_dia_pago_val,
+                                'aval_direccion': str(row.get('Direcc_Fiador', '')).strip(),
+                                'aval_distrito': str(row.get('Dist_Fiador', '')).strip(),
+                                'expediente': str(row.get('Expediente', '')).strip(),
+                                'juzgado': str(row.get('Juzgado', '')).strip(),
+                                'condicion': condicion_val,
+                                'referencia': ref,
+                                'proceso': str(row.get('Situación del Proceso', '')).strip(),
+                                'fec_demanda': fec_dem,
+                                'monto_demanda': monto_dem,
+                                'ingreso_judicial': ing_jud,
+                                'producto': str(row.get('Tipo de crédito', '')).strip(),
+                                'nmes': '',
+                                'departamento': '',
+                                'provincia': '',
+                                'dir_negocio': str(row.get('Dirección Fuente de Ingreso', str(row.get('DIRECCION LABORAL', '')))).strip(),
+                                'imp_recup': None,
+                                'imp_capital_rec': None,
+                                'num_doc_conyuge': '',
+                                'num_doc_aval': '',
+                                'zona': zona,
+                                'negociacion': negociacion_str,
+                                'activo': True,
+                            }
+                            col_fecha = 'Fecha Ult. Pago'
 
-                        ultimo_dia_pago_val = None
-                        if col_fecha:
-                            raw = str(row.get(col_fecha, '')).strip()
-                            if raw and raw not in ('', 'nan', 'None'):
-                                ultimo_dia_pago_val = safe_date(raw)
+                        else:
+                            cap_str = str(row.get('DEUDA_CAP', '0')).strip()
+                            tot_str = str(row.get('DEUDA_TOTAL', '0')).strip()
+                            cap = Decimal(cap_str) if cap_str else Decimal('0')
+                            tot = Decimal(tot_str) if tot_str else Decimal('0')
+    
+                            documento_val = str(row.get('DOC_DNI_RUC', '')).strip()
+    
+                            ultimo_dia_pago_val = None
+                            if col_fecha:
+                                raw = str(row.get(col_fecha, '')).strip()
+                                if raw and raw not in ('', 'nan', 'None'):
+                                    ultimo_dia_pago_val = safe_date(raw)
+                            
+                            cuenta_val = str(row.get('COD_CREDITO', 'N/A')).strip()
+    
+                            defaults = {
+                                'cartera': str(row.get('CARTERA', 'GENERAL')).strip(),
+                                'nombre_completo': str(row.get('NOM_CLI', 'SIN NOMBRE')).strip(),
+                                'telefono_principal': str(row.get('TLF_CELULAR_CLIENTE', '')).strip(),
+                                'agencia': str(row.get('NOM_AGENCIA', 'N/A')).strip(),
+                                'monto_capital': cap,
+                                'saldo_deuda': tot,
+                                'dir_casa': str(row.get('DIR_CASA', '')).strip(),
+                                'distrito': str(row.get('DISTRITO', '')).strip(),
+                                'nom_conyuge': str(row.get('NOM_CONYUGE', '')).strip(),
+                                'nom_aval': str(row.get('NOM_AVAL', '')).strip(),
+                                'tlf_celular_aval': str(row.get('TLF_CELULAR_AVAL', '')).strip(),
+                                'nom_conyuge_aval': str(row.get('NOM_CONYUGE_AVAL', '')).strip(),
+                                'rango_dias_mora': str(row.get('RANGO_DIAS_MORA', '')).strip(),
+                                'ultimo_dia_pago': ultimo_dia_pago_val,
+                                'aval_direccion': str(row.get('DIR_CASA_AVAL', '')).strip(),
+                                'aval_distrito': str(row.get('DISTRITO_AVAL', '')).strip(),
+                                'expediente': str(row.get('EXPEDIENTE', '')).strip(),
+                                'juzgado': str(row.get('JUZGADO', '')).strip(),
+                                'condicion': str(row.get('CONDICION', row.get('SITUACION', ''))).strip(),
+                                'referencia': str(row.get('REFERENCIA', '')).strip(),
+                                'proceso': str(row.get('PROCESO_JUDICIAL', '')).strip(),
+                                'fec_demanda': safe_date(row.get('FEC_DEMANDA', '')),
+                                'monto_demanda': Decimal(str(row.get('MONTO_DEMANDA', '0')).strip()) if str(row.get('MONTO_DEMANDA', '0')).strip() not in ('', 'nan', 'None') else None,
+                                'ingreso_judicial': safe_date(row.get('FEC_INGRESO_JUDICIAL', '')),
+                                'producto': str(row.get('PRODUCTO', '')).strip(),
+                                'nmes': str(row.get('NMES', '')).strip(),
+                                'departamento': str(row.get('DEPARTAMENTO', '')).strip(),
+                                'provincia': str(row.get('PROVINCIA', '')).strip(),
+                                'dir_negocio': str(row.get('DIR_NEGOCIO', '')).strip(),
+                                'imp_recup': Decimal(str(row.get('IMP_RECUP', '0')).strip()) if str(row.get('IMP_RECUP', '0')).strip() not in ('', 'nan', 'None') else None,
+                                'imp_capital_rec': Decimal(str(row.get('IMP_CAPITAL_REC', '0')).strip()) if str(row.get('IMP_CAPITAL_REC', '0')).strip() not in ('', 'nan', 'None') else None,
+                                'num_doc_conyuge': str(row.get('NUM_DOC_CONYUGE', '')).strip(),
+                                'num_doc_aval': str(row.get('NUM_DOC_AVAL', '')).strip(),
+                                'zona': str(row.get('ZONA', '')).strip(),
+                                'negociacion': str(row.get('NEGOCIACION', '')).strip(),
+                                'activo': True,
+                            }
 
                         if documento_val:
                             dni_en_excel.add(documento_val)
-                            cuenta_val = str(row.get('COD_CREDITO', 'N/A')).strip()
                             Deudor.objects.update_or_create(
                                   documento=documento_val,
                                   cuenta=cuenta_val,
-                                  defaults={
-                                      'cartera': str(row.get('CARTERA', 'GENERAL')).strip(),
-                                      'nombre_completo': str(row.get('NOM_CLI', 'SIN NOMBRE')).strip(),
-                                      'telefono_principal': str(row.get('TLF_CELULAR_CLIENTE', '')).strip(),
-                                      'agencia': str(row.get('NOM_AGENCIA', 'N/A')).strip(),
-                                      'monto_capital': cap,
-                                      'saldo_deuda': tot,
-                                      'dir_casa': str(row.get('DIR_CASA', '')).strip(),
-                                      'distrito': str(row.get('DISTRITO', '')).strip(),
-                                      'nom_conyuge': str(row.get('NOM_CONYUGE', '')).strip(),
-                                      'nom_aval': str(row.get('NOM_AVAL', '')).strip(),
-                                      'tlf_celular_aval': str(row.get('TLF_CELULAR_AVAL', '')).strip(),
-                                      'nom_conyuge_aval': str(row.get('NOM_CONYUGE_AVAL', '')).strip(),
-                                      'rango_dias_mora': str(row.get('RANGO_DIAS_MORA', '')).strip(),
-                                      'ultimo_dia_pago': ultimo_dia_pago_val,
-                                      'aval_direccion': str(row.get('DIR_CASA_AVAL', '')).strip(),
-                                      'aval_distrito': str(row.get('DISTRITO_AVAL', '')).strip(),
-                                      'expediente': str(row.get('EXPEDIENTE', '')).strip(),
-                                      'juzgado': str(row.get('JUZGADO', '')).strip(),
-                                      'condicion': str(row.get('CONDICION', row.get('SITUACION', ''))).strip(),
-                                      'referencia': str(row.get('REFERENCIA', '')).strip(),
-                                      'proceso': str(row.get('PROCESO_JUDICIAL', '')).strip(),
-                                      'fec_demanda': safe_date(row.get('FEC_DEMANDA', '')),
-                                      'monto_demanda': Decimal(str(row.get('MONTO_DEMANDA', '0')).strip()) if str(row.get('MONTO_DEMANDA', '0')).strip() not in ('', 'nan', 'None') else None,
-                                      'ingreso_judicial': safe_date(row.get('FEC_INGRESO_JUDICIAL', '')),
-                                      'producto': str(row.get('PRODUCTO', '')).strip(),
-                                      'nmes': str(row.get('NMES', '')).strip(),
-                                      'departamento': str(row.get('DEPARTAMENTO', '')).strip(),
-                                      'provincia': str(row.get('PROVINCIA', '')).strip(),
-                                      'dir_negocio': str(row.get('DIR_NEGOCIO', '')).strip(),
-                                      'imp_recup': Decimal(str(row.get('IMP_RECUP', '0')).strip()) if str(row.get('IMP_RECUP', '0')).strip() not in ('', 'nan', 'None') else None,
-                                      'imp_capital_rec': Decimal(str(row.get('IMP_CAPITAL_REC', '0')).strip()) if str(row.get('IMP_CAPITAL_REC', '0')).strip() not in ('', 'nan', 'None') else None,
-                                      'num_doc_conyuge': str(row.get('NUM_DOC_CONYUGE', '')).strip(),
-                                      'num_doc_aval': str(row.get('NUM_DOC_AVAL', '')).strip(),
-                                      'zona': str(row.get('ZONA', '')).strip(),
-                                      'negociacion': str(row.get('NEGOCIACION', '')).strip(),
-                                      'activo': True,
-                                  }
+                                  defaults=defaults
                               )
 
                     eliminados = Deudor.objects.exclude(documento__in=dni_en_excel).update(activo=False)
