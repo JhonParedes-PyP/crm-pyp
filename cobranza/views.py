@@ -289,7 +289,17 @@ def subir_excel(request):
                             cuenta_val = str(row.get('Cuenta', 'N/A')).strip()
                             
                             raw_fecha = str(row.get('Fecha Ult. Pago', '')).strip()
-                            ultimo_dia_pago_val = safe_date(raw_fecha) if raw_fecha and raw_fecha not in ('', 'nan', 'None') else None
+                            
+                            # Función interna rápida para arreglar el bug de locale de Excel
+                            def fix_excel_date(raw):
+                                raw = str(raw).strip()
+                                if '-' in raw and len(raw) >= 10 and raw[4] == '-':
+                                    parts = raw[:10].split('-')
+                                    if len(parts) == 3:
+                                        raw = f"{parts[0]}-{parts[2]}-{parts[1]}"
+                                return safe_date(raw)
+
+                            ultimo_dia_pago_val = fix_excel_date(raw_fecha) if raw_fecha and raw_fecha not in ('', 'nan', 'None') else None
                             
                             negociacion_str = str(row.get('Negociación', '')).strip()
                             condicion_val = str(row.get('Situación del Proceso', str(row.get('Estado', '')))).strip()
@@ -309,10 +319,10 @@ def subir_excel(request):
                                 ref = f"ZONA: {zona} - {ref}" if ref else f"ZONA: {zona}"
                                 
                             fec_dem_raw = str(row.get('Fecha de Inicio de Demanda', str(row.get('Fecha Ingreso Judicial', '')))).strip()
-                            fec_dem = safe_date(fec_dem_raw) if fec_dem_raw and fec_dem_raw not in ('', 'nan', 'None') else None
+                            fec_dem = fix_excel_date(fec_dem_raw) if fec_dem_raw and fec_dem_raw not in ('', 'nan', 'None') else None
                             
                             ing_jud_raw = str(row.get('Fecha Ingreso Judicial', '')).strip()
-                            ing_jud = safe_date(ing_jud_raw) if ing_jud_raw and ing_jud_raw not in ('', 'nan', 'None') else None
+                            ing_jud = fix_excel_date(ing_jud_raw) if ing_jud_raw and ing_jud_raw not in ('', 'nan', 'None') else None
                             
                             monto_dem_str = str(row.get('Monto de Demanda', '0')).strip()
                             monto_dem = Decimal(monto_dem_str) if monto_dem_str and monto_dem_str not in ('', 'nan', 'None') else None
