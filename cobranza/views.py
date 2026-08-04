@@ -217,17 +217,25 @@ def subir_excel(request):
                 columnas_detectadas = list(df.columns)
                 
                 dni_en_excel = set()
+                carteras_en_excel = set()
                 for index, row in df.iterrows():
                     if formato_seleccionado == 'Caja_Huancayo':
                         documento_val = str(row.get('DNI', row.get('RUC', ''))).strip()
+                        carteras_en_excel.add('CAJA HUANCAYO')
                     else:
                         documento_val = str(row.get('DOC_DNI_RUC', '')).strip()
+                        cartera_val = str(row.get('CARTERA', 'GENERAL')).strip()
+                        if cartera_val:
+                            carteras_en_excel.add(cartera_val)
                         
                     if documento_val:
                         dni_en_excel.add(documento_val)
                         
                 nuevos_y_actualizados = len(dni_en_excel)
-                desactivados_estimados = Deudor.objects.filter(activo=True).exclude(documento__in=dni_en_excel).count()
+                if carteras_en_excel:
+                    desactivados_estimados = Deudor.objects.filter(activo=True, cartera__in=carteras_en_excel).exclude(documento__in=dni_en_excel).count()
+                else:
+                    desactivados_estimados = 0
                 
                 return render(request, 'cobranza/subir_excel.html', {
                     'vista_previa': True,
@@ -262,10 +270,12 @@ def subir_excel(request):
                             break
 
                     dni_en_excel = set()
+                    carteras_en_excel = set()
 
                     with transaction.atomic():
                       for index, row in df.iterrows():
                         if formato == 'Caja_Huancayo':
+                            carteras_en_excel.add('CAJA HUANCAYO')
                             cap_str = str(row.get('Saldo Capital', '0')).strip()
                             tot_str = str(row.get('Saldo Total', str(row.get('Deuda Total', '0')))).strip()
                             cap = Decimal(cap_str) if cap_str and cap_str != 'nan' else Decimal('0')
@@ -358,9 +368,12 @@ def subir_excel(request):
                                     ultimo_dia_pago_val = safe_date(raw)
                             
                             cuenta_val = str(row.get('COD_CREDITO', 'N/A')).strip()
+                            cartera_val = str(row.get('CARTERA', 'GENERAL')).strip()
+                            if cartera_val:
+                                carteras_en_excel.add(cartera_val)
     
                             defaults = {
-                                'cartera': str(row.get('CARTERA', 'GENERAL')).strip(),
+                                'cartera': cartera_val,
                                 'nombre_completo': str(row.get('NOM_CLI', 'SIN NOMBRE')).strip(),
                                 'telefono_principal': str(row.get('TLF_CELULAR_CLIENTE', '')).strip(),
                                 'agencia': str(row.get('NOM_AGENCIA', 'N/A')).strip(),
@@ -406,7 +419,10 @@ def subir_excel(request):
                                   defaults=defaults
                               )
 
-                    eliminados = Deudor.objects.exclude(documento__in=dni_en_excel).update(activo=False)
+                    if carteras_en_excel:
+                        eliminados = Deudor.objects.filter(cartera__in=carteras_en_excel).exclude(documento__in=dni_en_excel).update(activo=False)
+                    else:
+                        eliminados = 0
 
                     resumen = f"{len(dni_en_excel)} clientes cargados/actualizados. {eliminados} desactivados (no estaban en el archivo)."
                     if col_fecha:
