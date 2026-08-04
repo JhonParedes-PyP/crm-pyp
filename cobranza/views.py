@@ -225,9 +225,9 @@ def subir_excel(request):
                 for index, row in df.iterrows():
                     if formato_seleccionado == 'Caja_Huancayo':
                         documento_val = str(row.get('DNI', '')).strip()
-                        if not documento_val or documento_val.lower() == 'nan':
+                        if not documento_val or documento_val.lower() in ('nan', '-', '--'):
                             documento_val = str(row.get('RUC', '')).strip()
-                        if not documento_val or documento_val.lower() == 'nan':
+                        if not documento_val or documento_val.lower() in ('nan', '-', '--'):
                             documento_val = ''
                         
                         if documento_val:
@@ -292,9 +292,9 @@ def subir_excel(request):
                             tot = Decimal(tot_str) if tot_str and tot_str != 'nan' else Decimal('0')
                             
                             documento_val = str(row.get('DNI', '')).strip()
-                            if not documento_val or documento_val.lower() == 'nan':
+                            if not documento_val or documento_val.lower() in ('nan', '-', '--'):
                                 documento_val = str(row.get('RUC', '')).strip()
-                            if not documento_val or documento_val.lower() == 'nan':
+                            if not documento_val or documento_val.lower() in ('nan', '-', '--'):
                                 documento_val = ''
                                 
                             cuenta_val = str(row.get('Cuenta', 'N/A')).strip()
@@ -304,23 +304,7 @@ def subir_excel(request):
                                 continue
                             
                             raw_fecha = str(row.get('Fecha Ult. Pago', '')).strip()
-                            
-                            # Función interna rápida para arreglar el bug de locale de Excel
-                            def fix_excel_date(raw):
-                                raw = str(raw).strip()
-                                if '-' in raw and len(raw) >= 10 and raw[4] == '-':
-                                    parts = raw[:10].split('-')
-                                    if len(parts) == 3 and parts[1].isdigit() and parts[2].isdigit():
-                                        if int(parts[1]) <= 12 and int(parts[2]) <= 12:
-                                            raw = f"{parts[0]}-{parts[2]}-{parts[1]}"
-                                elif '/' in raw:
-                                    parts = raw.split()[0].split('/')
-                                    if len(parts) == 3 and parts[0].isdigit() and parts[1].isdigit():
-                                        if int(parts[0]) <= 12 and int(parts[1]) <= 12:
-                                            raw = f"{parts[1]}/{parts[0]}/{parts[2]}"
-                                return safe_date(raw)
-
-                            ultimo_dia_pago_val = fix_excel_date(raw_fecha) if raw_fecha and raw_fecha not in ('', 'nan', 'None') else None
+                            ultimo_dia_pago_val = safe_date(raw_fecha) if raw_fecha and raw_fecha not in ('', 'nan', 'None') else None
                             
                             negociacion_str = str(row.get('Negociación', '')).strip()
                             condicion_val = str(row.get('Situación del Proceso', str(row.get('Estado', '')))).strip()
@@ -340,10 +324,10 @@ def subir_excel(request):
                                 ref = f"ZONA: {zona} - {ref}" if ref else f"ZONA: {zona}"
                                 
                             fec_dem_raw = str(row.get('Fecha de Inicio de Demanda', str(row.get('Fecha Ingreso Judicial', '')))).strip()
-                            fec_dem = fix_excel_date(fec_dem_raw) if fec_dem_raw and fec_dem_raw not in ('', 'nan', 'None') else None
+                            fec_dem = safe_date(fec_dem_raw) if fec_dem_raw and fec_dem_raw not in ('', 'nan', 'None') else None
                             
                             ing_jud_raw = str(row.get('Fecha Ingreso Judicial', '')).strip()
-                            ing_jud = fix_excel_date(ing_jud_raw) if ing_jud_raw and ing_jud_raw not in ('', 'nan', 'None') else None
+                            ing_jud = safe_date(ing_jud_raw) if ing_jud_raw and ing_jud_raw not in ('', 'nan', 'None') else None
                             
                             monto_dem_str = str(row.get('Monto de Demanda', '0')).strip()
                             monto_dem = Decimal(monto_dem_str) if monto_dem_str and monto_dem_str not in ('', 'nan', 'None') else None
