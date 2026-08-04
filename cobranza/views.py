@@ -224,8 +224,14 @@ def subir_excel(request):
                 carteras_en_excel = set()
                 for index, row in df.iterrows():
                     if formato_seleccionado == 'Caja_Huancayo':
-                        documento_val = str(row.get('DNI', row.get('RUC', ''))).strip()
-                        carteras_en_excel.add('CAJA HUANCAYO')
+                        documento_val = str(row.get('DNI', '')).strip()
+                        if not documento_val or documento_val.lower() == 'nan':
+                            documento_val = str(row.get('RUC', '')).strip()
+                        if not documento_val or documento_val.lower() == 'nan':
+                            documento_val = ''
+                        
+                        if documento_val:
+                            carteras_en_excel.add('CAJA HUANCAYO')
                     else:
                         documento_val = str(row.get('DOC_DNI_RUC', '')).strip()
                         cartera_val = str(row.get('CARTERA', 'GENERAL')).strip()
@@ -285,8 +291,17 @@ def subir_excel(request):
                             cap = Decimal(cap_str) if cap_str and cap_str != 'nan' else Decimal('0')
                             tot = Decimal(tot_str) if tot_str and tot_str != 'nan' else Decimal('0')
                             
-                            documento_val = str(row.get('DNI', row.get('RUC', ''))).strip()
+                            documento_val = str(row.get('DNI', '')).strip()
+                            if not documento_val or documento_val.lower() == 'nan':
+                                documento_val = str(row.get('RUC', '')).strip()
+                            if not documento_val or documento_val.lower() == 'nan':
+                                documento_val = ''
+                                
                             cuenta_val = str(row.get('Cuenta', 'N/A')).strip()
+                            
+                            # Si no hay documento no podemos crear/actualizar al cliente
+                            if not documento_val:
+                                continue
                             
                             raw_fecha = str(row.get('Fecha Ult. Pago', '')).strip()
                             
@@ -295,8 +310,14 @@ def subir_excel(request):
                                 raw = str(raw).strip()
                                 if '-' in raw and len(raw) >= 10 and raw[4] == '-':
                                     parts = raw[:10].split('-')
-                                    if len(parts) == 3:
-                                        raw = f"{parts[0]}-{parts[2]}-{parts[1]}"
+                                    if len(parts) == 3 and parts[1].isdigit() and parts[2].isdigit():
+                                        if int(parts[1]) <= 12 and int(parts[2]) <= 12:
+                                            raw = f"{parts[0]}-{parts[2]}-{parts[1]}"
+                                elif '/' in raw:
+                                    parts = raw.split()[0].split('/')
+                                    if len(parts) == 3 and parts[0].isdigit() and parts[1].isdigit():
+                                        if int(parts[0]) <= 12 and int(parts[1]) <= 12:
+                                            raw = f"{parts[1]}/{parts[0]}/{parts[2]}"
                                 return safe_date(raw)
 
                             ultimo_dia_pago_val = fix_excel_date(raw_fecha) if raw_fecha and raw_fecha not in ('', 'nan', 'None') else None
