@@ -1207,8 +1207,11 @@ def registrar_gestion(request, deudor_id):
             return redirect(url)
 
     cuentas_asociadas = []
+    deuda_total_global = deudor.saldo_deuda or Decimal('0')
     if deudor.documento and deudor.documento.strip():
         cuentas_asociadas = list(Deudor.objects.filter(documento=deudor.documento).order_by('id'))
+        if cuentas_asociadas:
+            deuda_total_global = sum((c.saldo_deuda for c in cuentas_asociadas if c.saldo_deuda), Decimal('0'))
 
     return render(request, 'cobranza/gestionar.html', {
         'deudor': deudor, 
@@ -1226,6 +1229,7 @@ def registrar_gestion(request, deudor_id):
         'desc_nuevo_telefono_valor': desc_nuevo_telefono_valor,
         'puede_depurar_telefonos': puede_depurar_telefonos(request.user),
         'cuentas_asociadas': cuentas_asociadas,
+        'deuda_total_global': deuda_total_global,
     })
 
 # --- ELIMINAR CLIENTE ---

@@ -47,7 +47,15 @@
     
     <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
         <h2 style="color: #003366; margin-top: 0; font-size: 20px;">👤 {{ deudor.nombre_completo }}</h2>
-        <div style="font-size: 28px; font-weight: bold; color: #d9534f; margin: 10px 0;">S/ {{ deudor.saldo_deuda|floatformat:2|intcomma }}</div>
+        <div id="monto_deuda_principal" style="font-size: 28px; font-weight: bold; color: #d9534f; margin: 10px 0 0 0;">S/ {{ deudor.saldo_deuda|floatformat:2|intcomma }}</div>
+        
+        {% if cuentas_asociadas|length > 1 %}
+        <div style="font-size: 12px; color: #777; margin-bottom: 12px; margin-top: 2px;">
+            Deuda Total ({{ cuentas_asociadas|length }} cuentas): <strong>S/ {{ deuda_total_global|floatformat:2|intcomma }}</strong>
+        </div>
+        {% else %}
+        <div style="margin-bottom: 12px;"></div>
+        {% endif %}
         
         <h4 style="color: #666; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid #eee; padding-bottom: 5px;">📞 Contactar</h4>
         <div style="max-height: 400px; overflow-y: auto; margin-top: 10px;">
@@ -424,10 +432,21 @@
 </div>
 
 <script>
+const saldosCuentas = {
+    {% for cuenta in cuentas_asociadas %}
+    "{{ cuenta.id }}": "{{ cuenta.saldo_deuda|floatformat:2|intcomma }}",
+    {% endfor %}
+};
+
 function cambiarCuenta(id) {
     // 1. Ocultar todos los bloques de detalle y mostrar el seleccionado
     document.querySelectorAll('.bloque-detalle-cuenta').forEach(el => el.style.display = 'none');
     document.getElementById('detalle_cuenta_' + id).style.display = 'block';
+
+    // 1.5 Actualizar el monto principal de deuda en rojo
+    if (saldosCuentas[id]) {
+        document.getElementById('monto_deuda_principal').innerText = 'S/ ' + saldosCuentas[id];
+    }
 
     // 2. Sincronizar todos los selects para que muestren la opción correcta
     document.querySelectorAll('.select-cuenta').forEach(select => {
