@@ -232,6 +232,13 @@ def subir_excel(request):
                         
                         if documento_val:
                             carteras_en_excel.add('CAJA HUANCAYO')
+                    elif formato_seleccionado == 'Proempresa':
+                        documento_val = str(row.get('NUM DOC', '')).strip()
+                        if not documento_val or documento_val.lower() in ('nan', '-', '--'):
+                            documento_val = ''
+                        
+                        if documento_val:
+                            carteras_en_excel.add('PROEMPRESA')
                     else:
                         documento_val = str(row.get('DOC_DNI_RUC', '')).strip()
                         cartera_val = str(row.get('CARTERA', 'GENERAL')).strip()
@@ -371,6 +378,74 @@ def subir_excel(request):
                                 'activo': True,
                             }
                             col_fecha = 'Fecha Ult. Pago'
+
+                        elif formato == 'Proempresa':
+                            carteras_en_excel.add('PROEMPRESA')
+                            documento_val = str(row.get('NUM DOC', '')).strip()
+                            if not documento_val or documento_val.lower() in ('nan', '-', '--'):
+                                documento_val = ''
+                                
+                            cuenta_val = str(row.get('COD CREDITO', 'N/A')).strip()
+                            
+                            if not documento_val:
+                                continue
+                            
+                            raw_fecha = str(row.get('FEC ULT PAGO ACTUAL', '')).strip()
+                            ultimo_dia_pago_val = safe_date(raw_fecha) if raw_fecha and raw_fecha not in ('', 'nan', 'None') else None
+                            
+                            negociacion_str = str(row.get('ESTADO TRANSADO', '')).strip()
+                            condicion_val = str(row.get('SITUACION', '')).strip()
+                            
+                            cap_str = str(row.get('DEUDA CAP', '0')).strip()
+                            tot_str = str(row.get('DEUDA TOTAL', '0')).strip()
+                            cap = Decimal(cap_str) if cap_str and cap_str != 'nan' else Decimal('0')
+                            tot = Decimal(tot_str) if tot_str and tot_str != 'nan' else Decimal('0')
+                            
+                            fec_dem_raw = str(row.get('FEC JUDICIAL', '')).strip()
+                            fec_dem = safe_date(fec_dem_raw) if fec_dem_raw and fec_dem_raw not in ('', 'nan', 'None') else None
+                            
+                            ing_jud_raw = str(row.get('FEC JUDICIAL', '')).strip()
+                            ing_jud = safe_date(ing_jud_raw) if ing_jud_raw and ing_jud_raw not in ('', 'nan', 'None') else None
+                            
+                            defaults = {
+                                'cartera': 'PROEMPRESA',
+                                'nombre_completo': str(row.get('NOM CLI', 'SIN NOMBRE')).strip(),
+                                'telefono_principal': str(row.get('TLF CELULAR CLIENTE', str(row.get('TLF FIJO CLIENTE', '')))).strip(),
+                                'agencia': str(row.get('NOM AGENCIA', 'N/A')).strip(),
+                                'monto_capital': cap,
+                                'saldo_deuda': tot,
+                                'dir_casa': str(row.get('DIR CASA', '')).strip(),
+                                'distrito': str(row.get('DISTRITO', '')).strip(),
+                                'nom_conyuge': str(row.get('NOM CLI CONYUGE', '')).strip(),
+                                'nom_aval': str(row.get('NOM AVAL', '')).strip(),
+                                'tlf_celular_aval': str(row.get('TLF CELULAR AVAL', str(row.get('TLF FIJO AVAL', '')))).strip(),
+                                'nom_conyuge_aval': str(row.get('NOM CONYUGE AVAL', '')).strip(),
+                                'rango_dias_mora': str(row.get('DIAS MORA', str(row.get('RANGO', '')))).strip(),
+                                'ultimo_dia_pago': ultimo_dia_pago_val,
+                                'aval_direccion': str(row.get('DIR CASA AVAL', '')).strip(),
+                                'aval_distrito': '',
+                                'expediente': '',
+                                'juzgado': '',
+                                'condicion': condicion_val,
+                                'referencia': '',
+                                'proceso': str(row.get('PROCESO JUDICIAL', '')).strip(),
+                                'fec_demanda': fec_dem,
+                                'monto_demanda': None,
+                                'ingreso_judicial': ing_jud,
+                                'producto': str(row.get('PRODUCTO', str(row.get('TIPO GARANTIA', '')))).strip(),
+                                'nmes': str(row.get('NMes', '')).strip(),
+                                'departamento': str(row.get('DEPARTAMENTO', '')).strip(),
+                                'provincia': str(row.get('PROVINCIA', '')).strip(),
+                                'dir_negocio': str(row.get('DIR NEGOCIO', '')).strip(),
+                                'imp_recup': Decimal(str(row.get('IMP RECUP.', '0')).strip()) if str(row.get('IMP RECUP.', '0')).strip() not in ('', 'nan', 'None') else None,
+                                'imp_capital_rec': Decimal(str(row.get('IMP CAP REC', '0')).strip()) if str(row.get('IMP CAP REC', '0')).strip() not in ('', 'nan', 'None') else None,
+                                'num_doc_conyuge': '',
+                                'num_doc_aval': str(row.get('NUM DOC AVAL', '')).strip(),
+                                'zona': str(row.get('REGION', '')).strip(),
+                                'negociacion': negociacion_str,
+                                'activo': True,
+                            }
+                            col_fecha = 'FEC ULT PAGO ACTUAL'
 
                         else:
                             cap_str = str(row.get('DEUDA_CAP', '0')).strip()
