@@ -1232,6 +1232,128 @@ def registrar_gestion(request, deudor_id):
         'deuda_total_global': deuda_total_global,
     })
 
+# --- GENERAR CARTAS ---
+@login_required
+def generar_cartas(request):
+    if not es_gerente(request.user):
+        return HttpResponse("Acceso Denegado. Solo Gerencia puede generar cartas masivas.", status=403)
+        
+    if request.GET.get('descargar') == '1':
+        cartera = request.GET.get('cartera')
+        agencia = request.GET.get('agencia')
+        distrito = request.GET.get('distrito')
+        
+        # Filtrar clientes
+        qs = Deudor.objects.filter(activo=True)
+        if cartera:
+            qs = qs.filter(cartera=cartera)
+        if agencia:
+            qs = qs.filter(agencia=agencia)
+        if distrito:
+            qs = qs.filter(distrito=distrito)
+            
+        # Ordenar por distrito y dirección para la ruta
+        clientes = list(qs.order_by('distrito', 'dir_casa'))
+        
+        if not clientes:
+            return HttpResponse("No se encontraron clientes con esos filtros.", status=404)
+            
+        try:
+            import io
+            import datetime
+            import os
+            from django.conf import settings
+            from docx import Document
+            
+            # Crear documento final
+            doc_final = Document()
+            
+            # --- 1. HOJA DE RUTA ---
+            doc_final.add_heading('HOJA DE RUTA - NOTIFICACIONES', 0)
+            doc_final.add_paragraph(f"Cartera: {cartera or 'TODAS'} | Distrito: {distrito or 'TODOS'}")
+            doc_final.add_paragraph(f"Fecha de Generación: {datetime.date.today().strftime('%d/%m/%Y')} | Total a notificar: {len(clientes)}")
+            
+            table = doc_final.add_table(rows=1, cols=4)
+            table.style = 'Table Grid'
+            hdr_cells = table.rows[0].cells
+            hdr_cells[0].text = 'N°'
+            hdr_cells[1].text = 'Cliente'
+            hdr_cells[2].text = 'Dirección'
+            hdr_cells[3].text = 'Entregado (Firma/Cargo)'
+            
+            for idx, c in enumerate(clientes, 1):
+                row_cells = table.add_row().cells
+                row_cells[0].text = str(idx)
+                row_cells[1].text = f"{c.nombre_completo}\nCta: {c.cuenta or 'S/N'}"
+                row_cells[2].text = c.dir_casa or ''
+                row_cells[3].text = "☐ Bajo Puerta  ☐ Familiar  ☐ Titular\nObs: _____________"
+                
+            doc_final.add_page_break()
+            
+            # --- 2. GENERAR CARTAS ---
+            template_path = os.path.join(settings.BASE_DIR, 'plantilla_caja_huancayo.docx')
+            
+            for i, c in enumerate(clientes):
+                # Abrir la plantilla limpia para cada cliente
+                doc_temp = Document(template_path)
+                
+                mapping = {
+                    '[FECHA_ACTUAL]': datetime.date.today().strftime('%d/%m/%Y'),
+                    '[NOMBRE_CLIENTE]': c.nombre_completo,
+                    '[NUM_CUENTA]': c.cuenta or '',
+                    '[DIRECCION_CLIENTE]': f"{c.dir_casa} - {c.distrito} - {c.provincia} - {c.departamento}",
+                    '[NOMBRE_AVAL]': c.nom_aval or 'SIN AVAL',
+                    '[AGENCIA]': c.agencia or 'S/A'
+                }
+                
+                # Reemplazar en párrafos
+                for p in doc_temp.paragraphs:
+                    for key, val in mapping.items():
+                        if key in p.text:
+                            p.text = p.text.replace(key, str(val))
+                            
+                # Reemplazar en tablas
+                for t in doc_temp.tables:
+                    for row in t.rows:
+                        for cell in row.cells:
+                            for p in cell.paragraphs:
+                                for key, val in mapping.items():
+                                    if key in p.text:
+                                        p.text = p.text.replace(key, str(val))
+                            
+                # Agregar la CARTA al documento final
+                for element in doc_temp.element.body:
+                    doc_final.element.body.append(element)
+                
+                # Insertar un salto de página entre clientes
+                if i < len(clientes) - 1:
+                    doc_final.add_page_break()
+                    
+            output = io.BytesIO()
+            doc_final.save(output)
+            output.seek(0)
+            
+            filename = f"Rutas_{distrito or 'General'}_{datetime.date.today().strftime('%Y%m%d')}.docx"
+            response = HttpResponse(output, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return HttpResponse(f"Error generando documento: {str(e)}", status=500)
+    
+    # Render UI
+    carteras = Deudor.objects.exclude(cartera='').values_list('cartera', flat=True).distinct().order_by('cartera')
+    agencias = Deudor.objects.exclude(agencia='').values_list('agencia', flat=True).distinct().order_by('agencia')
+    distritos = Deudor.objects.exclude(distrito='').values_list('distrito', flat=True).distinct().order_by('distrito')
+    
+    return render(request, 'cobranza/generar_cartas.html', {
+        'carteras': carteras,
+        'agencias': agencias,
+        'distritos': distritos,
+    })
+
 # --- ELIMINAR CLIENTE ---
 @login_required
 @require_http_methods(["POST"])

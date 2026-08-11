@@ -1,0 +1,90 @@
+{% extends 'cobranza/base.html' %}
+{% load static %}
+
+{% block content %}
+<div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 800px; margin: 0 auto;">
+    <h2 style="color: #003366; margin-top: 0; font-size: 24px; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px;">
+        📩 Generador Masivo de Cartas y Rutas
+    </h2>
+    
+    <p style="color: #666; font-size: 14px; margin-bottom: 20px;">
+        Selecciona los filtros para generar las cartas de cobranza. El sistema descargará un archivo Word (.docx) ordenado por dirección para facilitar la ruta del notificador, e incluirá una "Hoja de Ruta" como primera página.
+    </p>
+
+    <form method="GET" action="{% url 'generar_cartas' %}" onsubmit="setLoading(true);">
+        <input type="hidden" name="descargar" value="1">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+            <!-- Cartera -->
+            <div>
+                <label style="font-size: 13px; font-weight: bold; color: #555; display: block; margin-bottom: 6px;">1. Selecciona la Cartera</label>
+                <select name="cartera" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; background: #f8f9fa;">
+                    <option value="">-- Elige una Cartera --</option>
+                    {% for c in carteras %}
+                        <option value="{{ c }}">{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- Agencia -->
+            <div>
+                <label style="font-size: 13px; font-weight: bold; color: #555; display: block; margin-bottom: 6px;">2. Agencia (Opcional)</label>
+                <select name="agencia" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; background: #f8f9fa;">
+                    <option value="">Todas las agencias</option>
+                    {% for a in agencias %}
+                        <option value="{{ a }}">{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+            <!-- Distrito -->
+            <div>
+                <label style="font-size: 13px; font-weight: bold; color: #555; display: block; margin-bottom: 6px;">3. Distrito (Ruta Física)</label>
+                <select name="distrito" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; background: #f8f9fa;">
+                    <option value="">-- Selecciona el Distrito --</option>
+                    {% for d in distritos %}
+                        <option value="{{ d }}">{{ d }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- Plantilla -->
+            <div>
+                <label style="font-size: 13px; font-weight: bold; color: #555; display: block; margin-bottom: 6px;">4. Modelo de Carta</label>
+                <select name="plantilla" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; background: #f8f9fa;">
+                    <option value="caja_huancayo">Modelo Caja Huancayo</option>
+                </select>
+            </div>
+        </div>
+
+        <button type="submit" id="btn-generar" style="background: linear-gradient(135deg, #17a2b8, #138496); color: white; border: none; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; width: 100%; display: flex; justify-content: center; align-items: center; gap: 10px; transition: transform 0.2s;">
+            <span>📄 Generar Archivo de Rutas y Cartas (Word)</span>
+        </button>
+        
+        <div id="loading-msg" style="display: none; text-align: center; margin-top: 15px; color: #666; font-size: 14px;">
+            ⏳ Procesando el documento. Esto puede tomar unos segundos dependiendo de la cantidad de clientes...
+        </div>
+    </form>
+</div>
+
+<script>
+    function setLoading(isLoading) {
+        const btn = document.getElementById('btn-generar');
+        const msg = document.getElementById('loading-msg');
+        if(isLoading) {
+            btn.style.opacity = '0.7';
+            btn.style.pointerEvents = 'none';
+            msg.style.display = 'block';
+            
+            // Volver a habilitar después de 5 segundos por si el navegador descarga el archivo
+            setTimeout(() => {
+                btn.style.opacity = '1';
+                btn.style.pointerEvents = 'auto';
+                msg.style.display = 'none';
+            }, 6000);
+        }
+    }
+</script>
+{% endblock %}
