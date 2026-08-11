@@ -1265,8 +1265,16 @@ def generar_cartas(request):
             return HttpResponse("No se encontraron clientes con esos filtros.", status=404)
             
         try:
-            # Crear documento final
-            doc_final = Document()
+            # Crear documento final a partir de la plantilla para conservar estilos y márgenes
+            template_path = os.path.join(settings.BASE_DIR, 'plantilla_caja_huancayo_v2.docx')
+            doc_final = Document(template_path)
+            
+            # Limpiar contenido de doc_final para usarlo como hoja maestra
+            for p in doc_final.paragraphs:
+                p._element.getparent().remove(p._element)
+            for t in doc_final.tables:
+                t._element.getparent().remove(t._element)
+            doc_final.add_paragraph()
             
             # --- 1. HOJA DE RUTA ---
             doc_final.add_heading('HOJA DE RUTA - NOTIFICACIONES', 0)
