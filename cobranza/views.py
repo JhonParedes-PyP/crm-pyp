@@ -1284,8 +1284,8 @@ def generar_cartas(request):
             doc_final.add_paragraph(f"Cartera: {cartera or 'TODAS'} | Distrito: {distrito or 'TODOS'}")
             doc_final.add_paragraph(f"Fecha de Generación: {datetime.date.today().strftime('%d/%m/%Y')} | Total a notificar: {len(clientes)}")
             
-            table = doc_final.add_table(rows=1, cols=4)
-            table.style = 'Table Grid'
+            # Crear tabla para los clientes, sin bordes por defecto (o estilo base)
+            table = doc_final.add_table(rows=1, cols=4, style='Normal Table')
             hdr_cells = table.rows[0].cells
             hdr_cells[0].text = 'N°'
             hdr_cells[1].text = 'Cliente'
