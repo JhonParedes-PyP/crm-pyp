@@ -1277,7 +1277,10 @@ def generar_cartas(request):
             doc_final.add_paragraph()
             
             # --- 1. HOJA DE RUTA ---
-            doc_final.add_heading('HOJA DE RUTA - NOTIFICACIONES', 0)
+            p_titulo = doc_final.add_paragraph()
+            run_titulo = p_titulo.add_run('HOJA DE RUTA - NOTIFICACIONES')
+            run_titulo.bold = True
+            p_titulo.alignment = 1 # Centered
             doc_final.add_paragraph(f"Cartera: {cartera or 'TODAS'} | Distrito: {distrito or 'TODOS'}")
             doc_final.add_paragraph(f"Fecha de Generación: {datetime.date.today().strftime('%d/%m/%Y')} | Total a notificar: {len(clientes)}")
             
