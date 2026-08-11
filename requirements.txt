@@ -65,6 +65,8 @@ pyinstaller-hooks-contrib==2026.3
 pyparsing==3.3.2
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.2
+python-docx
+docxcompose
 python-slugify==8.0.4
 pywin32-ctypes==0.2.3
 PyYAML==6.0.3

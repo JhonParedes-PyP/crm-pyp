@@ -34,6 +34,11 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator
 from django.urls import reverse
+import os
+import datetime
+import io
+from docx import Document
+from docxcompose.composer import Composer
 
 # --- FUNCIÓN PARA VERIFICAR SI ES GERENTE ---
 def es_gerente(user):
@@ -191,7 +196,6 @@ def salir_sistema(request):
         pass
     return redirect('login')
 
-import os
 import uuid
 from django.core.files.storage import FileSystemStorage
 
@@ -1259,12 +1263,6 @@ def generar_cartas(request):
             return HttpResponse("No se encontraron clientes con esos filtros.", status=404)
             
         try:
-            import io
-            import datetime
-            import os
-            from django.conf import settings
-            from docx import Document
-            
             # Crear documento final
             doc_final = Document()
             
@@ -1289,6 +1287,9 @@ def generar_cartas(request):
                 row_cells[3].text = "☐ Bajo Puerta  ☐ Familiar  ☐ Titular\nObs: _____________"
                 
             doc_final.add_page_break()
+            
+            # Iniciar composer con el documento final (que tiene la hoja de ruta)
+            composer = Composer(doc_final)
             
             # --- 2. GENERAR CARTAS ---
             template_path = os.path.join(settings.BASE_DIR, 'plantilla_caja_huancayo_v2.docx')
@@ -1321,15 +1322,11 @@ def generar_cartas(request):
                                 for key, val in mapping.items():
                                     if key in p.text:
                                         p.text = p.text.replace(key, str(val))
-                            
-                # Agregar la CARTA al documento final
-                for element in doc_temp.element.body:
-                    doc_final.element.body.append(element)
+                                        
+                # Agregar la CARTA al documento final usando docxcompose
+                composer.append(doc_temp)
                 
-                # Insertar un salto de página entre clientes
-                if i < len(clientes) - 1:
-                    doc_final.add_page_break()
-                    
+            # --- 3. RETORNAR EL ARCHIVO WORD ---
             output = io.BytesIO()
             doc_final.save(output)
             output.seek(0)
