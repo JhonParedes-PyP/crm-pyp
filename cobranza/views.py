@@ -342,7 +342,9 @@ def subir_excel(request):
                             
                             monto_dem_str = str(row.get('Monto de Demanda', '0')).strip()
                             monto_dem = Decimal(monto_dem_str) if monto_dem_str and monto_dem_str not in ('', 'nan', 'None') else None
-
+                            
+                            correlativo = str(row.get('CORRELATIVO', str(row.get('NUMERO DE CARTA Y CORRELATIVO', str(row.get('NUMERO DE CARTA', '')))))).strip()
+                            
                             defaults = {
                                 'cartera': 'CAJA HUANCAYO',
                                 'nombre_completo': str(row.get('Cliente', 'SIN NOMBRE')).strip(),
@@ -360,7 +362,7 @@ def subir_excel(request):
                                 'ultimo_dia_pago': ultimo_dia_pago_val,
                                 'aval_direccion': str(row.get('Direcc_Fiador', '')).strip(),
                                 'aval_distrito': str(row.get('Dist_Fiador', '')).strip(),
-                                'expediente': str(row.get('Expediente', '')).strip(),
+                                'expediente': correlativo,
                                 'juzgado': str(row.get('Juzgado', '')).strip(),
                                 'condicion': condicion_val,
                                 'referencia': ref,
@@ -1305,23 +1307,43 @@ def generar_cartas(request):
                     '[DIRECCION_CLIENTE]': f"{c.dir_casa} - {c.distrito} - {c.provincia} - {c.departamento}",
                     '[NOMBRE_AVAL]': c.nom_aval or 'SIN AVAL',
                     '[AGENCIA]': c.agencia or 'S/A',
-                    '[MONTO_DEUDA]': str(c.saldo_deuda) if c.saldo_deuda else '0.00'
+                    '[MONTO_DEUDA]': f"S/ {c.saldo_deuda:.2f}" if c.saldo_deuda else 'S/ 0.00',
+                    '[NRO_CARTA]': c.expediente or f"{i+1:04d}-2026-COD",
+                    '[FECHA_ULT_PAGO]': c.ultimo_dia_pago.strftime('%d/%m/%Y') if c.ultimo_dia_pago else '--/--/----'
                 }
                 
-                # Reemplazar en párrafos
+                # Reemplazar en párrafos (respetando estilos)
                 for p in doc_temp.paragraphs:
                     for key, val in mapping.items():
                         if key in p.text:
-                            p.text = p.text.replace(key, str(val))
+                            replaced_in_run = False
+                            for run in p.runs:
+                                if key in run.text:
+                                    run.text = run.text.replace(key, str(val))
+                                    replaced_in_run = True
+                            if not replaced_in_run:
+                                full_text = p.text.replace(key, str(val))
+                                if p.runs:
+                                    p.runs[0].text = full_text
+                                    for r in p.runs[1:]: r.text = ""
                             
-                # Reemplazar en tablas
+                # Reemplazar en tablas (respetando estilos)
                 for t in doc_temp.tables:
                     for row in t.rows:
                         for cell in row.cells:
                             for p in cell.paragraphs:
                                 for key, val in mapping.items():
                                     if key in p.text:
-                                        p.text = p.text.replace(key, str(val))
+                                        replaced_in_run = False
+                                        for run in p.runs:
+                                            if key in run.text:
+                                                run.text = run.text.replace(key, str(val))
+                                                replaced_in_run = True
+                                        if not replaced_in_run:
+                                            full_text = p.text.replace(key, str(val))
+                                            if p.runs:
+                                                p.runs[0].text = full_text
+                                                for r in p.runs[1:]: r.text = ""
                                         
                 # Agregar la CARTA al documento final usando docxcompose
                 composer.append(doc_temp)
