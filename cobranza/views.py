@@ -1345,14 +1345,33 @@ def generar_cartas(request):
             return HttpResponse(f"Error generando documento: {str(e)}", status=500)
     
     # Render UI
-    carteras = Deudor.objects.exclude(cartera='').values_list('cartera', flat=True).distinct().order_by('cartera')
-    agencias = Deudor.objects.exclude(agencia='').values_list('agencia', flat=True).distinct().order_by('agencia')
-    distritos = Deudor.objects.exclude(distrito='').values_list('distrito', flat=True).distinct().order_by('distrito')
+    import json
+    
+    # Build hierarchy dict for cascading dropdowns
+    datos_jerarquia = {}
+    combinaciones = Deudor.objects.filter(activo=True).exclude(cartera='').values('cartera', 'agencia', 'distrito').distinct()
+    
+    for row in combinaciones:
+        c = row['cartera']
+        a = row['agencia'] or 'SIN AGENCIA'
+        d = row['distrito'] or 'SIN DISTRITO'
+        
+        if c not in datos_jerarquia:
+            datos_jerarquia[c] = {}
+        if a not in datos_jerarquia[c]:
+            datos_jerarquia[c][a] = set()
+        datos_jerarquia[c][a].add(d)
+        
+    # Convert sets to sorted lists
+    for c in datos_jerarquia:
+        for a in datos_jerarquia[c]:
+            datos_jerarquia[c][a] = sorted(list(datos_jerarquia[c][a]))
+            
+    carteras = sorted(datos_jerarquia.keys())
     
     return render(request, 'cobranza/generar_cartas.html', {
         'carteras': carteras,
-        'agencias': agencias,
-        'distritos': distritos,
+        'datos_jerarquia_json': json.dumps(datos_jerarquia),
     })
 
 # --- ELIMINAR CLIENTE ---

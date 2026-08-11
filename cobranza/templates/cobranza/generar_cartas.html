@@ -18,7 +18,7 @@
             <!-- Cartera -->
             <div>
                 <label style="font-size: 13px; font-weight: bold; color: #555; display: block; margin-bottom: 6px;">1. Selecciona la Cartera</label>
-                <select name="cartera" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; background: #f8f9fa;">
+                <select id="select-cartera" name="cartera" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; background: #f8f9fa;" onchange="actualizarAgencias()">
                     <option value="">-- Elige una Cartera --</option>
                     {% for c in carteras %}
                         <option value="{{ c }}">{{ c }}</option>
@@ -29,11 +29,8 @@
             <!-- Agencia -->
             <div>
                 <label style="font-size: 13px; font-weight: bold; color: #555; display: block; margin-bottom: 6px;">2. Agencia (Opcional)</label>
-                <select name="agencia" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; background: #f8f9fa;">
-                    <option value="">Todas las agencias</option>
-                    {% for a in agencias %}
-                        <option value="{{ a }}">{{ a }}</option>
-                    {% endfor %}
+                <select id="select-agencia" name="agencia" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; background: #f8f9fa;" onchange="actualizarDistritos()" disabled>
+                    <option value="">-- Selecciona Primero Cartera --</option>
                 </select>
             </div>
         </div>
@@ -42,11 +39,8 @@
             <!-- Distrito -->
             <div>
                 <label style="font-size: 13px; font-weight: bold; color: #555; display: block; margin-bottom: 6px;">3. Distrito (Ruta Física)</label>
-                <select name="distrito" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; background: #f8f9fa;">
-                    <option value="">-- Selecciona el Distrito --</option>
-                    {% for d in distritos %}
-                        <option value="{{ d }}">{{ d }}</option>
-                    {% endfor %}
+                <select id="select-distrito" name="distrito" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; background: #f8f9fa;" disabled>
+                    <option value="">-- Selecciona Primero Agencia --</option>
                 </select>
             </div>
             
@@ -70,6 +64,72 @@
 </div>
 
 <script>
+    const datosJerarquia = JSON.parse('{{ datos_jerarquia_json|escapejs }}');
+    const selectCartera = document.getElementById('select-cartera');
+    const selectAgencia = document.getElementById('select-agencia');
+    const selectDistrito = document.getElementById('select-distrito');
+
+    function actualizarAgencias() {
+        const cartera = selectCartera.value;
+        selectAgencia.innerHTML = '<option value="">Todas las agencias</option>';
+        selectDistrito.innerHTML = '<option value="">-- Selecciona el Distrito --</option>';
+        
+        if (!cartera || !datosJerarquia[cartera]) {
+            selectAgencia.disabled = true;
+            selectDistrito.disabled = true;
+            return;
+        }
+
+        const agencias = Object.keys(datosJerarquia[cartera]).sort();
+        agencias.forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a === 'SIN AGENCIA' ? '' : a;
+            opt.textContent = a;
+            selectAgencia.appendChild(opt);
+        });
+
+        selectAgencia.disabled = false;
+        
+        // Populate all distritos across all agencias of this cartera
+        actualizarDistritos(true);
+    }
+
+    function actualizarDistritos(fromCartera = false) {
+        const cartera = selectCartera.value;
+        const agencia = selectAgencia.value || (selectAgencia.options[selectAgencia.selectedIndex]?.text === 'SIN AGENCIA' ? 'SIN AGENCIA' : '');
+        
+        selectDistrito.innerHTML = '<option value="">-- Selecciona el Distrito --</option>';
+        selectDistrito.disabled = true;
+
+        if (!cartera || !datosJerarquia[cartera]) return;
+
+        let distritosSet = new Set();
+
+        if (agencia && agencia !== 'Todas las agencias') {
+            const agKey = agencia === '' ? 'SIN AGENCIA' : agencia;
+            if (datosJerarquia[cartera][agKey]) {
+                datosJerarquia[cartera][agKey].forEach(d => distritosSet.add(d));
+            }
+        } else {
+            // All agencias
+            Object.values(datosJerarquia[cartera]).forEach(distList => {
+                distList.forEach(d => distritosSet.add(d));
+            });
+        }
+
+        const distritos = Array.from(distritosSet).sort();
+        distritos.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d === 'SIN DISTRITO' ? '' : d;
+            opt.textContent = d;
+            selectDistrito.appendChild(opt);
+        });
+
+        if(distritos.length > 0) {
+            selectDistrito.disabled = false;
+        }
+    }
+
     function setLoading(isLoading) {
         const btn = document.getElementById('btn-generar');
         const msg = document.getElementById('loading-msg');
