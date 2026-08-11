@@ -262,7 +262,9 @@ def generar_estrategia_cartera(datos_agrupados):
     Genera un informe estratégico de cobranza usando DeepSeek basado en datos estadísticos de la cartera.
     """
     import json
+    from django.utils import timezone
     client = _get_client()
+    hoy = timezone.localtime().strftime("%d/%m/%Y")
     
     prompt_sistema = """Eres un Estratega Senior de Recuperaciones y Cobranza para P&P Soluciones Jurídicas (estudio de abogados en Perú).
 Tu objetivo es analizar un resumen de una cartera (o agencia específica) y elaborar una ESTRATEGIA DE COBRANZA accionable para la gerencia y el equipo de gestores.
@@ -274,24 +276,28 @@ Instrucciones:
    - ¿A quiénes hacer LLAMADAS DE SEGUIMIENTO?
    - ¿A quiénes derivar a MENSAJES (WhatsApp/SMS) masivos?
    - ¿Qué acciones legales continuar para los procesos de EMBARGO?
-3. Genera un plan de trabajo claro, usando viñetas, tablas Markdown, y un lenguaje directo, corporativo pero motivador.
-4. (Importante) Haz recomendaciones basadas EXCLUSIVAMENTE en los datos que te proveen.
+3. (PRIORIDAD ALTA) Dale MUCHA IMPORTANCIA a los clientes que tienen CONVENIOS DE PAGO o NEGOCIACIÓN. Fíjate en sus fechas de pago y evalúa si, dada la fecha actual, ya deberían haber pagado y han incumplido. Diseña un plan de choque específico para estos convenios caídos o próximos a vencer.
+4. Genera un plan de trabajo claro, usando viñetas, tablas Markdown, y un lenguaje directo, corporativo pero motivador.
+5. (Importante) Haz recomendaciones basadas EXCLUSIVAMENTE en los datos que te proveen.
 
 Tu salida debe usar formato Markdown (negritas, listas, tablas) y estar estructurada en:
 ## 1. Diagnóstico de la Cartera
 ## 2. Estrategia de Segmentación (Visitas vs Llamadas vs Mensajes)
-## 3. Plan de Acción Inmediato (Casos Críticos / Top Deudas)
-## 4. Gestión de Embargos y Medidas Cautelares
-## 5. Recomendaciones Finales
+## 3. Plan de Acción para Convenios y Negociaciones (Control de Incumplimientos)
+## 4. Plan de Acción Inmediato (Casos Críticos / Top Deudas)
+## 5. Gestión de Embargos y Medidas Cautelares
+## 6. Recomendaciones Finales
 """
 
-    prompt_usuario = f"""A continuación te presento los datos de la cartera a analizar:
+    prompt_usuario = f"""TEN EN CUENTA QUE LA FECHA DE HOY ES: {hoy}
+
+A continuación te presento los datos de la cartera a analizar:
 
 ```json
 {json.dumps(datos_agrupados, indent=2, default=str)}
 ```
 
-Por favor, genera la estrategia.
+Por favor, genera la estrategia con especial énfasis en los incumplimientos de convenios.
 """
 
     response = client.chat.completions.create(
