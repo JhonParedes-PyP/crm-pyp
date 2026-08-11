@@ -1291,7 +1291,7 @@ def generar_cartas(request):
             doc_final.add_page_break()
             
             # --- 2. GENERAR CARTAS ---
-            template_path = os.path.join(settings.BASE_DIR, 'plantilla_caja_huancayo.docx')
+            template_path = os.path.join(settings.BASE_DIR, 'plantilla_caja_huancayo_v2.docx')
             
             for i, c in enumerate(clientes):
                 # Abrir la plantilla limpia para cada cliente
@@ -1303,7 +1303,8 @@ def generar_cartas(request):
                     '[NUM_CUENTA]': c.cuenta or '',
                     '[DIRECCION_CLIENTE]': f"{c.dir_casa} - {c.distrito} - {c.provincia} - {c.departamento}",
                     '[NOMBRE_AVAL]': c.nom_aval or 'SIN AVAL',
-                    '[AGENCIA]': c.agencia or 'S/A'
+                    '[AGENCIA]': c.agencia or 'S/A',
+                    '[MONTO_DEUDA]': str(c.deuda_total) if c.deuda_total else '0.00'
                 }
                 
                 # Reemplazar en párrafos
