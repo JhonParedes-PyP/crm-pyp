@@ -1245,6 +1245,9 @@ def generar_cartas(request):
         cartera = request.GET.get('cartera')
         agencia = request.GET.get('agencia')
         distrito = request.GET.get('distrito')
+        estado_negociacion = request.GET.get('estado_negociacion')
+        fecha_pago_desde = request.GET.get('fecha_pago_desde')
+        fecha_pago_hasta = request.GET.get('fecha_pago_hasta')
         
         # Filtrar clientes
         qs = Deudor.objects.filter(activo=True)
@@ -1254,6 +1257,16 @@ def generar_cartas(request):
             qs = qs.filter(agencia=agencia)
         if distrito:
             qs = qs.filter(distrito=distrito)
+            
+        if estado_negociacion == 'con_negociacion':
+            qs = qs.exclude(negociacion__isnull=True).exclude(negociacion__exact='')
+        elif estado_negociacion == 'sin_negociacion':
+            qs = qs.filter(Q(negociacion__isnull=True) | Q(negociacion__exact=''))
+
+        if fecha_pago_desde:
+            qs = qs.filter(ultimo_dia_pago__gte=fecha_pago_desde)
+        if fecha_pago_hasta:
+            qs = qs.filter(ultimo_dia_pago__lte=fecha_pago_hasta)
             
         # Ordenar por distrito y dirección para la ruta
         clientes = list(qs.order_by('distrito', 'dir_casa'))
