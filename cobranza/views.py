@@ -1244,7 +1244,7 @@ def generar_cartas(request):
     if request.GET.get('descargar') == '1':
         cartera = request.GET.get('cartera')
         agencia = request.GET.get('agencia')
-        distrito = request.GET.get('distrito')
+        distritos = request.GET.getlist('distrito')
         estado_negociacion = request.GET.get('estado_negociacion')
         fecha_pago_desde = request.GET.get('fecha_pago_desde')
         fecha_pago_hasta = request.GET.get('fecha_pago_hasta')
@@ -1255,8 +1255,8 @@ def generar_cartas(request):
             qs = qs.filter(cartera=cartera)
         if agencia:
             qs = qs.filter(agencia=agencia)
-        if distrito:
-            qs = qs.filter(distrito=distrito)
+        if distritos:
+            qs = qs.filter(distrito__in=distritos)
             
         if estado_negociacion == 'con_negociacion':
             qs = qs.exclude(negociacion__isnull=True).exclude(negociacion__exact='')

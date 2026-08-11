@@ -39,9 +39,9 @@
             <!-- Distrito -->
             <div>
                 <label style="font-size: 13px; font-weight: bold; color: #555; display: block; margin-bottom: 6px;">3. Distrito (Ruta Física)</label>
-                <select id="select-distrito" name="distrito" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; background: #f8f9fa;" disabled>
-                    <option value="">-- Todos los Distritos --</option>
-                </select>
+                <div id="div-distritos" style="width: 100%; max-height: 130px; overflow-y: auto; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; background: #f8f9fa;">
+                    <div style="color:#999; font-style:italic;">-- Todos los Distritos --</div>
+                </div>
             </div>
             
             <!-- Plantilla -->
@@ -88,16 +88,15 @@
     const datosJerarquia = JSON.parse('{{ datos_jerarquia_json|escapejs }}');
     const selectCartera = document.getElementById('select-cartera');
     const selectAgencia = document.getElementById('select-agencia');
-    const selectDistrito = document.getElementById('select-distrito');
+    const divDistritos = document.getElementById('div-distritos');
 
     function actualizarAgencias() {
         const cartera = selectCartera.value;
         selectAgencia.innerHTML = '<option value="">Todas las agencias</option>';
-        selectDistrito.innerHTML = '<option value="">-- Todos los Distritos --</option>';
+        divDistritos.innerHTML = '<div style="color:#999; font-style:italic;">-- Todos los Distritos --</div>';
         
         if (!cartera || !datosJerarquia[cartera]) {
             selectAgencia.disabled = true;
-            selectDistrito.disabled = true;
             return;
         }
 
@@ -119,10 +118,12 @@
         const cartera = selectCartera.value;
         const agencia = selectAgencia.value || (selectAgencia.options[selectAgencia.selectedIndex]?.text === 'SIN AGENCIA' ? 'SIN AGENCIA' : '');
         
-        selectDistrito.innerHTML = '<option value="">-- Todos los Distritos --</option>';
-        selectDistrito.disabled = true;
+        divDistritos.innerHTML = '<div style="color:#999; font-style:italic;">-- Seleccionando... --</div>';
 
-        if (!cartera || !datosJerarquia[cartera]) return;
+        if (!cartera || !datosJerarquia[cartera]) {
+            divDistritos.innerHTML = '<div style="color:#999; font-style:italic;">-- Todos los Distritos --</div>';
+            return;
+        }
 
         let distritosSet = new Set();
 
@@ -139,15 +140,24 @@
         }
 
         const distritos = Array.from(distritosSet).sort();
-        distritos.forEach(d => {
-            const opt = document.createElement('option');
-            opt.value = d === 'SIN DISTRITO' ? '' : d;
-            opt.textContent = d;
-            selectDistrito.appendChild(opt);
-        });
-
+        
+        divDistritos.innerHTML = '';
+        
         if(distritos.length > 0) {
-            selectDistrito.disabled = false;
+            const helpText = document.createElement('div');
+            helpText.style.cssText = 'color:#17a2b8; font-size:12px; margin-bottom:8px; border-bottom: 1px solid #ddd; padding-bottom: 4px;';
+            helpText.textContent = 'Selecciona varios (si no marcas, salen todos):';
+            divDistritos.appendChild(helpText);
+            
+            distritos.forEach(d => {
+                const val = d === 'SIN DISTRITO' ? '' : d;
+                const label = document.createElement('label');
+                label.style.cssText = 'display:flex; align-items:center; margin-bottom:5px; cursor:pointer; font-size: 13px; color: #333;';
+                label.innerHTML = `<input type="checkbox" name="distrito" value="${val}" style="margin-right:8px; width: 16px; height: 16px;"> ${d}`;
+                divDistritos.appendChild(label);
+            });
+        } else {
+            divDistritos.innerHTML = '<div style="color:#999; font-style:italic;">No hay distritos disponibles</div>';
         }
     }
 
