@@ -1241,9 +1241,6 @@ def registrar_gestion(request, deudor_id):
 # --- GENERAR CARTAS ---
 @login_required
 def generar_cartas(request):
-    if not es_gerente(request.user):
-        return HttpResponse("Acceso Denegado. Solo Gerencia puede generar cartas masivas.", status=403)
-        
     if request.GET.get('descargar') == '1':
         cartera = request.GET.get('cartera')
         agencia = request.GET.get('agencia')
