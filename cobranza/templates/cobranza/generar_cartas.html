@@ -39,8 +39,8 @@
             <!-- Distrito -->
             <div>
                 <label style="font-size: 13px; font-weight: bold; color: #555; display: block; margin-bottom: 6px;">3. Distrito (Ruta Física)</label>
-                <select id="select-distrito" name="distrito" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; background: #f8f9fa;" disabled>
-                    <option value="">-- Selecciona Primero Agencia --</option>
+                <select id="select-distrito" name="distrito" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; background: #f8f9fa;" disabled>
+                    <option value="">-- Todos los Distritos --</option>
                 </select>
             </div>
             
@@ -72,7 +72,7 @@
     function actualizarAgencias() {
         const cartera = selectCartera.value;
         selectAgencia.innerHTML = '<option value="">Todas las agencias</option>';
-        selectDistrito.innerHTML = '<option value="">-- Selecciona el Distrito --</option>';
+        selectDistrito.innerHTML = '<option value="">-- Todos los Distritos --</option>';
         
         if (!cartera || !datosJerarquia[cartera]) {
             selectAgencia.disabled = true;
@@ -98,7 +98,7 @@
         const cartera = selectCartera.value;
         const agencia = selectAgencia.value || (selectAgencia.options[selectAgencia.selectedIndex]?.text === 'SIN AGENCIA' ? 'SIN AGENCIA' : '');
         
-        selectDistrito.innerHTML = '<option value="">-- Selecciona el Distrito --</option>';
+        selectDistrito.innerHTML = '<option value="">-- Todos los Distritos --</option>';
         selectDistrito.disabled = true;
 
         if (!cartera || !datosJerarquia[cartera]) return;
