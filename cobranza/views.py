@@ -1304,7 +1304,7 @@ def generar_cartas(request):
                     '[DIRECCION_CLIENTE]': f"{c.dir_casa} - {c.distrito} - {c.provincia} - {c.departamento}",
                     '[NOMBRE_AVAL]': c.nom_aval or 'SIN AVAL',
                     '[AGENCIA]': c.agencia or 'S/A',
-                    '[MONTO_DEUDA]': str(c.deuda_total) if c.deuda_total else '0.00'
+                    '[MONTO_DEUDA]': str(c.saldo_deuda) if c.saldo_deuda else '0.00'
                 }
                 
                 # Reemplazar en párrafos
