@@ -1315,7 +1315,7 @@ def generar_cartas(request):
                     '[DIRECCION_CLIENTE]': f"{c.dir_casa} - {c.distrito} - {c.provincia} - {c.departamento}",
                     '[NOMBRE_AVAL]': c.nom_aval or 'SIN AVAL',
                     '[AGENCIA]': c.agencia or 'S/A',
-                    '[MONTO_DEUDA]': f"S/ {c.saldo_deuda:.2f}" if c.saldo_deuda else 'S/ 0.00',
+                    '[MONTO_DEUDA]': f"{c.saldo_deuda:.2f}" if c.saldo_deuda else '0.00',
                     '[NRO_CARTA]': c.expediente or f"{i+1:04d}-2026-COD",
                     '[FECHA_ULT_PAGO]': c.ultimo_dia_pago.strftime('%d/%m/%Y') if c.ultimo_dia_pago else '--/--/----'
                 }
