@@ -1283,8 +1283,10 @@ def generar_cartas(request):
             p_titulo = doc_final.add_paragraph()
             run_titulo = p_titulo.add_run('HOJA DE RUTA - NOTIFICACIONES')
             run_titulo.bold = True
-            p_titulo.alignment = 1 # Centered
-            doc_final.add_paragraph(f"Cartera: {cartera or 'TODAS'} | Distrito: {distrito or 'TODOS'}")
+            # Nombre de la ruta como titulo (opcional)
+            distrito_str = ", ".join(distritos) if distritos else 'TODOS'
+            distrito_filename = "Varios" if len(distritos) > 1 else (distritos[0] if distritos else 'General')
+            doc_final.add_paragraph(f"Cartera: {cartera or 'TODAS'} | Distrito: {distrito_str}")
             doc_final.add_paragraph(f"Fecha de Generación: {datetime.date.today().strftime('%d/%m/%Y')} | Total a notificar: {len(clientes)}")
             
             # Crear tabla para los clientes, sin bordes por defecto (o estilo base)
@@ -1367,7 +1369,7 @@ def generar_cartas(request):
             doc_final.save(output)
             output.seek(0)
             
-            filename = f"Rutas_{distrito or 'General'}_{datetime.date.today().strftime('%Y%m%d')}.docx"
+            filename = f"Rutas_{distrito_filename}_{datetime.date.today().strftime('%Y%m%d')}.docx"
             response = HttpResponse(output, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             return response
