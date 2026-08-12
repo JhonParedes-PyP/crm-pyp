@@ -1257,9 +1257,9 @@ def generar_cartas(request):
             qs = qs.filter(distrito__in=distritos)
             
         if estado_negociacion == 'con_negociacion':
-            qs = qs.exclude(negociacion__isnull=True).exclude(negociacion__exact='')
+            qs = qs.exclude(negociacion__isnull=True).exclude(negociacion__exact='').exclude(negociacion__iexact='nan').exclude(negociacion__iexact='none').exclude(negociacion__iexact='null')
         elif estado_negociacion == 'sin_negociacion':
-            qs = qs.filter(Q(negociacion__isnull=True) | Q(negociacion__exact=''))
+            qs = qs.filter(Q(negociacion__isnull=True) | Q(negociacion__exact='') | Q(negociacion__iexact='nan') | Q(negociacion__iexact='none') | Q(negociacion__iexact='null'))
             
         # Ordenar por distrito y dirección para la ruta
         clientes = list(qs.order_by('distrito', 'dir_casa'))
