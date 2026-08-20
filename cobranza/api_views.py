@@ -326,6 +326,12 @@ def api_cartera_patch(request, fila_id):
         campos_actualizados.append('link_gps_aval')
 
     if 'foto_evidencia' in files:
+        # Eliminar la foto antigua del servidor para ahorrar espacio
+        if deudor.foto_evidencia:
+            try:
+                deudor.foto_evidencia.delete(save=False)
+            except Exception:
+                pass
         deudor.foto_evidencia = files['foto_evidencia']
         campos_actualizados.append('foto_evidencia')
 
