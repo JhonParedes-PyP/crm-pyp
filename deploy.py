@@ -50,6 +50,7 @@ try:
         print("Subiendo import_sip.py y Excel al servidor...")
         sftp.put('import_sip.py', f"{project_dir}/import_sip.py")
         sftp.put('ANEXOS Y CLAVES.xlsx', f"{project_dir}/ANEXOS Y CLAVES.xlsx")
+        sftp.put('REPORTE DE GESTIONES JUDICALES Y EXTRAJUDICIALES AG. SAN BORJA.xlsx', f"{project_dir}/REPORTE DE GESTIONES JUDICALES Y EXTRAJUDICIALES AG. SAN BORJA.xlsx")
 
         print("Subiendo archivos actualizados del CRM...")
         archivos_a_subir = [
@@ -60,8 +61,11 @@ try:
             ('cobranza/dashboard_views.py', f"{project_dir}/cobranza/dashboard_views.py"),
             ('cobranza/asignaciones.py', f"{project_dir}/cobranza/asignaciones.py"),
             ('cobranza/migrations/0017_asignaciondiaria.py', f"{project_dir}/cobranza/migrations/0017_asignaciondiaria.py"),
+            ('cobranza/migrations/0024_deudor_correlativo.py', f"{project_dir}/cobranza/migrations/0024_deudor_correlativo.py"),
             ('cobranza/templates/cobranza/bandeja.html', f"{project_dir}/cobranza/templates/cobranza/bandeja.html"),
             ('cobranza/templates/cobranza/base.html', f"{project_dir}/cobranza/templates/cobranza/base.html"),
+            ('cobranza/templates/cobranza/generar_cartas.html', f"{project_dir}/cobranza/templates/cobranza/generar_cartas.html"),
+            ('cobranza/templates/cobranza/gestionar.html', f"{project_dir}/cobranza/templates/cobranza/gestionar.html"),
             ('cobranza/templates/cobranza/asignaciones_diarias.html', f"{project_dir}/cobranza/templates/cobranza/asignaciones_diarias.html"),
             ('cobranza/templates/cobranza/subir_gestiones_masivas.html', f"{project_dir}/cobranza/templates/cobranza/subir_gestiones_masivas.html"),
             ('crm_pyp_config/context_processors.py', f"{project_dir}/crm_pyp_config/context_processors.py"),
@@ -97,17 +101,6 @@ try:
     # 5. Aplicar migraciones de base de datos
     print("Aplicando migraciones...")
     run_cmd(ssh, f"{project_dir}/venv/bin/python {project_dir}/manage.py migrate --noinput")
-
-    # 5.1 Importar Convenios
-    try:
-        print("Importando Convenios al servidor...")
-        sftp = ssh.open_sftp()
-        sftp.put("import_convenios.py", f"{project_dir}/import_convenios.py")
-        sftp.put("CONVENIOS.xlsx", f"{project_dir}/CONVENIOS.xlsx")
-        sftp.close()
-        run_cmd(ssh, f"cd {project_dir} && {project_dir}/venv/bin/python import_convenios.py")
-    except Exception as e:
-        print(f"[ERROR] importando Convenios: {e}")
 
     # 6. Recolectar archivos estáticos
     print("Recolectando archivos estáticos...")

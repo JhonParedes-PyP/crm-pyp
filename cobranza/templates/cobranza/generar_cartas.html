@@ -65,9 +65,14 @@
             </div>
         </div>
 
-        <button type="submit" id="btn-generar" style="background: linear-gradient(135deg, #17a2b8, #138496); color: white; border: none; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; width: 100%; display: flex; justify-content: center; align-items: center; gap: 10px; transition: transform 0.2s;">
-            <span>📄 Generar Archivo de Rutas y Cartas (Word)</span>
-        </button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <button type="submit" formaction="{% url 'generar_cartas' %}?descargar=1" id="btn-generar" style="background: linear-gradient(135deg, #17a2b8, #138496); color: white; border: none; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; width: 100%; display: flex; justify-content: center; align-items: center; gap: 10px; transition: transform 0.2s;">
+                <span>📄 Generar Cartas (Word)</span>
+            </button>
+            <button type="submit" formaction="{% url 'descargar_reporte_excel' %}?descargar=1" id="btn-excel" style="background: linear-gradient(135deg, #28a745, #218838); color: white; border: none; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; width: 100%; display: flex; justify-content: center; align-items: center; gap: 10px; transition: transform 0.2s;">
+                <span>📊 Descargar Reportes (Excel)</span>
+            </button>
+        </div>
         
         <div id="loading-msg" style="display: none; text-align: center; margin-top: 15px; color: #666; font-size: 14px;">
             ⏳ Procesando el documento. Esto puede tomar unos segundos dependiendo de la cantidad de clientes...
@@ -153,18 +158,31 @@
     }
 
     function setLoading(isLoading) {
-        const btn = document.getElementById('btn-generar');
+        const btnGenerar = document.getElementById('btn-generar');
+        const btnExcel = document.getElementById('btn-excel');
         const msg = document.getElementById('loading-msg');
         if(isLoading) {
-            btn.style.opacity = '0.7';
-            btn.style.pointerEvents = 'none';
-            msg.style.display = 'block';
+            if(btnGenerar) {
+                btnGenerar.style.opacity = '0.7';
+                btnGenerar.style.pointerEvents = 'none';
+            }
+            if(btnExcel) {
+                btnExcel.style.opacity = '0.7';
+                btnExcel.style.pointerEvents = 'none';
+            }
+            if(msg) msg.style.display = 'block';
             
             // Volver a habilitar después de 5 segundos por si el navegador descarga el archivo
             setTimeout(() => {
-                btn.style.opacity = '1';
-                btn.style.pointerEvents = 'auto';
-                msg.style.display = 'none';
+                if(btnGenerar) {
+                    btnGenerar.style.opacity = '1';
+                    btnGenerar.style.pointerEvents = 'auto';
+                }
+                if(btnExcel) {
+                    btnExcel.style.opacity = '1';
+                    btnExcel.style.pointerEvents = 'auto';
+                }
+                if(msg) msg.style.display = 'none';
             }, 6000);
         }
     }

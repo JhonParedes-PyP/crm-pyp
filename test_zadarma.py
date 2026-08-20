@@ -5,41 +5,47 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'crm_pyp_config.settings')
 django.setup()
 
 from django.conf import settings
-from collections import OrderedDict
-import urllib.parse
+from cobranza.models import AgenteSIP
+import requests
 import hashlib
-import base64
 import hmac
+import base64
+from urllib.parse import urlencode
 
-api_url = "/v1/webrtc/get_key/"
-params = {'sip': settings.ZADARMA_SIP}
+print("--- ZADARMA CONFIG ---")
+print("ZADARMA_KEY:", getattr(settings, 'ZADARMA_KEY', 'NOT SET'))
+print("ZADARMA_SECRET:", getattr(settings, 'ZADARMA_SECRET', 'NOT SET'))
+print("ZADARMA_SIP:", getattr(settings, 'ZADARMA_SIP', 'NOT SET'))
 
-ordered_params = OrderedDict(sorted(params.items()))
-query_string = urllib.parse.urlencode(ordered_params)
+print("\n--- SIP AGENTS ---")
+agents = AgenteSIP.objects.all()
+for a in agents:
+    print(f"User: {a.usuario.username}, Anexo: {a.anexo}, Clave (en BD): {a.clave[:10]}...")
 
-print("=== DEBUG ZADARMA ===")
-print("[1] API URL: " + api_url)
-print("[2] SIP: " + settings.ZADARMA_SIP)
-print("[3] Query String: " + query_string)
+print("\n--- ZADARMA CONNECTION TEST ---")
+api_method = '/v1/info/balance/'
+params = {}
+sorted_params = dict(sorted(params.items()))
+query_string = urlencode(sorted_params)
+md5_hash = hashlib.md5(query_string.encode('utf-8')).hexdigest()
+data_to_sign = f"{api_method}{query_string}{md5_hash}"
 
-md5_string = hashlib.md5(query_string.encode('utf-8')).hexdigest()
-print("[4] MD5 Hash: " + md5_string)
-
-data_to_sign = api_url + query_string + md5_string
-print("[5] Data to Sign: " + data_to_sign)
-
-signature = base64.b64encode(
-    hmac.new(
-        settings.ZADARMA_SECRET.encode('utf-8'),
+secret = getattr(settings, 'ZADARMA_SECRET', '')
+key = getattr(settings, 'ZADARMA_KEY', '')
+if secret and key:
+    signature_bytes = hmac.new(
+        secret.encode('utf-8'),
         data_to_sign.encode('utf-8'),
         hashlib.sha1
     ).digest()
-).decode()
-print("[6] Signature: " + signature)
+    signature = base64.b64encode(signature_bytes).decode()
+    headers = {'Authorization': f"{key}:{signature}"}
 
-auth_header = f"{settings.ZADARMA_KEY}:{signature}"
-print("[7] Auth Header: " + auth_header[:50] + "...")
-
-full_url = f"https://api.zadarma.com{api_url}?{query_string}"
-print("\n[->] Full URL: " + full_url)
-print("[->] Authorization: " + auth_header)
+    try:
+        r = requests.get(f"https://api.zadarma.com{api_method}", params=params, headers=headers, timeout=10)
+        print("Status code:", r.status_code)
+        print("Response:", r.text)
+    except Exception as e:
+        print("Error:", str(e))
+else:
+    print("Cannot test, missing Zadarma credentials.")

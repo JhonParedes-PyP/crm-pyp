@@ -29,6 +29,7 @@ class Deudor(models.Model):
 
     # DATOS JUDICIALES
     expediente = models.CharField(max_length=100, null=True, blank=True)
+    correlativo = models.CharField(max_length=100, null=True, blank=True)
     juzgado = models.CharField(max_length=200, null=True, blank=True)
     fec_demanda = models.DateField(null=True, blank=True)
     monto_demanda = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)

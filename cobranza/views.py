@@ -18,7 +18,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 
 
 # --- AQUÍ ESTÁ LA LÍNEA ACTUALIZADA CON LAS CAMPAÑAS ---
-from .models import Deudor, Gestion, TelefonoExtra, AsignacionCartera, AsignacionDiaria, CampanaAsterisk, DetalleCampanaAsterisk, SeguimientoProgramado, VoucherPago
+from .models import Deudor, Gestion, TelefonoExtra, AsignacionCartera, AsignacionDiaria, CampanaAsterisk, DetalleCampanaAsterisk, SeguimientoProgramado, VoucherPago, Convenio
 from .asignaciones import aplicar_visibilidad_por_asignaciones
 
 from django.db import models, transaction
@@ -344,6 +344,7 @@ def subir_excel(request):
                             monto_dem = Decimal(monto_dem_str) if monto_dem_str and monto_dem_str not in ('', 'nan', 'None') else None
                             
                             correlativo = str(row.get('CORRELATIVO', str(row.get('NUMERO DE CARTA Y CORRELATIVO', str(row.get('NUMERO DE CARTA', '')))))).strip()
+                            expediente_val = str(row.get('EXPEDIENTE', str(row.get('Expediente', '')))).strip()
                             
                             defaults = {
                                 'cartera': 'CAJA HUANCAYO',
@@ -362,7 +363,8 @@ def subir_excel(request):
                                 'ultimo_dia_pago': ultimo_dia_pago_val,
                                 'aval_direccion': str(row.get('Direcc_Fiador', '')).strip(),
                                 'aval_distrito': str(row.get('Dist_Fiador', '')).strip(),
-                                'expediente': correlativo,
+                                'expediente': expediente_val,
+                                'correlativo': correlativo,
                                 'juzgado': str(row.get('Juzgado', '')).strip(),
                                 'condicion': condicion_val,
                                 'referencia': ref,
@@ -513,11 +515,40 @@ def subir_excel(request):
 
                         if documento_val:
                             dni_en_excel.add(documento_val)
-                            Deudor.objects.update_or_create(
+                            deudor, _ = Deudor.objects.update_or_create(
                                   documento=documento_val,
                                   cuenta=cuenta_val,
                                   defaults=defaults
                               )
+                              
+                            neg_str_conv = defaults.get('negociacion', '')
+                            if neg_str_conv and neg_str_conv.lower() not in ('', 'nan', 'none', 'null', 'sin negociación', 'sin negociacion'):
+                                raw_fecha_conv = str(row.get('Fecha Pago Cuota Pendiente', '')).strip()
+                                fecha_pago_conv = safe_date(raw_fecha_conv) if raw_fecha_conv and raw_fecha_conv not in ('', 'nan', 'None') else None
+                                
+                                monto_cuota_raw = str(row.get('Monto Cuota Atrasada', '0')).strip()
+                                monto_cuota_conv = Decimal(monto_cuota_raw) if monto_cuota_raw and monto_cuota_raw not in ('nan', 'None', '') else Decimal('0')
+                                
+                                dias_atraso_raw = str(row.get('Días de Atraso de Cuota', '0')).strip()
+                                try:
+                                    dias_atraso_conv = int(float(dias_atraso_raw)) if dias_atraso_raw and dias_atraso_raw not in ('nan', 'None', '') else 0
+                                except:
+                                    dias_atraso_conv = 0
+                                    
+                                situacion_conv = str(row.get('Negociación', str(row.get('NEGOCIACION', '')))).strip()
+                                
+                                Convenio.objects.filter(deudor=deudor).delete()
+                                Convenio.objects.create(
+                                    deudor=deudor,
+                                    cuenta=cuenta_val,
+                                    cuota_pendiente=str(row.get('Cuota Pendiente', '')).strip(),
+                                    fecha_pago=fecha_pago_conv,
+                                    monto_cuota=monto_cuota_conv,
+                                    dias_atraso=dias_atraso_conv,
+                                    situacion=situacion_conv
+                                )
+                            else:
+                                Convenio.objects.filter(deudor=deudor).delete()
 
                     if carteras_en_excel:
                         eliminados = Deudor.objects.filter(cartera__in=carteras_en_excel).exclude(documento__in=dni_en_excel).update(activo=False)
@@ -1257,9 +1288,9 @@ def generar_cartas(request):
             qs = qs.filter(distrito__in=distritos)
             
         if estado_negociacion == 'con_negociacion':
-            qs = qs.exclude(negociacion__isnull=True).exclude(negociacion__exact='').exclude(negociacion__iexact='nan').exclude(negociacion__iexact='none').exclude(negociacion__iexact='null')
+            qs = qs.exclude(negociacion__isnull=True).exclude(negociacion__exact='').exclude(negociacion__iexact='nan').exclude(negociacion__iexact='none').exclude(negociacion__iexact='null').exclude(negociacion__iexact='SIN NEGOCIACIÓN').exclude(negociacion__iexact='SIN NEGOCIACION')
         elif estado_negociacion == 'sin_negociacion':
-            qs = qs.filter(Q(negociacion__isnull=True) | Q(negociacion__exact='') | Q(negociacion__iexact='nan') | Q(negociacion__iexact='none') | Q(negociacion__iexact='null'))
+            qs = qs.filter(Q(negociacion__isnull=True) | Q(negociacion__exact='') | Q(negociacion__iexact='nan') | Q(negociacion__iexact='none') | Q(negociacion__iexact='null') | Q(negociacion__iexact='SIN NEGOCIACIÓN') | Q(negociacion__iexact='SIN NEGOCIACION'))
             
         # Ordenar por distrito y dirección para la ruta
         clientes = list(qs.order_by('distrito', 'dir_casa'))
@@ -1324,7 +1355,8 @@ def generar_cartas(request):
                     '[NOMBRE_AVAL]': c.nom_aval or 'SIN AVAL',
                     '[AGENCIA]': c.agencia or 'S/A',
                     '[MONTO_DEUDA]': f"{c.saldo_deuda:.2f}" if c.saldo_deuda else '0.00',
-                    '[NRO_CARTA]': c.expediente or f"{i+1:04d}-2026-COD",
+                    '[DISTRITO_O_PROVINCIA]': c.distrito or c.provincia or "",
+                    '[NRO_CARTA]': c.correlativo or c.expediente or f"{i+1:04d}-2026-COD",
                     '[FECHA_ULT_PAGO]': c.ultimo_dia_pago.strftime('%d/%m/%Y') if c.ultimo_dia_pago else '--/--/----'
                 }
                 
@@ -1763,4 +1795,121 @@ def aprobar_voucher(request, voucher_id):
             voucher.estado = 'RECHAZADO'
         voucher.save()
     return redirect('vouchers_pendientes')
+
+
+
+import io
+import openpyxl
+import datetime
+import zipfile
+from openpyxl.styles import Font, Alignment, Border, Side
+from django.db.models import Q
+from django.http import HttpResponse
+
+@login_required
+def descargar_reporte_excel(request):
+    cartera = request.GET.get('cartera')
+    agencia = request.GET.get('agencia')
+    distritos = request.GET.getlist('distrito')
+    estado_negociacion = request.GET.get('estado_negociacion')
+    
+    # Filtrar clientes
+    qs = Deudor.objects.filter(activo=True)
+    if cartera:
+        qs = qs.filter(cartera=cartera)
+    if agencia:
+        qs = qs.filter(agencia=agencia)
+    if distritos:
+        qs = qs.filter(distrito__in=distritos)
+        
+    if estado_negociacion == 'con_negociacion':
+        qs = qs.exclude(negociacion__isnull=True).exclude(negociacion__exact='').exclude(negociacion__iexact='nan').exclude(negociacion__iexact='none').exclude(negociacion__iexact='null').exclude(negociacion__iexact='SIN NEGOCIACIÓN').exclude(negociacion__iexact='SIN NEGOCIACION')
+    elif estado_negociacion == 'sin_negociacion':
+        qs = qs.filter(Q(negociacion__isnull=True) | Q(negociacion__exact='') | Q(negociacion__iexact='nan') | Q(negociacion__iexact='none') | Q(negociacion__iexact='null') | Q(negociacion__iexact='SIN NEGOCIACIÓN') | Q(negociacion__iexact='SIN NEGOCIACION'))
+        
+    # Ordenar por agencia y luego cliente
+    clientes = list(qs.order_by('agencia', 'nombre_completo'))
+    
+    if not clientes:
+        return HttpResponse("No se encontraron clientes con esos filtros.", status=404)
+
+    # Agrupar clientes por agencia
+    agencias_dict = {}
+    for c in clientes:
+        ag = c.agencia or 'SIN AGENCIA'
+        if ag not in agencias_dict:
+            agencias_dict[ag] = []
+        agencias_dict[ag].append(c)
+
+    plantilla_path = os.path.join(settings.BASE_DIR, 'REPORTE DE GESTIONES JUDICALES Y EXTRAJUDICIALES AG. SAN BORJA.xlsx')
+    
+    if not os.path.exists(plantilla_path):
+        return HttpResponse("La plantilla Excel no se encontró en el servidor.", status=500)
+
+    # Crear ZIP en memoria
+    zip_buffer = io.BytesIO()
+    meses_es = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE']
+    
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        for ag, lista_clientes in agencias_dict.items():
+            wb = openpyxl.load_workbook(plantilla_path)
+            ws = wb.active
+            
+            # La cabecera está en la fila 5. Comenzamos a escribir en la 6.
+            start_row = 6
+            
+            # Estilos basicos para celdas de datos
+            thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+            
+            for idx, c in enumerate(lista_clientes):
+                row_idx = start_row + idx
+                
+                # Datos del cliente
+                tiene_convenio = False
+                neg_str = str(c.negociacion).upper() if c.negociacion else ''
+                if neg_str and neg_str not in ('NAN', 'NONE', 'NULL', 'SIN NEGOCIACIÓN', 'SIN NEGOCIACION'):
+                    tiene_convenio = True
+                
+                if tiene_convenio and c.ultimo_dia_pago:
+                    # Logica dia habil anterior
+                    d = c.ultimo_dia_pago - datetime.timedelta(days=1)
+                    if d.weekday() == 6: # Sunday
+                        d -= datetime.timedelta(days=2)
+                    elif d.weekday() == 5: # Saturday
+                        d -= datetime.timedelta(days=1)
+                    fecha_str = d.strftime('%d/%m/%Y')
+                    mes_actual = meses_es[datetime.date.today().month - 1]
+                    gestion_txt = f"CON FECHA {fecha_str} SE HACE REQUERIMIENTO DE PAGO PUNTUAL DE SU CUOTA DE CONVENIO DEL MES DE {mes_actual}"
+                else:
+                    fecha_str = datetime.date.today().strftime('%d/%m/%Y')
+                    gestion_txt = f"CON FECHA {fecha_str} SE HACE REQUERIMIENTO DE PAGO DE SU DEUDA EN SU VIVIENDA"
+
+                # Llenar celdas (1-indexed en openpyxl)
+                ws.cell(row=row_idx, column=1, value=idx + 1)
+                ws.cell(row=row_idx, column=2, value=c.agencia)
+                ws.cell(row=row_idx, column=3, value=c.cuenta)
+                ws.cell(row=row_idx, column=4, value=c.nombre_completo)
+                ws.cell(row=row_idx, column=5, value="") # JUDICIAL
+                ws.cell(row=row_idx, column=6, value=gestion_txt)
+                
+                # Aplicar bordes
+                for col_i in range(1, 7):
+                    cell = ws.cell(row=row_idx, column=col_i)
+                    cell.border = thin_border
+                    cell.alignment = Alignment(vertical='center', wrap_text=True)
+
+            # Guardar el excel en memoria
+            excel_buffer = io.BytesIO()
+            wb.save(excel_buffer)
+            excel_buffer.seek(0)
+            
+            # Añadir al zip
+            safe_ag_name = "".join([x if x.isalnum() or x in " .-_" else "_" for x in ag])
+            zip_file.writestr(f"REPORTE_GESTIONES_{safe_ag_name}.xlsx", excel_buffer.read())
+
+    zip_buffer.seek(0)
+    
+    response = HttpResponse(zip_buffer, content_type='application/zip')
+    response['Content-Disposition'] = f'attachment; filename="Reportes_Caja_Huancayo_{datetime.date.today().strftime("%Y%m%d")}.zip"'
+    return response
 
