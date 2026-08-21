@@ -261,6 +261,7 @@ def api_cartera_lista(request):
             'condicion': d.condicion or '',
             'referencia': d.referencia or '',
             'proceso': d.proceso or '',
+            'negociacion': d.negociacion or '',
             'detalle_bien': d.detalle_bien or '',
             'estado_medida_cautelar': d.estado_medida_cautelar or '',
             'seguimiento_cautelar': d.seguimiento_cautelar or '',
