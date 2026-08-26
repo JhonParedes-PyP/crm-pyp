@@ -123,28 +123,59 @@
         
         var filename = `Estrategia_${carteraStr}_${agenciasStr}_${fechaStr}.pdf`.replace(/[^a-zA-Z0-9_\-\.]/g, '');
 
-        var opt = {
-            margin:       10,
+                        var opt = {
+            margin:       [15, 10, 15, 10], // top, left, bottom, right
             filename:     filename,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2 },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            image:        { type: 'jpeg', quality: 1.0 },
+            html2canvas:  { 
+                scale: 2,
+                useCORS: true,
+                windowWidth: 800 // Forzar el ancho del canvas para que no corte el contenido
+            },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak:    { mode: ['css', 'legacy'] } // avoid-all a veces buggea
         };
 
-        // Clonamos el resultado para aplicarle estilos específicos de impresión si es necesario
+        // En lugar de un elemento al aire, lo atamos al DOM temporalmente arriba del todo
         var element = document.createElement('div');
+        element.style.position = 'absolute';
+        element.style.top = '0';
+        element.style.left = '0';
+        element.style.width = '790px'; // Ancho óptimo para A4 (210mm)
+        element.style.background = 'white';
+        element.style.zIndex = '-9999';
+        element.style.padding = '20px';
+        element.style.boxSizing = 'border-box';
+        
         element.innerHTML = `
-            <div style="font-family: Arial, sans-serif; padding: 20px;">
-                <h1 style="color: #003366; text-align: center; border-bottom: 2px solid #003366; padding-bottom: 10px;">Reporte Estratégico de Cobranza</h1>
-                <p><strong>Cartera:</strong> ${carteraStr}</p>
-                <p><strong>Agencias:</strong> ${agenciasStr.replace(/_/g, ', ')}</p>
-                <p><strong>Fecha:</strong> ${fechaStr}</p>
-                <hr>
+            <style>
+                .pdf-container { font-family: Arial, sans-serif; font-size: 11px; padding: 0; color: #333; }
+                .pdf-container h1, .pdf-container h2, .pdf-container h3 { color: #003366; page-break-after: avoid; margin-top: 15px; margin-bottom: 8px; }
+                .pdf-container p { margin-bottom: 8px; line-height: 1.4; }
+                /* TABLAS FIJAS PARA EVITAR CORTES */
+                .pdf-container table { width: 100% !important; table-layout: fixed !important; border-collapse: collapse; margin-bottom: 15px; font-size: 9px; word-wrap: break-word; }
+                .pdf-container th { background-color: #003366; color: white; padding: 6px; text-align: left; border: 1px solid #003366; }
+                .pdf-container td { border: 1px solid #ddd; padding: 6px; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; }
+                .pdf-container tr { page-break-inside: avoid; }
+                .pdf-container ul, .pdf-container ol { margin-bottom: 15px; padding-left: 20px; }
+                .pdf-container li { margin-bottom: 4px; page-break-inside: avoid; }
+                .pdf-header { text-align: center; border-bottom: 2px solid #003366; padding-bottom: 10px; margin-bottom: 15px; }
+            </style>
+            <div class="pdf-container">
+                <div class="pdf-header">
+                    <h1 style="margin:0;">Reporte Estratégico de Cobranza</h1>
+                    <p style="margin: 5px 0 0 0;"><strong>Cartera:</strong> ${carteraStr} | <strong>Agencias:</strong> ${agenciasStr.replace(/_/g, ', ')} | <strong>Fecha:</strong> ${fechaStr}</p>
+                </div>
                 ${resultado.innerHTML}
             </div>
         `;
 
-        html2pdf().set(opt).from(element).save();
+        document.body.appendChild(element); // Lo agregamos al top 0
+
+        html2pdf().set(opt).from(element).save().then(function() {
+            // Lo removemos del DOM después de descargar
+            document.body.removeChild(element);
+        });
     });
 
     selCartera.addEventListener('change', function() {

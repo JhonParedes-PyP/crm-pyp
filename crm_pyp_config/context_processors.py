@@ -22,7 +22,7 @@ def agenda_alertas(request):
     Usado para el badge rojo en el menú de navegación.
     """
     if not request.user.is_authenticated:
-        return {'agenda_alertas_count': 0, 'pagos_proximos_count': 0, 'puede_modo_agente': False}
+        return {'agenda_alertas_count': 0, 'pagos_proximos_count': 0, 'puede_modo_agente': False, 'es_gerente_global': False}
 
     try:
         from cobranza.models import Gestion, SeguimientoProgramado
@@ -91,6 +91,7 @@ def agenda_alertas(request):
             'agenda_alertas_count': total,
             'pagos_proximos_count': pagos_proximos_count,
             'puede_modo_agente': request.user.username.upper() == 'JPAREDES',
+            'es_gerente_global': es_gerente_flag,
         }
 
     except Exception:
@@ -98,5 +99,6 @@ def agenda_alertas(request):
             'agenda_alertas_count': 0,
             'pagos_proximos_count': 0,
             'puede_modo_agente': request.user.username.upper() == 'JPAREDES',
+            'es_gerente_global': request.user.groups.filter(name='GERENTE').exists() or request.user.is_superuser,
         }
 

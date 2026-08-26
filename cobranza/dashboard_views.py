@@ -127,6 +127,14 @@ def dashboard_gerente(request):
                 # Fallback for others if any
                 recuperacion_carteras[c_upper] = recuperacion_carteras.get(c_upper, 0.0) + total
 
+    # Sobrescribir PROEMPRESA con la suma de imp_recup (Monto Recuperado Oficial)
+    proempresa_recup = Deudor.objects.filter(
+        cartera__icontains='PROEMPRESA',
+        activo=True,
+        imp_recup__gt=0
+    ).aggregate(total=Sum('imp_recup'))['total'] or 0.0
+    recuperacion_carteras['PROEMPRESA'] = float(proempresa_recup)
+
     # Cruce de Pagos No Registrados (Caja Huancayo) - Para Gerente
     # Clientes cuya base dice que pagaron en el mes actual, pero no tienen gestión de "PAGÓ" en el CRM
     pagos_no_reflejados_huancayo = []
@@ -148,8 +156,60 @@ def dashboard_gerente(request):
             tiene_gestion_pago=False
         ).order_by('-ultimo_dia_pago')[:100]
 
+        pagos_no_reflejados_proempresa = Deudor.objects.filter(
+            cartera__icontains='PROEMPRESA',
+            imp_recup__gt=0
+        ).annotate(
+            tiene_gestion_pago=Exists(gestiones_pago_mes)
+        ).filter(
+            tiene_gestion_pago=False
+        ).order_by('-imp_recup')[:100]
+
     import json
+    
+    # Cargar metas
+    from django.conf import settings
+    import os as ds_os
+    metas_path = ds_os.path.join(settings.BASE_DIR, 'metas.json')
+    metas_data = {
+        'PROEMPRESA': 213674.00,
+        'CAJA HUANCAYO': 457116.49,
+        'FOCMAC': None
+    }
+    if ds_os.path.exists(metas_path):
+        try:
+            with open(metas_path, 'r', encoding='utf-8') as fm:
+                metas_data = json.load(fm)
+        except Exception:
+            pass
+
+
+    # -- INICIO RECALCULO Y METAS --
+    import json
+    from django.conf import settings
+    import os as ds_os
+    
+    # Asegurar que metas_data siempre exista y tenga los defaults
+    metas_path = ds_os.path.join(settings.BASE_DIR, 'metas.json')
+    metas_data = {
+        'PROEMPRESA': 213674.00,
+        'CAJA HUANCAYO': 457116.49,
+        'FOCMAC': None
+    }
+    if ds_os.path.exists(metas_path):
+        try:
+            with open(metas_path, 'r', encoding='utf-8') as fm:
+                loaded = json.load(fm)
+                metas_data.update(loaded) # Mezclar para no perder llaves
+        except Exception:
+            pass
+
+    # Recalcular total_recuperado sumando los valores de recuperacion_carteras
+    total_recuperado = sum(recuperacion_carteras.values())
+    
+    # -- FIN RECALCULO --
     return render(request, 'cobranza/dashboard.html', {
+
         'es_gerente': es_gerente_flag,
         'total_cartera': total_cartera,
         'total_recuperado': total_recuperado,
@@ -162,6 +222,8 @@ def dashboard_gerente(request):
         'convenios_atrasados': convenios_atrasados,
         'convenios_proximos': convenios_proximos,
         'pagos_no_reflejados_huancayo': pagos_no_reflejados_huancayo,
+        'pagos_no_reflejados_proempresa': pagos_no_reflejados_proempresa if es_gerente_flag else [],
+        'metas_json': json.dumps(metas_data),
         'recuperacion_carteras_json': json.dumps(recuperacion_carteras),
     })
 
@@ -456,3 +518,28 @@ def comprobar_alertas_seguimiento(request):
         })
         
     return JsonResponse({'alertas': data})
+
+
+from django.views.decorators.csrf import csrf_exempt
+
+@login_required
+@csrf_exempt
+def guardar_metas(request):
+    from django.http import JsonResponse
+    import json
+    import os
+    from django.conf import settings
+    
+    if not request.user.username == 'JPAREDES' and not request.user.groups.filter(name='Gerencia').exists():
+        return JsonResponse({'error': 'No autorizado'}, status=403)
+        
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            metas_path = os.path.join(settings.BASE_DIR, 'metas.json')
+            with open(metas_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f)
+            return JsonResponse({'status': 'ok'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'Método no permitido'}, status=405)

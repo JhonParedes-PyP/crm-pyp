@@ -276,7 +276,13 @@ Instrucciones:
    - ¿A quiénes hacer LLAMADAS DE SEGUIMIENTO?
    - ¿A quiénes derivar a MENSAJES (WhatsApp/SMS) masivos?
    - ¿Qué acciones legales continuar para los procesos de EMBARGO?
-3. (PRIORIDAD ALTA) Dale MUCHA IMPORTANCIA a los clientes que tienen CONVENIOS DE PAGO o NEGOCIACIÓN. Fíjate en sus fechas de pago y evalúa si, dada la fecha actual, ya deberían haber pagado y han incumplido. Diseña un plan de choque específico para estos convenios caídos o próximos a vencer.
+3. (PRIORIDAD ALTA) Analiza TODOS los clientes que tienen NEGOCIACIÓN o CONVENIOS DE PAGO en la sección de 'clientes_con_convenio'. 
+   - Presenta estrictamente una tabla Markdown con las columnas: Cliente, Deuda, Último Pago, Días de Atraso, Acción Inmediata.
+   - IMPORTANTE: Los clientes con Días de Atraso = 'CLIENTE AL DIA' SIEMPRE deben figurar AL ÚLTIMO de la tabla. Los clientes más vencidos deben estar AL FRENTE (arriba de la tabla).
+   - Genera una acción inmediata o recomendación estratégica para este grupo de convenios.
+3.5 (PRIORIDAD MEDIA) Haz un análisis profundo de la 'distribucion_por_producto'. Identifica los clientes cuyo producto es 'NORMAL'. Estos créditos (especialmente en Caja Huancayo) pagan mayor comisión. Compara estos con otros productos (como REACTIVA, FAE, etc. que pagan comisiones muy bajas como 5%).
+   - Analiza qué créditos pagan más DENTRO DE CADA AGENCIA.
+   - Recomienda estrategias extrajudiciales dando altísima prioridad a los créditos 'NORMAL' para maximizar la comisión obtenida.
 4. Genera un plan de trabajo claro, usando viñetas, tablas Markdown, y un lenguaje directo, corporativo pero motivador.
 5. (Importante) Haz recomendaciones basadas EXCLUSIVAMENTE en los datos que te proveen.
 

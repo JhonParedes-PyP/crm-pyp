@@ -1,0 +1,160 @@
+{% extends 'cobranza/base.html' %}
+{% load static %}
+
+{% block title %}WhatsApp Masivo | CRM P&P{% endblock %}
+
+{% block extra_css %}
+<style>
+    .wa-container {
+        max-width: 800px;
+        margin: 20px auto;
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    .wa-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .wa-header h2 {
+        color: #25D366; /* WhatsApp Green */
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    .form-group label {
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 8px;
+        display: block;
+    }
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+    .btn-wa {
+        background-color: #25D366;
+        color: white;
+        border: none;
+        padding: 15px 25px;
+        font-size: 16px;
+        font-weight: bold;
+        border-radius: 8px;
+        cursor: pointer;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        transition: background 0.3s;
+    }
+    .btn-wa:hover {
+        background-color: #1ebe57;
+    }
+    .info-box {
+        background-color: #e8f5e9;
+        border-left: 5px solid #25D366;
+        padding: 15px;
+        margin-bottom: 25px;
+        font-size: 13px;
+        color: #2e7d32;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wa-container">
+    <div class="wa-header">
+        <h2>📲 Generador de WhatsApp Masivo</h2>
+        <p style="color: #666; font-size: 14px;">Genera un archivo Excel listo para extensiones de envío automático (WA Web Plus, WA Sender).</p>
+    </div>
+
+    <div class="info-box">
+        <strong>💡 ¿Cómo funciona?</strong>
+        <ul style="margin-top: 5px; margin-bottom: 0; padding-left: 20px;">
+            <li>El sistema redactará mensajes <b>únicos</b> para cada cliente con su deuda exacta.</li>
+            <li>Los clientes "Con Negociación" <b>solo</b> aparecerán si están a ~30 días de su último pago.</li>
+            <li>Sube el archivo descargado a tu extensión de Chrome para iniciar el envío.</li>
+        </ul>
+    </div>
+
+    <form method="POST" action="{% url 'exportar_whatsapp_excel' %}">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="cartera">1. Selecciona la Cartera</label>
+            <select name="cartera" id="cartera" class="form-control" required>
+                <option value="">-- Elige una Cartera --</option>
+                {% for c in carteras %}
+                <option value="{{ c }}">{{ c }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group" id="div-agencias" style="display: none;">
+            <label>2. Filtra por Agencias (Opcional)</label>
+            <div id="agencias-container" style="max-height: 150px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 6px; background: #fafafa;">
+                <!-- Agencias dinámicas -->
+            </div>
+            <small style="color: #888;">Si no seleccionas ninguna, se enviará a todas las agencias de la cartera.</small>
+        </div>
+
+        <div class="form-group">
+            <label for="filtro_audiencia">3. Tipo de Audiencia</label>
+            <select name="filtro_audiencia" id="filtro_audiencia" class="form-control" required>
+                <option value="ambos">Toda la Cartera (Cobranza Normal + Recordatorio de Convenios)</option>
+                <option value="sin_negociacion">SOLO Cobranza Fuerte (Clientes sin negociación activa)</option>
+                <option value="con_negociacion">SOLO Recordatorio Preventivo (Clientes con negociación a los 30 días)</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn-wa">
+            📄 Descargar Archivo Excel para WA Sender
+        </button>
+    </form>
+</div>
+
+<script>
+    var mapaAgencias = {{ mapa_agencias|safe }};
+    var selCartera = document.getElementById('cartera');
+    var divAgencias = document.getElementById('div-agencias');
+    var containerAgencias = document.getElementById('agencias-container');
+
+    selCartera.addEventListener('change', function() {
+        var c = this.value;
+        containerAgencias.innerHTML = '';
+        if (c && mapaAgencias[c] && mapaAgencias[c].length > 0) {
+            divAgencias.style.display = 'block';
+            mapaAgencias[c].forEach(function(ag) {
+                var label = document.createElement('label');
+                label.style.display = 'block';
+                label.style.cursor = 'pointer';
+                label.style.marginBottom = '6px';
+                label.style.fontSize = '13px';
+                
+                var cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.value = ag;
+                cb.name = 'agencias';
+                cb.style.marginRight = '8px';
+                
+                label.appendChild(cb);
+                label.appendChild(document.createTextNode(ag));
+                containerAgencias.appendChild(label);
+            });
+        } else {
+            divAgencias.style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}

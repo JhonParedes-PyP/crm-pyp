@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
-from cobranza import views, api_views, campanas_views, dashboard_views, views_rutas, estrategia_ia_views
+from cobranza import views, api_views, campanas_views, dashboard_views, views_rutas, estrategia_ia_views, whatsapp_views
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
@@ -37,6 +37,7 @@ urlpatterns = [
     # Dashboard y Reportes
     path('', dashboard_views.dashboard_gerente, name='inicio'),
     path('dashboard/', dashboard_views.dashboard_gerente, name='dashboard_gerente'),
+    path('dashboard/guardar_metas/', dashboard_views.guardar_metas, name='guardar_metas'),
     path('dashboard/buscar/', dashboard_views.buscar_cliente_rapido, name='buscar_cliente_rapido'),
     path('exportar-gestiones/', dashboard_views.exportar_gestiones_excel, name='exportar_gestiones_excel'),
 
@@ -95,5 +96,10 @@ urlpatterns = [
     # --- 🤖 ESTRATEGIA IA GERENCIAL ---
     path('estrategia-ia/', estrategia_ia_views.panel_estrategia_ia, name='panel_estrategia_ia'),
     path('api/v1/ai/estrategia/', estrategia_ia_views.api_generar_estrategia, name='api_generar_estrategia'),
+
+
+    # --- 📲 WHATSAPP MASIVO ---
+    path('whatsapp-masivo/', whatsapp_views.panel_whatsapp_masivo, name='panel_whatsapp_masivo'),
+    path('whatsapp-masivo/exportar/', whatsapp_views.exportar_whatsapp_excel, name='exportar_whatsapp_excel'),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

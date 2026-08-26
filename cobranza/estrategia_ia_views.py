@@ -68,10 +68,63 @@ def api_generar_estrategia(request):
         # 2. Deudas más altas (Top 30)
         top_deudas = qs.order_by('-saldo_deuda')[:30]
         
-        # 3. Pagos recientes
+                # 3. Pagos recientes
         hace_30_dias = timezone.now().date() - timedelta(days=30)
         pagos_recientes = qs.filter(ultimo_dia_pago__gte=hace_30_dias).order_by('-ultimo_dia_pago')[:20]
         
+        # --- NUEVA LOGICA: CONVENIOS ---
+        qs_convenios = qs.exclude(negociacion__isnull=True).exclude(negociacion__exact='')\
+                         .exclude(negociacion__iexact='nan').exclude(negociacion__iexact='none')\
+                         .exclude(negociacion__iexact='null')\
+                         .exclude(negociacion__iexact='SIN NEGOCIACIÓN')\
+                         .exclude(negociacion__iexact='SIN NEGOCIACION')
+                         
+        hoy = timezone.now().date()
+        mes_actual = hoy.month
+        anio_actual = hoy.year
+        
+        lista_convenios = []
+        for c in qs_convenios:
+            al_dia = False
+            dias_atraso = 0
+            fecha_pago_str = 'NO REGISTRA'
+            if c.ultimo_dia_pago:
+                fecha_pago_str = c.ultimo_dia_pago.strftime('%d/%m/%Y')
+                if c.ultimo_dia_pago.year > anio_actual or (c.ultimo_dia_pago.year == anio_actual and c.ultimo_dia_pago.month >= mes_actual):
+                    al_dia = True
+                else:
+                    dias_atraso = (hoy - c.ultimo_dia_pago).days
+                    if dias_atraso <= 0:
+                        al_dia = True
+                        dias_atraso = 0
+            else:
+                dias_atraso = 9999
+                
+            lista_convenios.append({
+                'nombre_completo': c.nombre_completo,
+                'saldo_deuda': float(c.saldo_deuda) if c.saldo_deuda else 0.0,
+                'ultimo_dia_pago': fecha_pago_str,
+                'dias_atraso': 'CLIENTE AL DIA' if al_dia else f"{dias_atraso} días",
+                '_es_al_dia': al_dia,
+                '_dias_atraso_num': dias_atraso
+            })
+            
+        lista_convenios.sort(key=lambda x: (x['_es_al_dia'], -x['_dias_atraso_num']))
+        
+        # Quitar las llaves internas para no ensuciar el JSON de la IA
+        for item in lista_convenios:
+            del item['_es_al_dia']
+            del item['_dias_atraso_num']
+            
+        # --- NUEVA LOGICA: PRODUCTOS (NORMAL VS OTROS) ---
+        agrupacion_productos = list(qs.values('agencia', 'producto').annotate(
+            total_clientes=Count('id'),
+            suma_deuda=Sum('saldo_deuda')
+        ).order_by('agencia', 'producto'))
+        
+        for item in agrupacion_productos:
+            item['suma_deuda'] = float(item['suma_deuda']) if item['suma_deuda'] else 0.0
+
         # 4. Construir Diccionario con todo para la IA
         datos_agrupados = {
             'cartera': cartera,
@@ -80,7 +133,9 @@ def api_generar_estrategia(request):
             'total_deuda_acumulada_soles': float(total_deuda),
             'top_deudas': list(top_deudas.values('nombre_completo', 'saldo_deuda', 'distrito', 'telefono_principal')),
             'casos_embargo_judicial': list(embargos.values('nombre_completo', 'saldo_deuda', 'proceso', 'condicion')),
-            'pagos_recientes': list(pagos_recientes.values('nombre_completo', 'ultimo_dia_pago', 'saldo_deuda'))
+            'pagos_recientes': list(pagos_recientes.values('nombre_completo', 'ultimo_dia_pago', 'saldo_deuda')),
+            'clientes_con_convenio': lista_convenios,
+            'distribucion_por_producto': agrupacion_productos
         }
         
         if instrucciones:

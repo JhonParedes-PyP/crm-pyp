@@ -176,7 +176,7 @@
     {% if deudores.has_other_pages %}
     <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee;">
         {% if deudores.has_previous %}
-            <a href="?page={{ deudores.previous_page_number }}{% if modo_bandeja_agente %}&modo=agente{% endif %}{% if q %}&q={{ q }}{% endif %}{% if cartera_filtro %}&cartera={{ cartera_filtro }}{% endif %}{% if agencia_filtro %}&agencia={{ agencia_filtro }}{% endif %}{% if fecha_pago_desde %}&fecha_pago_desde={{ fecha_pago_desde }}{% endif %}{% if fecha_pago_hasta %}&fecha_pago_hasta={{ fecha_pago_hasta }}{% endif %}{% if orden_actual %}&orden={{ orden_actual }}{% endif %}" 
+            <a href="?page={{ deudores.previous_page_number }}{% if modo_bandeja_agente %}&modo=agente{% endif %}{% if q %}&q={{ q }}{% endif %}{% if cartera_filtro %}&cartera={{ cartera_filtro }}{% endif %}{% for ag in agencia_filtro %}&agencia={{ ag|urlencode }}{% endfor %}{% if fecha_pago_desde %}&fecha_pago_desde={{ fecha_pago_desde }}{% endif %}{% if fecha_pago_hasta %}&fecha_pago_hasta={{ fecha_pago_hasta }}{% endif %}{% if orden_actual %}&orden={{ orden_actual }}{% endif %}" 
                style="background: #003366; color: white; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 11px;">◀ Anterior</a>
         {% else %}
             <span style="background: #ccc; color: #666; padding: 4px 10px; border-radius: 4px; font-size: 11px;">◀ Anterior</span>
@@ -187,7 +187,7 @@
         </span>
 
         {% if deudores.has_next %}
-            <a href="?page={{ deudores.next_page_number }}{% if modo_bandeja_agente %}&modo=agente{% endif %}{% if q %}&q={{ q }}{% endif %}{% if cartera_filtro %}&cartera={{ cartera_filtro }}{% endif %}{% if agencia_filtro %}&agencia={{ agencia_filtro }}{% endif %}{% if fecha_pago_desde %}&fecha_pago_desde={{ fecha_pago_desde }}{% endif %}{% if fecha_pago_hasta %}&fecha_pago_hasta={{ fecha_pago_hasta }}{% endif %}{% if orden_actual %}&orden={{ orden_actual }}{% endif %}" 
+            <a href="?page={{ deudores.next_page_number }}{% if modo_bandeja_agente %}&modo=agente{% endif %}{% if q %}&q={{ q }}{% endif %}{% if cartera_filtro %}&cartera={{ cartera_filtro }}{% endif %}{% for ag in agencia_filtro %}&agencia={{ ag|urlencode }}{% endfor %}{% if fecha_pago_desde %}&fecha_pago_desde={{ fecha_pago_desde }}{% endif %}{% if fecha_pago_hasta %}&fecha_pago_hasta={{ fecha_pago_hasta }}{% endif %}{% if orden_actual %}&orden={{ orden_actual }}{% endif %}" 
                style="background: #003366; color: white; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 11px;">Siguiente ▶</a>
         {% else %}
             <span style="background: #ccc; color: #666; padding: 4px 10px; border-radius: 4px; font-size: 11px;">Siguiente ▶</span>
