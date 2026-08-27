@@ -1,0 +1,33 @@
+
+
+{% if es_gerente and pagos_no_reflejados_proempresa %}
+    <div style="background: white; border-radius: 8px; padding: 20px; margin-top: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-left: 4px solid #dc3545;">
+        <h3 style="color: #dc3545; margin-bottom: 15px; margin-top: 0; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 20px;">â ï¸</span> Pagos No Reflejados Proempresa (Mes Actual)
+        </h3>
+        <p style="font-size: 13px; color: #666; margin-top: -10px; margin-bottom: 15px;">Clientes cuya base indica que realizaron un pago este mes (IMP RECUP > 0), pero que aún no cuentan con una gestión de PAGÃ registrada en el sistema.</p>
+        
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <thead style="background-color: #f8f9fa;">
+                    <tr>
+                        <th style="padding: 10px; text-align: left; border-bottom: 2px solid #dee2e6;">Cliente</th>
+                        <th style="padding: 10px; text-align: left; border-bottom: 2px solid #dee2e6;">Documento</th>
+                        <th style="padding: 10px; text-align: left; border-bottom: 2px solid #dee2e6;">Gestor Asignado</th>
+                        <th style="padding: 10px; text-align: left; border-bottom: 2px solid #dee2e6;">IMP RECUP</th>
+                        <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">AcciÃ³n</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in pagos_no_reflejados_proempresa %}
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 10px;">{{ p.nombre_completo }}</td>
+                        <td style="padding: 10px;">{{ p.documento }}</td>
+                        <td style="padding: 10px;">
+                            {% if p.gestores_actuales.all %}
+                                {% for ag in p.gestores_actuales.all %}
+                                    <span style="display: inline-block; background: #e9ecef; padding: 2px 6px; border-radius: 4px; font-size: 11px;">{{ ag.gestor.username }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span style="color: #999; font-style: italic;">Sin asignar</span>
+                            {% endif %}
