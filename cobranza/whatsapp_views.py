@@ -110,11 +110,17 @@ def exportar_whatsapp_excel(request):
             
         df = pd.DataFrame(datos_exportar)
         
-        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        import io
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='WhatsApp')
+        
+        output.seek(0)
+        
+        response = HttpResponse(output.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         nombre_archivo = f"WA_Masivo_{cartera}_{hoy.strftime('%Y%m%d')}.xlsx"
         response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
         
-        df.to_excel(response, index=False)
         return response
         
     return HttpResponse("Método no permitido.", status=405)
