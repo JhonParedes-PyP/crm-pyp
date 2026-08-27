@@ -51,7 +51,7 @@ def exportar_whatsapp_excel(request):
         
         # Variaciones de texto (Spintax simple)
         saludos = ["Hola", "Buenos días", "Estimado(a)", "Saludos"]
-        intro_cobranza = ["nos comunicamos de P&P Soluciones Jurídicas.", "somos el área legal de P&P Soluciones Jurídicas.", "le escribimos del área de cobranzas de P&P."]
+        # El intro se generará dinámicamente según la cartera
         
         for c in qs:
             tiene_negociacion = False
@@ -72,10 +72,16 @@ def exportar_whatsapp_excel(request):
                 continue
                 
             nombre_corto = c.nombre_completo.split(',')[0] if ',' in c.nombre_completo else c.nombre_completo.split(' ')[0]
+            
+            # Usar nombre completo si parece ser una empresa
+            palabras_empresa = ["CORPORACION", "EMPRESA", "INVERSIONES", "CONSORCIO", "ASOCIACION", "GRUPO", "COMERCIAL", "SERVICIOS", "S.A.C", "S.R.L", "E.I.R.L"]
+            if any(palabra in c.nombre_completo.upper() for palabra in palabras_empresa):
+                nombre_corto = c.nombre_completo.strip()
+                
             saldo = float(c.saldo_deuda) if c.saldo_deuda else 0.0
             
             saludo = random.choice(saludos)
-            intro = random.choice(intro_cobranza)
+            intro = random.choice([f"nos comunicamos por encargo de {cartera}.", f"le escribimos por encargo de {cartera}."])
             
             mensaje = ""
             
