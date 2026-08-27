@@ -222,7 +222,7 @@ def dashboard_gerente(request):
         'convenios_atrasados': convenios_atrasados,
         'convenios_proximos': convenios_proximos,
         'pagos_no_reflejados_huancayo': pagos_no_reflejados_huancayo,
-        'pagos_no_reflejados_proempresa': pagos_no_reflejados_proempresa if es_gerente_flag else [],
+        'pagos_no_reflejados_proempresa': pagos_no_reflejados_proempresa,
         'metas_json': json.dumps(metas_data),
         'recuperacion_carteras_json': json.dumps(recuperacion_carteras),
     })
