@@ -138,7 +138,7 @@ def dashboard_gerente(request):
     # Cruce de Pagos No Registrados (Caja Huancayo) - Para Gerente
     # Clientes cuya base dice que pagaron en el mes actual, pero no tienen gestión de "PAGÓ" en el CRM
     pagos_no_reflejados_huancayo = []
-    if es_gerente_flag:
+    if True:
         gestiones_pago_mes = Gestion.objects.filter(
             deudor=OuterRef('pk'),
             resultado__icontains='PAG',
