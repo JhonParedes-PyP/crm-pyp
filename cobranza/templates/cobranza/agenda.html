@@ -247,7 +247,16 @@
         {% for g in promesas_vencidas %}
         <div class="ci">
             <div>
-                <div class="ci-nom">{{ g.deudor.nombre_completo }}</div>
+                <div class="ci-nom" style="display: flex; align-items: center; gap: 8px;">
+                    {{ g.deudor.nombre_completo }}
+                    {% if g.deudor.score >= 70 %}
+                        <span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">🟩 ALTO ({{ g.deudor.score }})</span>
+                    {% elif g.deudor.score >= 40 %}
+                        <span style="background: #ffc107; color: black; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">🟨 MEDIO ({{ g.deudor.score }})</span>
+                    {% else %}
+                        <span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">🟥 BAJO ({{ g.deudor.score }})</span>
+                    {% endif %}
+                </div>
                 <div class="ci-sub">
                     <span>📄 {{ g.deudor.documento }}</span>
                     <span>📅 <strong style="color:#c0392b;">{{ g.fecha_promesa|date:"d/m/Y" }}{% if g.hora_promesa %} - {{ g.hora_promesa|time:"H:i" }}{% endif %}</strong></span>
@@ -270,7 +279,16 @@
         {% for seg in seguimientos_vencidos %}
         <div class="ci" id="seg-{{ seg.id }}">
             <div>
-                <div class="ci-nom">{{ seg.deudor.nombre_completo }}</div>
+                <div class="ci-nom" style="display: flex; align-items: center; gap: 8px;">
+                    {{ seg.deudor.nombre_completo }}
+                    {% if seg.deudor.score >= 70 %}
+                        <span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">🟩 ALTO ({{ seg.deudor.score }})</span>
+                    {% elif seg.deudor.score >= 40 %}
+                        <span style="background: #ffc107; color: black; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">🟨 MEDIO ({{ seg.deudor.score }})</span>
+                    {% else %}
+                        <span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">🟥 BAJO ({{ seg.deudor.score }})</span>
+                    {% endif %}
+                </div>
                 <div class="ci-sub">
                     <span>📅 <strong style="color:#c0392b;">{{ seg.fecha_programada|date:"d/m/Y" }}{% if seg.hora_programada %} - {{ seg.hora_programada|time:"H:i" }}{% endif %}</strong></span>
                     <span class="tag t-v">VENCIDO</span>
@@ -292,7 +310,16 @@
         {% for g in promesas_hoy %}
         <div class="ci">
             <div>
-                <div class="ci-nom">{{ g.deudor.nombre_completo }}</div>
+                <div class="ci-nom" style="display: flex; align-items: center; gap: 8px;">
+                    {{ g.deudor.nombre_completo }}
+                    {% if g.deudor.score >= 70 %}
+                        <span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">🟩 ALTO ({{ g.deudor.score }})</span>
+                    {% elif g.deudor.score >= 40 %}
+                        <span style="background: #ffc107; color: black; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">🟨 MEDIO ({{ g.deudor.score }})</span>
+                    {% else %}
+                        <span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">🟥 BAJO ({{ g.deudor.score }})</span>
+                    {% endif %}
+                </div>
                 <div class="ci-sub">
                     <span>📄 {{ g.deudor.documento }}</span>
                     <span>📞 {{ g.deudor.telefono_principal }}</span>
@@ -316,7 +343,16 @@
         {% for seg in seguimientos_hoy %}
         <div class="ci" id="seg-{{ seg.id }}">
             <div>
-                <div class="ci-nom">{{ seg.deudor.nombre_completo }}</div>
+                <div class="ci-nom" style="display: flex; align-items: center; gap: 8px;">
+                    {{ seg.deudor.nombre_completo }}
+                    {% if seg.deudor.score >= 70 %}
+                        <span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">🟩 ALTO ({{ seg.deudor.score }})</span>
+                    {% elif seg.deudor.score >= 40 %}
+                        <span style="background: #ffc107; color: black; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">🟨 MEDIO ({{ seg.deudor.score }})</span>
+                    {% else %}
+                        <span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">🟥 BAJO ({{ seg.deudor.score }})</span>
+                    {% endif %}
+                </div>
                 <div class="ci-sub">
                     <span>📄 {{ seg.deudor.documento }}</span>
                     <span>📞 {{ seg.deudor.telefono_principal }}</span>
@@ -341,7 +377,16 @@
         {% for g in promesas_manana %}
         <div class="ci">
             <div>
-                <div class="ci-nom">{{ g.deudor.nombre_completo }}</div>
+                <div class="ci-nom" style="display: flex; align-items: center; gap: 8px;">
+                    {{ g.deudor.nombre_completo }}
+                    {% if g.deudor.score >= 70 %}
+                        <span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">🟩 ALTO ({{ g.deudor.score }})</span>
+                    {% elif g.deudor.score >= 40 %}
+                        <span style="background: #ffc107; color: black; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">🟨 MEDIO ({{ g.deudor.score }})</span>
+                    {% else %}
+                        <span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">🟥 BAJO ({{ g.deudor.score }})</span>
+                    {% endif %}
+                </div>
                 <div class="ci-sub">
                     <span>📄 {{ g.deudor.documento }}</span>
                     {% if g.monto_pago %}<span style="color:#27ae60;font-weight:bold;">S/ {{ g.monto_pago|floatformat:2|intcomma }}</span>{% endif %}
@@ -363,7 +408,16 @@
         {% for seg in seguimientos_manana %}
         <div class="ci">
             <div>
-                <div class="ci-nom">{{ seg.deudor.nombre_completo }}</div>
+                <div class="ci-nom" style="display: flex; align-items: center; gap: 8px;">
+                    {{ seg.deudor.nombre_completo }}
+                    {% if seg.deudor.score >= 70 %}
+                        <span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">🟩 ALTO ({{ seg.deudor.score }})</span>
+                    {% elif seg.deudor.score >= 40 %}
+                        <span style="background: #ffc107; color: black; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">🟨 MEDIO ({{ seg.deudor.score }})</span>
+                    {% else %}
+                        <span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">🟥 BAJO ({{ seg.deudor.score }})</span>
+                    {% endif %}
+                </div>
                 <div class="ci-sub"><span>📝 {{ seg.motivo }}</span></div>
             </div>
             <a href="{% url 'registrar_gestion' seg.deudor.id %}" class="btn-ir">Ver →</a>
@@ -380,7 +434,16 @@
             {% for d in sin_contacto %}
             <div class="ci">
                 <div>
-                    <div class="ci-nom">{{ d.nombre_completo }}</div>
+                    <div class="ci-nom" style="display: flex; align-items: center; gap: 8px;">
+                    {{ d.nombre_completo }}
+                    {% if d.score >= 70 %}
+                        <span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">🟩 ALTO ({{ d.score }})</span>
+                    {% elif d.score >= 40 %}
+                        <span style="background: #ffc107; color: black; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">🟨 MEDIO ({{ d.score }})</span>
+                    {% else %}
+                        <span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">🟥 BAJO ({{ d.score }})</span>
+                    {% endif %}
+                </div>
                     <div class="ci-sub">
                         <span>📄 {{ d.documento }}</span>
                         <span>📞 {{ d.telefono_principal }}</span>

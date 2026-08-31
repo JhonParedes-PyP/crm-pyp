@@ -4,7 +4,11 @@ from datetime import date
 import sys
 
 # Setup Django environment
-sys.path.append(r'c:\CRM PYP')
+if os.name == 'nt': # Windows local
+    sys.path.append(r'c:\CRM PYP')
+else:
+    sys.path.append('/root/crm_pyp')
+
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'crm_pyp_config.settings')
 django.setup()
 
