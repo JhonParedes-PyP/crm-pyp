@@ -67,11 +67,68 @@ class Deudor(models.Model):
     codigo_cautelar = models.CharField(max_length=100, null=True, blank=True)
     foto_evidencia = models.ImageField(upload_to='evidencias/', null=True, blank=True)
 
+
+    # CAMPO DE IA SCORING
+    score = models.IntegerField(default=10, help_text="Puntaje AI de Probabilidad de Pago")
+
     class Meta:
         unique_together = ('documento', 'cuenta')
 
+
     def __str__(self):
         return self.nombre_completo
+
+    def actualizar_score(self, commit=True):
+        from datetime import date
+        puntaje = 10  # Base
+        
+        # Regla 1: Convenio activo o negociacion en la base
+        c_upper = str(self.condicion).upper()
+        tiene_convenio = False
+        if self.id:  # Only if it's already saved in DB
+            tiene_convenio = self.convenios.exists()
+            
+        if tiene_convenio or 'CONVENIO' in c_upper or (self.negociacion and len(self.negociacion.strip()) > 3):
+            puntaje += 40
+            
+        # Regla 2: Ultimo dia de pago
+        if self.ultimo_dia_pago:
+            dias_desde_pago = (date.today() - self.ultimo_dia_pago).days
+            if dias_desde_pago <= 60:
+                puntaje += 40
+            elif dias_desde_pago <= 180:
+                puntaje += 20
+            else:
+                puntaje += 10 # Al menos pagó alguna vez
+                
+        self.score = min(puntaje, 100)
+        if commit:
+            self.save(update_fields=['score'])
+            
+    def save(self, *args, **kwargs):
+        if not kwargs.get('update_fields'):
+            from datetime import date
+            puntaje = 10
+            
+            c_upper = str(self.condicion).upper()
+            tiene_convenio = False
+            if self.id:
+                tiene_convenio = self.convenios.exists()
+                
+            if tiene_convenio or 'CONVENIO' in c_upper or (self.negociacion and len(self.negociacion.strip()) > 3):
+                puntaje += 40
+                
+            if self.ultimo_dia_pago:
+                dias_desde_pago = (date.today() - self.ultimo_dia_pago).days
+                if dias_desde_pago <= 60:
+                    puntaje += 40
+                elif dias_desde_pago <= 180:
+                    puntaje += 20
+                else:
+                    puntaje += 10
+            self.score = min(puntaje, 100)
+        super(Deudor, self).save(*args, **kwargs)
+
 
 class TelefonoExtra(models.Model):
     deudor = models.ForeignKey(Deudor, on_delete=models.CASCADE)
@@ -100,6 +157,7 @@ class AsignacionCartera(models.Model):
     valor = models.CharField(max_length=100)  # Nombre de la cartera o agencia asignada
     fecha_asignacion = models.DateTimeField(auto_now_add=True)
     
+
     class Meta:
         unique_together = ['gestor', 'tipo', 'valor']  # Evita duplicados
         
@@ -112,6 +170,7 @@ class AsignacionDiaria(models.Model):
     deudor = models.ForeignKey(Deudor, on_delete=models.CASCADE, related_name='asignaciones_diarias')
     fecha_asignada = models.DateField()
     fecha_creacion = models.DateTimeField(auto_now_add=True)
+
 
     class Meta:
         unique_together = ['gestor', 'deudor', 'fecha_asignada']
@@ -138,6 +197,7 @@ class CampanaAsterisk(models.Model):
     activa = models.BooleanField(default=True, verbose_name="¿Campaña Activa?")
     usuario_creador = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Creado por")
 
+
     class Meta:
         verbose_name = "Campaña Asterisk"
         verbose_name_plural = "Campañas Asterisk"
@@ -155,6 +215,7 @@ class DetalleCampanaAsterisk(models.Model):
     telefono = models.CharField(max_length=20, verbose_name="Teléfono")
     cod_cliente = models.CharField(max_length=100, verbose_name="Código Cliente (Kubo)")
     cod_telefono = models.CharField(max_length=100, verbose_name="Código Teléfono (Kubo)")
+
 
     class Meta:
         verbose_name = "Detalle de Campaña"
@@ -174,6 +235,7 @@ class SeguimientoProgramado(models.Model):
     completado = models.BooleanField(default=False)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
+
     class Meta:
         ordering = ['fecha_programada']
         verbose_name = "Seguimiento Programado"
@@ -188,6 +250,7 @@ class AgenteSIP(models.Model):
     anexo = models.CharField(max_length=20, verbose_name="Anexo SIP")
     clave = models.CharField(max_length=200, verbose_name="Clave Secreta SIP")
     
+
     class Meta:
         verbose_name = "Perfil SIP de Agente"
         verbose_name_plural = "Perfiles SIP de Agentes"
@@ -205,6 +268,7 @@ class Convenio(models.Model):
     dias_atraso = models.IntegerField(default=0)
     situacion = models.TextField(null=True, blank=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
+
 
     class Meta:
         verbose_name = "Convenio"
@@ -226,6 +290,7 @@ class VoucherPago(models.Model):
     imagen = models.ImageField(upload_to='vouchers/', verbose_name="Foto del Voucher")
     estado = models.CharField(max_length=20, choices=ESTADOS, default='PENDIENTE')
     fecha_subida = models.DateTimeField(auto_now_add=True)
+
 
     class Meta:
         ordering = ['-fecha_subida']

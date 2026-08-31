@@ -439,7 +439,7 @@ def agenda_diaria(request):
     ).exclude(
         deudor__gestion__gestor=usuario,
         deudor__gestion__fecha__date=hoy
-    ).select_related('deudor', 'gestor').order_by('-deudor__saldo_deuda', 'deudor__nombre_completo')
+    ).select_related('deudor', 'gestor').order_by('-deudor__score', '-deudor__saldo_deuda')
 
     deudores_ya_visibles = set()
     for grupo in (promesas_vencidas_q, promesas_hoy, promesas_manana):
