@@ -152,7 +152,15 @@
                     <td style="padding: 8px; color: #17a2b8; font-weight: bold;">{{ d.ultimo_dia_pago|date:"d/m/Y"|default:"—" }}</td>
                     <td style="padding: 8px; text-align: center;">
                         {% if d.negociacion %}
-                            <span style="background: #e3f2fd; color: #0056b3; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 10px;">{{ d.negociacion }}</span>
+                            {% if d.negociacion == 'CON NEGOCIACIÓN' or d.negociacion == 'CON NEGOCIACION' %}
+                                {% if 'HUANCAYO' in d.cartera or 'huancayo' in d.cartera|lower %}
+                                    <span style="background: #28a745; color: white; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 10px;">{{ d.negociacion }}</span>
+                                {% else %}
+                                    <span style="background: #e3f2fd; color: #0056b3; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 10px;">{{ d.negociacion }}</span>
+                                {% endif %}
+                            {% else %}
+                                <span style="background: #e3f2fd; color: #0056b3; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 10px;">{{ d.negociacion }}</span>
+                            {% endif %}
                         {% else %}
                             <span style="color: #ccc;">—</span>
                         {% endif %}

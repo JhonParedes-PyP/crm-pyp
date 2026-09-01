@@ -298,8 +298,8 @@
 <script>
 
 function abrirModalMetas() {
-    document.getElementById('metaCajaHuancayo').value = metas['CAJA HUANCAYO'] || '';
-    document.getElementById('metaProempresa').value = metas['PROEMPRESA'] || '';
+    document.getElementById('metaCajaHuancayo').value = window.metas['CAJA HUANCAYO'] || '';
+    document.getElementById('metaProempresa').value = window.metas['PROEMPRESA'] || '';
     document.getElementById('modalMetas').style.display = 'flex';
 }
 function cerrarModalMetas() {
@@ -332,7 +332,7 @@ function guardarMetas() {
 document.addEventListener("DOMContentLoaded", function() {
     // --- Gráfico de Torta para Carteras ---
     var dataCarteras = {{ recuperacion_carteras_json|safe|default:"{}" }};
-    var metas = JSON.parse('{{ metas_json|escapejs }}' || "{}");
+    window.metas = JSON.parse('{{ metas_json|escapejs }}' || "{}");
     
     var labels = [];
     var values = [];
@@ -344,7 +344,7 @@ document.addEventListener("DOMContentLoaded", function() {
         
         for (var cartera in dataCarteras) {
             var recuperado = dataCarteras[cartera];
-            var meta = metas[cartera] || null;
+            var meta = window.metas[cartera] || null;
             
             labels.push(cartera);
             values.push(recuperado);
