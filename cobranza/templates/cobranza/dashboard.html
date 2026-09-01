@@ -311,7 +311,7 @@ function guardarMetas() {
         'PROEMPRESA': parseFloat(document.getElementById('metaProempresa').value) || null,
         'FOCMAC': null
     };
-    fetch('/cobranza/dashboard/guardar_metas/', {
+    fetch("{% url 'guardar_metas' %}", {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
