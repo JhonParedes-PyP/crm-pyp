@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
-from cobranza import views, api_views, campanas_views, dashboard_views, views_rutas, estrategia_ia_views, whatsapp_views
+from cobranza import views, api_views, campanas_views, dashboard_views, views_rutas, estrategia_ia_views, whatsapp_views, judicial_views
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
@@ -101,5 +101,11 @@ urlpatterns = [
     # --- 📲 WHATSAPP MASIVO ---
     path('whatsapp-masivo/', whatsapp_views.panel_whatsapp_masivo, name='panel_whatsapp_masivo'),
     path('whatsapp-masivo/exportar/', whatsapp_views.exportar_whatsapp_excel, name='exportar_whatsapp_excel'),
+
+
+    # --- MÓDULO JUDICIAL ---
+    path('judicial/dashboard/', judicial_views.dashboard_judicial, name='dashboard_judicial'),
+    path('judicial/buscar/', judicial_views.buscar_expediente, name='buscar_expediente'),
+    path('judicial/expediente/<int:expediente_id>/', judicial_views.detalle_expediente, name='detalle_expediente'),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

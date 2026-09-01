@@ -1,0 +1,62 @@
+{% extends 'cobranza/base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+    <h1 style="color: #003366; margin: 0;">🔍 Buscar Expediente Judicial</h1>
+    <div>
+        <a href="{% url 'dashboard_judicial' %}" style="background: #6c757d; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold;">Volver al Panel</a>
+    </div>
+</div>
+
+<div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 30px;">
+    <form method="GET" style="display: flex; gap: 10px;">
+        <input type="text" name="q" value="{{ query }}" placeholder="Buscar por N° de Expediente, DNI o Nombre del Cliente..." style="flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px;">
+        <button type="submit" style="background: #0056b3; color: white; padding: 12px 25px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold;">Buscar</button>
+    </form>
+</div>
+
+{% if query %}
+    <h3 style="color: #333; margin-bottom: 15px;">Resultados de la búsqueda ({{ expedientes|length }})</h3>
+    <div style="background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #f1f3f5; text-align: left;">
+                    <th style="padding: 12px 20px; border-bottom: 2px solid #ddd;">N° Expediente</th>
+                    <th style="padding: 12px 20px; border-bottom: 2px solid #ddd;">Cliente</th>
+                    <th style="padding: 12px 20px; border-bottom: 2px solid #ddd;">Materia</th>
+                    <th style="padding: 12px 20px; border-bottom: 2px solid #ddd;">Juzgado</th>
+                    <th style="padding: 12px 20px; border-bottom: 2px solid #ddd;">Estado</th>
+                    <th style="padding: 12px 20px; border-bottom: 2px solid #ddd; text-align: center;">Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in expedientes %}
+                <tr style="border-bottom: 1px solid #eee; transition: background 0.2s;">
+                    <td style="padding: 12px 20px; font-weight: bold; color: #0056b3;">{{ e.numero_expediente }}</td>
+                    <td style="padding: 12px 20px;">
+                        {{ e.deudor.nombre_completo }}<br>
+                        <small style="color: #666;">DNI: {{ e.deudor.documento }}</small>
+                    </td>
+                    <td style="padding: 12px 20px;">{{ e.materia }}</td>
+                    <td style="padding: 12px 20px;">{{ e.juzgado }}</td>
+                    <td style="padding: 12px 20px;">
+                        <span style="background: {% if e.estado_proceso == 'ACTIVO' %}#e3f2fd; color: #0056b3{% else %}#e9ecef; color: #666{% endif %}; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">
+                            {{ e.estado_proceso }}
+                        </span>
+                    </td>
+                    <td style="padding: 12px 20px; text-align: center;">
+                        <a href="{% url 'detalle_expediente' e.id %}" style="background: #28a745; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 12px; font-weight: bold;">Ver Detalles</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="padding: 30px; text-align: center; color: #777;">
+                        No se encontraron expedientes con la búsqueda "{{ query }}".
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+{% endblock %}
