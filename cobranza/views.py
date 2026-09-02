@@ -521,6 +521,21 @@ def subir_excel(request):
                                   defaults=defaults
                               )
                               
+                                                        # --- CREACIÓN AUTOMÁTICA DE EXPEDIENTE JUDICIAL ---
+                            if deudor.expediente and deudor.expediente.strip() not in ('', 'nan', 'None', '-'):
+                                from cobranza.models import ExpedienteJudicial
+                                juzgado_val = deudor.juzgado.strip() if deudor.juzgado else 'NO ESPECIFICADO'
+                                materia_val = deudor.proceso.strip() if deudor.proceso else 'NO ESPECIFICADO'
+                                ExpedienteJudicial.objects.get_or_create(
+                                    deudor=deudor,
+                                    numero_expediente=deudor.expediente.strip(),
+                                    defaults={
+                                        'juzgado': juzgado_val,
+                                        'materia': materia_val,
+                                        'fecha_inicio': deudor.fec_demanda
+                                    }
+                                )
+                            # --------------------------------------------------
                             neg_str_conv = defaults.get('negociacion', '')
                             if neg_str_conv and neg_str_conv.lower() not in ('', 'nan', 'none', 'null', 'sin negociación', 'sin negociacion'):
                                 raw_fecha_conv = str(row.get('Fecha Pago Cuota Pendiente', '')).strip()
