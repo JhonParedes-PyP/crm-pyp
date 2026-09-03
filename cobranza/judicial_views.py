@@ -208,12 +208,14 @@ def subir_excel_judicial(request):
                                     else:
                                         defaults_dict['monto_demandado'] = None
                                         
-                                    exp, created = ExpedienteJudicial.objects.update_or_create(
-                                        deudor=deudor,
-                                        defaults=defaults_dict
-                                    )
-                                    if created:
+                                    exp = ExpedienteJudicial.objects.filter(deudor=deudor).first()
+                                    if not exp:
+                                        exp = ExpedienteJudicial(deudor=deudor)
                                         expedientes_creados += 1
+                                        
+                                    for field, value in defaults_dict.items():
+                                        setattr(exp, field, value)
+                                    exp.save()
                                         
                                     seg_prin = get_val(row, ['SEGUIMIENTO DEL CUADERNO PRINCIPAL'])
                                     if seg_prin:
