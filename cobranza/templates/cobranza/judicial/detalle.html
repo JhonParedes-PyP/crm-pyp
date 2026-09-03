@@ -1,148 +1,170 @@
 {% extends 'cobranza/base.html' %}
-
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-    <h1 style="color: #003366; margin: 0;">⚖️ Expediente Judicial</h1>
-    <div>
-        <a href="{% url 'dashboard_judicial' %}" style="background: #6c757d; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold; margin-right: 10px;">Volver</a>
-        <a href="{% url 'registrar_gestion' expediente.deudor.id %}" style="background: #0056b3; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold;" target="_blank">Ficha de Cobranza</a>
-    </div>
-</div>
-
-<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
-    
-    <!-- LADO IZQUIERDO: DETALLES DEL EXPEDIENTE Y RESOLUCIONES -->
-    <div>
-        <!-- Caja Principal -->
-        <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px;">
-            <h2 style="margin: 0 0 15px 0; color: #333;">N° {{ expediente.numero_expediente }}</h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <div>
-                    <p style="margin: 5px 0; color: #666; font-size: 13px;">Demandado (Cliente):</p>
-                    <p style="margin: 0; font-weight: bold; font-size: 16px;">{{ expediente.deudor.nombre_completo }}</p>
-                </div>
-                <div>
-                    <p style="margin: 5px 0; color: #666; font-size: 13px;">DNI:</p>
-                    <p style="margin: 0; font-weight: bold; font-size: 16px;">{{ expediente.deudor.documento }}</p>
-                </div>
-                <div>
-                    <p style="margin: 5px 0; color: #666; font-size: 13px;">Juzgado:</p>
-                    <p style="margin: 0; font-weight: bold;">{{ expediente.juzgado }}</p>
-                </div>
-                <div>
-                    <p style="margin: 5px 0; color: #666; font-size: 13px;">Materia:</p>
-                    <p style="margin: 0; font-weight: bold;">{{ expediente.materia }}</p>
-                </div>
-                <div>
-                    <p style="margin: 5px 0; color: #666; font-size: 13px;">Especialista Legal:</p>
-                    <p style="margin: 0; font-weight: bold;">{{ expediente.especialista_legal|default:"-" }}</p>
-                </div>
-                <div>
-                    <p style="margin: 5px 0; color: #666; font-size: 13px;">Estado:</p>
-                    <span style="background: {% if expediente.estado_proceso == 'ACTIVO' %}#e3f2fd; color: #0056b3{% else %}#e9ecef; color: #666{% endif %}; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block; margin-top: 5px;">
-                        {{ expediente.estado_proceso }}
-                    </span>
-                </div>
-            </div>
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>⚖️ Expediente Judicial: {{ expediente.numero_expediente }}</h2>
+        <div>
+            <a href="{% url 'detalle_deudor' expediente.deudor.id %}" class="btn btn-outline-primary">
+                <i class="fas fa-user"></i> Ver Ficha de Cobranza
+            </a>
+            <a href="{% url 'dashboard_judicial' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver al Panel
+            </a>
         </div>
+    </div>
 
-        <!-- Resoluciones / Actos Procesales -->
-        <div style="background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden;">
-            <div style="padding: 20px; background: #f8f9fa; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="margin: 0; color: #333;">Actos Procesales (Resoluciones)</h3>
-                <button onclick="document.getElementById('modalActo').style.display='flex'" style="background: #28a745; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">+ Nuevo Acto</button>
-            </div>
-            <div style="padding: 20px;">
-                {% for a in actos %}
-                <div style="border-left: 3px solid #0056b3; padding-left: 15px; margin-bottom: 20px;">
-                    <div style="display: flex; justify-content: space-between;">
-                        <h4 style="margin: 0 0 5px 0; color: #0056b3;">Resolución N° {{ a.numero_resolucion|default:"-" }}</h4>
-                        <span style="color: #666; font-size: 12px;">🗓️ Res: {{ a.fecha_resolucion|date:"d M Y" }} {% if a.fecha_notificacion %}| Notif: {{ a.fecha_notificacion|date:"d M Y" }}{% endif %}</span>
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+        <!-- LADO IZQUIERDO: DETALLES DEL CASO -->
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <!-- PRINCIPAL -->
+                <div style="background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden;">
+                    <div style="background: #003366; color: white; padding: 15px 20px;">
+                        <h4 style="margin: 0;">Cuaderno Principal</h4>
                     </div>
-                    {% if a.sumilla %}<p style="margin: 0 0 5px 0; font-weight: bold; color: #444;">Sumilla: {{ a.sumilla }}</p>{% endif %}
-                    <p style="margin: 0; font-size: 14px; color: #555; line-height: 1.5;">{{ a.descripcion|linebreaksbr }}</p>
+                    <div style="padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div><strong style="color: #666; font-size: 12px; text-transform: uppercase;">Cliente</strong><div style="font-weight: 500;">{{ expediente.deudor.nombre_completo }}</div></div>
+                        <div><strong style="color: #666; font-size: 12px; text-transform: uppercase;">Materia</strong><div style="font-weight: 500;">{{ expediente.materia }}</div></div>
+                        <div><strong style="color: #666; font-size: 12px; text-transform: uppercase;">Juzgado / Sede</strong><div style="font-weight: 500;">{{ expediente.juzgado }} - {{ expediente.sede_judicial|default:"" }}</div></div>
+                        <div><strong style="color: #666; font-size: 12px; text-transform: uppercase;">Monto Demandado</strong><div style="font-weight: 500;">S/ {{ expediente.monto_demandado|default:"0.00" }}</div></div>
+                        <div><strong style="color: #666; font-size: 12px; text-transform: uppercase;">Condición</strong><div style="font-weight: 500;">{{ expediente.condicion_recuperabilidad|default:"-" }}</div></div>
+                        <div>
+                            <strong style="color: #666; font-size: 12px; text-transform: uppercase;">Estado Proceso</strong>
+                            <div>
+                                <span style="background: {% if expediente.estado_proceso == 'ACTIVO' %}#28a745{% else %}#6c757d{% endif %}; color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                                    {{ expediente.estado_proceso }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                {% empty %}
-                <p style="color: #777; text-align: center; margin: 20px 0;">Aún no se han registrado actos procesales.</p>
-                {% endfor %}
+                
+                <!-- CAUTELAR -->
+                <div style="background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden; border: 2px solid #ffc107;">
+                    <div style="background: #ffc107; color: #333; padding: 15px 20px;">
+                        <h4 style="margin: 0;">Medida Cautelar</h4>
+                    </div>
+                    <div style="padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div><strong style="color: #666; font-size: 12px; text-transform: uppercase;">N° Cautelar</strong><div style="font-weight: 500;">{{ expediente.numero_cautelar|default:"-" }}</div></div>
+                        <div><strong style="color: #666; font-size: 12px; text-transform: uppercase;">Código Cautelar</strong><div style="font-weight: 500;">{{ expediente.codigo_cautelar|default:"-" }}</div></div>
+                        <div><strong style="color: #666; font-size: 12px; text-transform: uppercase;">Tipo de Medida</strong><div style="font-weight: 500;">{{ expediente.tipo_medida_cautelar|default:"-" }}</div></div>
+                        <div><strong style="color: #666; font-size: 12px; text-transform: uppercase;">Estado Cautelar</strong><div style="font-weight: 500;">{{ expediente.estado_cautelar|default:"-" }}</div></div>
+                        <div style="grid-column: 1 / 3;"><strong style="color: #666; font-size: 12px; text-transform: uppercase;">Detalle del Bien</strong><div style="font-weight: 500;">{{ expediente.detalle_bien|default:"-" }}</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resoluciones / Actos Procesales -->
+            <div style="background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden;">
+                <div style="padding: 20px; background: #f8f9fa; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0; color: #333;">Actos Procesales (Resoluciones)</h3>
+                    <button onclick="document.getElementById('modalActo').style.display='flex'" style="background: #28a745; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">+ Nuevo Acto</button>
+                </div>
+                <div style="padding: 20px;">
+                    {% for a in actos %}
+                    <div style="border-left: 4px solid {% if a.cuaderno == 'CAUTELAR' %}#ffc107{% else %}#0056b3{% endif %}; padding-left: 15px; margin-bottom: 20px; background: {% if a.cuaderno == 'CAUTELAR' %}#fffdf5{% else %}#f8fbfd{% endif %}; padding: 10px 15px; border-radius: 0 8px 8px 0;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <h4 style="margin: 0 0 5px 0; color: #333;">
+                                <span class="badge {% if a.cuaderno == 'CAUTELAR' %}bg-warning text-dark{% else %}bg-primary{% endif %}">{{ a.cuaderno }}</span>
+                                Resolución N° {{ a.numero_resolucion|default:"-" }}
+                            </h4>
+                            <span style="color: #666; font-size: 12px;">Res: {{ a.fecha_resolucion|date:"d M Y"|default:"Importado" }}</span>
+                        </div>
+                        {% if a.sumilla %}<p style="margin: 5px 0; font-weight: bold; color: #444;">Sumilla: {{ a.sumilla }}</p>{% endif %}
+                        <p style="margin: 0; font-size: 14px; color: #555; line-height: 1.5;">{{ a.descripcion|linebreaksbr }}</p>
+                    </div>
+                    {% empty %}
+                    <p style="color: #777; text-align: center; margin: 20px 0;">Aún no se han registrado actos procesales.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- LADO DERECHO: ALERTAS Y TAREAS -->
+        <div>
+            <div style="background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden;">
+                <div style="padding: 15px 20px; background: #dc3545; color: white; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0;">Alertas y Plazos</h3>
+                    <button onclick="document.getElementById('modalAlerta').style.display='flex'" style="background: rgba(255,255,255,0.2); color: white; padding: 4px 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">+ Nueva</button>
+                </div>
+                <div style="padding: 15px;">
+                    {% for alerta in alertas %}
+                    <div style="background: #f8f9fa; border: 1px solid #eee; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
+                        <h5 style="margin: 0 0 5px 0; color: #333;">{{ alerta.tipo_alerta }}</h5>
+                        <p style="margin: 0; font-size: 12px; color: #dc3545; font-weight: bold;">Vence: {{ alerta.fecha_vencimiento|date:"d M Y" }}</p>
+                    </div>
+                    {% empty %}
+                    <p style="color: #777; text-align: center; font-size: 13px; margin: 10px 0;">No hay plazos pendientes.</p>
+                    {% endfor %}
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- LADO DERECHO: ALERTAS Y TAREAS -->
-    <div>
-        <div style="background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden;">
-            <div style="padding: 15px 20px; background: #dc3545; color: white; display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="margin: 0;">Alertas y Plazos</h3>
-                <button onclick="document.getElementById('modalAlerta').style.display='flex'" style="background: rgba(255,255,255,0.2); color: white; padding: 4px 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">+ Nueva</button>
-            </div>
-            <div style="padding: 15px;">
-                {% for alerta in alertas %}
-                <div style="background: #f8f9fa; border: 1px solid #eee; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
-                    <h5 style="margin: 0 0 5px 0; color: #333;">{{ alerta.tipo_alerta }}</h5>
-                    <p style="margin: 0; font-size: 12px; color: #dc3545; font-weight: bold;">Vence: {{ alerta.fecha_vencimiento|date:"d M Y" }}</p>
+    <!-- Modal Nuevo Acto -->
+    <div id="modalActo" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 25px; border-radius: 8px; width: 500px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <h3 style="margin-top: 0; color: #003366;">Registrar Acto Procesal</h3>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_acto">
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px;">Cuaderno *</label>
+                    <select name="cuaderno" class="form-select" required>
+                        <option value="PRINCIPAL">PRINCIPAL</option>
+                        <option value="CAUTELAR">CAUTELAR</option>
+                    </select>
                 </div>
-                {% empty %}
-                <p style="color: #777; text-align: center; font-size: 13px; margin: 10px 0;">No hay plazos pendientes.</p>
-                {% endfor %}
-            </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px;">N° Resolución</label>
+                        <input type="text" name="numero_resolucion" class="form-control">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px;">Fecha de Resolución</label>
+                        <input type="date" name="fecha_resolucion" class="form-control">
+                    </div>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px;">Sumilla</label>
+                    <input type="text" name="sumilla" placeholder="Ej: Se ordena remate..." class="form-control">
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px;">Descripción Detallada *</label>
+                    <textarea name="descripcion" rows="4" required class="form-control"></textarea>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" onclick="document.getElementById('modalActo').style.display='none'" class="btn btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
         </div>
     </div>
-</div>
 
-<!-- Modal Nuevo Acto -->
-<div id="modalActo" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-    <div style="background: white; padding: 25px; border-radius: 8px; width: 500px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-        <h3 style="margin-top: 0; color: #003366;">Registrar Acto Procesal</h3>
-        <form method="POST">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="add_acto">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px;">N° Resolución</label>
-                    <input type="text" name="numero_resolucion" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+    <!-- Modal Nueva Alerta -->
+    <div id="modalAlerta" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 25px; border-radius: 8px; width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <h3 style="margin-top: 0; color: #dc3545;">Nueva Alerta de Plazo</h3>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_alerta">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px;">Tipo de Tarea / Alerta *</label>
+                    <input type="text" name="tipo_alerta" required placeholder="Ej: Presentar recurso de apelación" class="form-control">
                 </div>
-                <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px;">Fecha de Resolución *</label>
-                    <input type="date" name="fecha_resolucion" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px;">Fecha Límite (Vencimiento) *</label>
+                    <input type="date" name="fecha_vencimiento" required class="form-control">
                 </div>
-            </div>
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px;">Sumilla</label>
-                <input type="text" name="sumilla" placeholder="Ej: Se ordena remate..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-            </div>
-            <div style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px;">Descripción Detallada *</label>
-                <textarea name="descripcion" rows="4" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></textarea>
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                <button type="button" onclick="document.getElementById('modalActo').style.display='none'" style="padding: 8px 15px; border: 1px solid #ccc; background: white; border-radius: 4px; cursor: pointer;">Cancelar</button>
-                <button type="submit" style="padding: 8px 15px; border: none; background: #0056b3; color: white; border-radius: 4px; cursor: pointer; font-weight: bold;">Guardar</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Modal Nueva Alerta -->
-<div id="modalAlerta" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-    <div style="background: white; padding: 25px; border-radius: 8px; width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-        <h3 style="margin-top: 0; color: #dc3545;">Nueva Alerta de Plazo</h3>
-        <form method="POST">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="add_alerta">
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px;">Tipo de Tarea / Alerta *</label>
-                <input type="text" name="tipo_alerta" required placeholder="Ej: Presentar recurso de apelación" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-            </div>
-            <div style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px;">Fecha Límite (Vencimiento) *</label>
-                <input type="date" name="fecha_vencimiento" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                <button type="button" onclick="document.getElementById('modalAlerta').style.display='none'" style="padding: 8px 15px; border: 1px solid #ccc; background: white; border-radius: 4px; cursor: pointer;">Cancelar</button>
-                <button type="submit" style="padding: 8px 15px; border: none; background: #dc3545; color: white; border-radius: 4px; cursor: pointer; font-weight: bold;">Guardar Alerta</button>
-            </div>
-        </form>
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" onclick="document.getElementById('modalAlerta').style.display='none'" class="btn btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Guardar Alerta</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}

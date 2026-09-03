@@ -314,6 +314,21 @@ class ExpedienteJudicial(models.Model):
     numero_expediente = models.CharField(max_length=100, verbose_name="N° de Expediente Principal")
     numero_cautelar = models.CharField(max_length=100, null=True, blank=True, verbose_name="N° de Expediente Cautelar")
     materia = models.CharField(max_length=150, verbose_name="Materia del Proceso")
+    
+    # Nuevos campos
+    distrito_judicial = models.CharField(max_length=150, null=True, blank=True, verbose_name="Distrito Judicial")
+    sede_judicial = models.CharField(max_length=150, null=True, blank=True, verbose_name="Sede Judicial")
+    condicion_recuperabilidad = models.CharField(max_length=50, null=True, blank=True, verbose_name="Condición")
+    probabilidad_recuperacion = models.CharField(max_length=50, null=True, blank=True, verbose_name="Probabilidad de Recuperación")
+    detalle_bien = models.TextField(null=True, blank=True, verbose_name="Detalle del Bien / Garantía")
+    
+    # Campos Cautelar
+    codigo_cautelar = models.CharField(max_length=100, null=True, blank=True, verbose_name="Código Cautelar")
+    tipo_medida_cautelar = models.CharField(max_length=150, null=True, blank=True, verbose_name="Tipo Medida Cautelar")
+    estado_cautelar = models.CharField(max_length=100, null=True, blank=True, verbose_name="Estado Medida Cautelar")
+    fecha_cautelar = models.DateField(null=True, blank=True, verbose_name="Fecha Presentación Cautelar")
+    monto_demandado = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Monto Demandado")
+
     juzgado = models.CharField(max_length=200, verbose_name="Juzgado")
     especialista_legal = models.CharField(max_length=200, null=True, blank=True, verbose_name="Especialista Legal")
     estado_proceso = models.CharField(max_length=50, choices=ESTADOS_PROCESO, default='ACTIVO')
@@ -329,7 +344,12 @@ class ExpedienteJudicial(models.Model):
 
 
 class ActoProcesal(models.Model):
+    CUADERNO_CHOICES = (
+        ('PRINCIPAL', 'Principal'),
+        ('CAUTELAR', 'Cautelar'),
+    )
     expediente = models.ForeignKey(ExpedienteJudicial, on_delete=models.CASCADE, related_name='actos_procesales')
+    cuaderno = models.CharField(max_length=20, choices=CUADERNO_CHOICES, default='PRINCIPAL')
     numero_resolucion = models.CharField(max_length=50, null=True, blank=True, verbose_name="N° de Resolución")
     fecha_resolucion = models.DateField(verbose_name="Fecha de Resolución")
     fecha_notificacion = models.DateField(null=True, blank=True, verbose_name="Fecha de Notificación")

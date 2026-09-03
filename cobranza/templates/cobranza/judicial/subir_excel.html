@@ -1,0 +1,66 @@
+{% extends 'cobranza/base.html' %}
+{% block content %}
+<div class="container-fluid mt-4">
+    <h2>📥 Cargar Cartera Judicial</h2>
+    
+    {% if mensajes %}
+    <div class="alert alert-info">{{ mensajes }}</div>
+    {% endif %}
+
+    {% if not vista_previa %}
+    <div class="card shadow">
+        <div class="card-body">
+            <h5 class="card-title">Seleccionar Excel Judicial</h5>
+            <p>Sube el archivo Excel respetando el formato de 58 columnas (Drive) para cargar datos de expedientes y resoluciones (Actos Procesales).</p>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="previsualizar">
+                
+                <div class="mb-3">
+                    <label class="form-label">Archivo Excel (.xlsx)</label>
+                    <input type="file" class="form-control" name="archivo_excel" required accept=".xlsx, .xls">
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-eye"></i> Previsualizar Archivo
+                </button>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    
+    <div class="card shadow border-warning">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">🔍 Vista Previa del Excel Judicial</h5>
+        </div>
+        <div class="card-body">
+            <p>Se ha cargado el archivo correctamente. Verifica que las columnas coincidan:</p>
+            <p><strong>Columnas Detectadas:</strong></p>
+            <div style="max-height: 150px; overflow-y: auto;" class="border p-2 bg-light mb-3">
+                <small>
+                {% for col in columnas_detectadas %}
+                    <span class="badge bg-secondary">{{ col }}</span>
+                {% endfor %}
+                </small>
+            </div>
+            
+            <hr>
+            
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="confirmar">
+                <input type="hidden" name="file_path" value="{{ file_path }}">
+                
+                <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> IMPORTANTE: Al confirmar, el sistema buscará las cuentas (CUENTA o DNI TITULAR) e insertará los expedientes principales, cautelares y el historial de seguimiento.</p>
+                
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="fas fa-upload"></i> Confirmar Carga
+                </button>
+                <a href="{% url 'subir_excel_judicial' %}" class="btn btn-secondary btn-lg">Cancelar</a>
+            </form>
+        </div>
+    </div>
+    
+    {% endif %}
+</div>
+{% endblock %}
