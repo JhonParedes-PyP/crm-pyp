@@ -9,13 +9,32 @@
 </div>
 
 <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 30px;">
-    <form method="GET" style="display: flex; gap: 10px;">
-        <input type="text" name="q" value="{{ query }}" placeholder="Buscar por N° de Expediente, DNI o Nombre del Cliente..." style="flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px;">
+    <form method="GET" style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <input type="text" name="q" value="{{ query }}" placeholder="Buscar por N° de Expediente, DNI o Nombre del Cliente..." style="flex: 2; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; min-width: 300px;">
+        
+        <select name="cartera" style="flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; min-width: 150px;">
+            <option value="">-- Todas las Carteras --</option>
+            {% for c in carteras %}
+                {% if c and c != 'nan' %}
+                    <option value="{{ c }}" {% if cartera_q == c %}selected{% endif %}>{{ c }}</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+
+        <select name="agencia" style="flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; min-width: 150px;">
+            <option value="">-- Todas las Agencias --</option>
+            {% for a in agencias %}
+                {% if a and a != 'nan' %}
+                    <option value="{{ a }}" {% if agencia_q == a %}selected{% endif %}>{{ a }}</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+
         <button type="submit" style="background: #0056b3; color: white; padding: 12px 25px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold;">Buscar</button>
     </form>
 </div>
 
-{% if query %}
+{% if query or cartera_q or agencia_q %}
     <h3 style="color: #333; margin-bottom: 15px;">Resultados de la búsqueda ({{ expedientes|length }})</h3>
     <div style="background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden;">
         <table style="width: 100%; border-collapse: collapse;">
@@ -51,7 +70,7 @@
                 {% empty %}
                 <tr>
                     <td colspan="6" style="padding: 30px; text-align: center; color: #777;">
-                        No se encontraron expedientes con la búsqueda "{{ query }}".
+                        No se encontraron expedientes con los filtros aplicados.
                     </td>
                 </tr>
                 {% endfor %}
