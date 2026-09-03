@@ -135,9 +135,17 @@
                 </div>
                 <div style="padding: 15px;">
                     {% for alerta in alertas %}
-                    <div style="background: #f8f9fa; border: 1px solid #eee; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
-                        <h5 style="margin: 0 0 5px 0; color: #333;">{{ alerta.tipo_alerta }}</h5>
-                        <p style="margin: 0; font-size: 12px; color: #dc3545; font-weight: bold;">Vence: {{ alerta.fecha_vencimiento|date:"d M Y" }}</p>
+                    <div style="background: #f8f9fa; border: 1px solid #eee; padding: 12px; border-radius: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h5 style="margin: 0 0 5px 0; color: #333;">{{ alerta.tipo_alerta }}</h5>
+                            <p style="margin: 0; font-size: 12px; color: #dc3545; font-weight: bold;">Vence: {{ alerta.fecha_vencimiento|date:"d M Y" }}</p>
+                        </div>
+                        <form method="POST" onsubmit="return confirm('¿Estás seguro que ya cumpliste con esta alerta? Desaparecerá de tu lista de pendientes.');">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="complete_alerta">
+                            <input type="hidden" name="alerta_id" value="{{ alerta.id }}">
+                            <button type="submit" style="background: #28a745; color: white; border: none; border-radius: 4px; padding: 5px 10px; font-size: 11px; font-weight: bold; cursor: pointer;" title="Marcar como Completado">✔ Cumplido</button>
+                        </form>
                     </div>
                     {% empty %}
                     <p style="color: #777; text-align: center; font-size: 13px; margin: 10px 0;">No hay plazos pendientes.</p>

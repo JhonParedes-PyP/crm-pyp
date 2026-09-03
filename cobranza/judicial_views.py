@@ -96,6 +96,12 @@ def detalle_expediente(request, expediente_id):
                 fecha_vencimiento=request.POST.get('fecha_vencimiento'),
                 creado_por=request.user
             )
+        elif action == 'complete_alerta':
+            alerta_id = request.POST.get('alerta_id')
+            alerta = AlertaJudicial.objects.filter(id=alerta_id, expediente=expediente).first()
+            if alerta:
+                alerta.estado = 'COMPLETADO'
+                alerta.save()
         return redirect('detalle_expediente', expediente_id=expediente.id)
 
     es_gerencia = request.user.is_superuser or request.user.groups.filter(name='Gerencia').exists()
