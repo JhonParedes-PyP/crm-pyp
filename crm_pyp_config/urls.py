@@ -77,6 +77,32 @@ urlpatterns = [
     # Carga masiva de teléfonos (solo gerentes)
     path('cargar-telefonos/', views.cargar_telefonos, name='cargar_telefonos'),
 
+    # --- MÓDULO CAMPAÑAS ASTERISK ---
+    path('campanas-asterisk/', campanas_views.panel_campanas_asterisk, name='panel_campanas'),
+    path('campanas-asterisk/descargar/<int:campana_id>/', campanas_views.descargar_csv_campana, name='descargar_csv_campana'),
+
+    # Ruta callback de Kubo (captura cualquier dato extra encriptado que tenga barras)
+    path('datos-cliente/<str:telefono>/<str:campana>/<path:datos_extra>', campanas_views.datos_cliente_kubo, name='datos_cliente_kubo'),
+
+    # --- ZADARMA WebRTC / Callback ---
+    path('api/webrtc-key/', api_views.api_zadarma_webrtc_key, name='api_zadarma_webrtc_key'),
+    path('iniciar-llamada/<str:numero_cliente>/', api_views.iniciar_callback, name='iniciar_callback'),
+
+    # --- 🤖 DEEPSEEK AI ASSISTANT ---
+    path('api/ai/resumen/<int:deudor_id>/', api_views.api_ai_resumen, name='api_ai_resumen'),
+    path('api/ai/guion/<int:deudor_id>/', api_views.api_ai_guion, name='api_ai_guion'),
+    path('api/ai/chat/<int:deudor_id>/', api_views.api_ai_chat, name='api_ai_chat'),
+    
+    # --- 🤖 ESTRATEGIA IA GERENCIAL ---
+    path('estrategia-ia/', estrategia_ia_views.panel_estrategia_ia, name='panel_estrategia_ia'),
+    path('api/v1/ai/estrategia/', estrategia_ia_views.api_generar_estrategia, name='api_generar_estrategia'),
+
+
+    # --- 📲 WHATSAPP MASIVO ---
+    path('whatsapp-masivo/', whatsapp_views.panel_whatsapp_masivo, name='panel_whatsapp_masivo'),
+    path('whatsapp-masivo/exportar/', whatsapp_views.exportar_whatsapp_excel, name='exportar_whatsapp_excel'),
+
+
     # --- MÓDULO JUDICIAL ---
     path('judicial/dashboard/', judicial_views.dashboard_judicial, name='dashboard_judicial'),
     path('judicial/buscar/', judicial_views.buscar_expediente, name='buscar_expediente'),
