@@ -1,3 +1,4 @@
+from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
@@ -216,23 +217,31 @@ def subir_excel_judicial(request):
                                         
                                     seg_prin = get_val(row, ['SEGUIMIENTO DEL CUADERNO PRINCIPAL'])
                                     if seg_prin:
+                                        fecha_prin = safe_date_judicial(get_val(row, ['FECHA DE ULTIMO ACTUADO PROCESAL'])) or timezone.now().date()
                                         ActoProcesal.objects.get_or_create(
                                             expediente=exp,
                                             descripcion='Historial Importado (Drive)',
                                             sumilla=seg_prin,
                                             cuaderno='PRINCIPAL',
-                                            defaults={'registrado_por': request.user}
+                                            defaults={
+                                                'registrado_por': request.user,
+                                                'fecha_resolucion': fecha_prin
+                                            }
                                         )
                                         actos_creados += 1
                                         
                                     seg_cau = get_val(row, ['SEGUIMIENTO DEL CUAD CAU', 'SEGUIMIENTO DEL CUADERNO CAUTELAR'])
                                     if seg_cau:
+                                        fecha_cau = safe_date_judicial(get_val(row, ['FECHA DEL ULTMO ACTUADO CAUTELAR', 'FECHA DE ULTIMO ACTUADO CAUTELAR'])) or timezone.now().date()
                                         ActoProcesal.objects.get_or_create(
                                             expediente=exp,
                                             descripcion='Historial Cautelar Importado (Drive)',
                                             sumilla=seg_cau,
                                             cuaderno='CAUTELAR',
-                                            defaults={'registrado_por': request.user}
+                                            defaults={
+                                                'registrado_por': request.user,
+                                                'fecha_resolucion': fecha_cau
+                                            }
                                         )
                                         actos_creados += 1
                     
