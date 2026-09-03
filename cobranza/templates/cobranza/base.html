@@ -197,7 +197,7 @@
         <div class="menu">
             
             <!-- GESTIÓN -->
-            <details class="menu-group" open>
+            <details class="menu-group">
                 <summary class="group-title">Gestión</summary>
                 <a href="{% url 'dashboard_gerente' %}">📊 Dashboard</a>
                 
@@ -294,7 +294,47 @@
         </div>
         {% endif %}
     </div>
+
 </nav>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const allDetails = document.querySelectorAll('details.menu-group');
+        
+        // Accordion behavior: close others when one opens
+        allDetails.forEach(details => {
+            details.addEventListener('toggle', (e) => {
+                if (details.open) {
+                    allDetails.forEach(other => {
+                        if (other !== details) {
+                            other.removeAttribute('open');
+                        }
+                    });
+                }
+            });
+        });
+
+        // Auto-open the menu group that contains the current URL
+        const currentPath = window.location.pathname;
+        let foundOpen = false;
+        
+        allDetails.forEach(details => {
+            const links = details.querySelectorAll('a');
+            links.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && href !== '#' && currentPath.includes(href)) {
+                    details.setAttribute('open', '');
+                    foundOpen = true;
+                }
+            });
+        });
+        
+        // Default to first one (Gestión) if none matched exactly
+        if (!foundOpen && allDetails.length > 0) {
+            allDetails[0].setAttribute('open', '');
+        }
+    });
+</script>
+
 <script>
     (function () {
         var agendaLink = document.getElementById('agenda-link');
