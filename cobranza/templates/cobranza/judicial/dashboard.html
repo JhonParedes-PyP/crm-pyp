@@ -4,8 +4,14 @@
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
     <h1 style="color: #003366; margin: 0;">⚖️ Panel de Gestión Judicial</h1>
     <div>
-        <a href="{% url 'buscar_expediente' %}" style="background: #0056b3; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold;">🔍 Buscar Expediente</a>
+        <a href="{% url 'subir_excel_judicial' %}" style="background: #28a745; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold; margin-right: 10px;">
+            📥 Subir Cartera Judicial
+        </a>
+        <a href="{% url 'buscar_expediente' %}" style="background: #0056b3; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold;">
+            🔍 Buscar Expediente
+        </a>
     </div>
+</div>
 </div>
 
 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px;">
