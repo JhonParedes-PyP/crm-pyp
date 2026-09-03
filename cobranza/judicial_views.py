@@ -76,6 +76,7 @@ def detalle_expediente(request, expediente_id):
         if action == 'add_acto':
             ActoProcesal.objects.create(
                 expediente=expediente,
+                cuaderno=request.POST.get('cuaderno', 'PRINCIPAL'),
                 numero_resolucion=request.POST.get('numero_resolucion'),
                 fecha_resolucion=request.POST.get('fecha_resolucion'),
                 fecha_notificacion=request.POST.get('fecha_notificacion') or None,
@@ -84,6 +85,10 @@ def detalle_expediente(request, expediente_id):
                 fojas=request.POST.get('fojas') or None,
                 registrado_por=request.user
             )
+        elif action == 'delete_acto':
+            if request.user.is_superuser or request.user.groups.filter(name='Gerencia').exists():
+                acto_id = request.POST.get('acto_id')
+                ActoProcesal.objects.filter(id=acto_id).delete()
         elif action == 'add_alerta':
             AlertaJudicial.objects.create(
                 expediente=expediente,
@@ -93,10 +98,12 @@ def detalle_expediente(request, expediente_id):
             )
         return redirect('detalle_expediente', expediente_id=expediente.id)
 
+    es_gerencia = request.user.is_superuser or request.user.groups.filter(name='Gerencia').exists()
     return render(request, 'cobranza/judicial/detalle.html', {
         'expediente': expediente,
         'actos': actos,
-        'alertas': alertas
+        'alertas': alertas,
+        'es_gerencia': es_gerencia
     })
 
 
