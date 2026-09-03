@@ -4,7 +4,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>⚖️ Expediente Judicial: {{ expediente.numero_expediente }}</h2>
         <div>
-            <a href="{% url 'detalle_deudor' expediente.deudor.id %}" class="btn btn-outline-primary">
+            <a href="{% url 'registrar_gestion' expediente.deudor.id %}" class="btn btn-outline-primary">
                 <i class="fas fa-user"></i> Ver Ficha de Cobranza
             </a>
             <a href="{% url 'dashboard_judicial' %}" class="btn btn-secondary">
