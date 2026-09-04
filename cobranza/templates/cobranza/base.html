@@ -321,9 +321,13 @@
             const links = details.querySelectorAll('a');
             links.forEach(link => {
                 const href = link.getAttribute('href');
-                if (href && href !== '#' && currentPath.includes(href)) {
-                    details.setAttribute('open', '');
-                    foundOpen = true;
+                if (href && href !== '#') {
+                    // Check if the current URL starts with the href (ignoring the root '/' to prevent matching everything)
+                    // Or if it's an exact match
+                    if (currentPath === href || (href !== '/' && currentPath.startsWith(href))) {
+                        details.setAttribute('open', '');
+                        foundOpen = true;
+                    }
                 }
             });
         });
