@@ -8,18 +8,18 @@ from .models import Deudor, ExpedienteJudicial, ActoProcesal, AlertaJudicial
 
 @login_required
 def dashboard_judicial(request):
-    if not request.user.is_superuser and not request.user.groups.filter(name='Gerencia').exists():
-        pass # Depending on auth, might allow legal assistants too
-
     hoy = date.today()
     fin_semana = hoy + timedelta(days=7)
 
-    alertas_hoy = AlertaJudicial.objects.filter(estado='PENDIENTE', fecha_vencimiento__lte=hoy).count()
-    alertas_semana = AlertaJudicial.objects.filter(estado='PENDIENTE', fecha_vencimiento__gt=hoy, fecha_vencimiento__lte=fin_semana).count()
-    total_activos = ExpedienteJudicial.objects.filter(estado_proceso='ACTIVO').count()
+    qs_alertas = aplicar_visibilidad_por_asignaciones(AlertaJudicial.objects.all(), request.user, related_prefix='expediente__deudor__')
+    qs_exp = aplicar_visibilidad_por_asignaciones(ExpedienteJudicial.objects.all(), request.user, related_prefix='deudor__')
+
+    alertas_hoy = qs_alertas.filter(estado='PENDIENTE', fecha_vencimiento__lte=hoy).count()
+    alertas_semana = qs_alertas.filter(estado='PENDIENTE', fecha_vencimiento__gt=hoy, fecha_vencimiento__lte=fin_semana).count()
+    total_activos = qs_exp.filter(estado_proceso='ACTIVO').count()
 
     # List pending alerts
-    alertas_pendientes = AlertaJudicial.objects.filter(estado='PENDIENTE').select_related('expediente__deudor').order_by('fecha_vencimiento')
+    alertas_pendientes = qs_alertas.filter(estado='PENDIENTE').select_related('expediente__deudor').order_by('fecha_vencimiento')
 
     context = {
         'alertas_hoy': alertas_hoy,
@@ -40,7 +40,7 @@ def buscar_expediente(request):
     
     # We only show results if a search or filter was applied
     if query or cartera_q or agencia_q:
-        qs = ExpedienteJudicial.objects.all()
+        qs = aplicar_visibilidad_por_asignaciones(ExpedienteJudicial.objects.all(), request.user, related_prefix='deudor__')
         if query:
             qs = qs.filter(
                 Q(numero_expediente__icontains=query) |
@@ -67,7 +67,8 @@ def buscar_expediente(request):
 
 @login_required
 def detalle_expediente(request, expediente_id):
-    expediente = get_object_or_404(ExpedienteJudicial, id=expediente_id)
+    qs_exp = aplicar_visibilidad_por_asignaciones(ExpedienteJudicial.objects.all(), request.user, related_prefix='deudor__')
+    expediente = get_object_or_404(qs_exp, id=expediente_id)
     actos = expediente.actos_procesales.all()
     alertas = expediente.alertas.filter(estado='PENDIENTE')
     

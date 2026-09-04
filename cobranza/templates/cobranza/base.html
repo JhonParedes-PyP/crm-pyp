@@ -234,7 +234,7 @@
 
             
             <!-- GESTIÓN JUDICIAL -->
-            {% if request.user.username == 'JPAREDES' or request.user.is_superuser %}
+            {% if user.is_authenticated %}
             <details class="menu-group">
                 <summary class="group-title">⚖️ Gestión Judicial</summary>
                 <a href="{% url 'dashboard_judicial' %}">📊 Panel Judicial</a>
