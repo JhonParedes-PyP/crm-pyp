@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from datetime import date, timedelta
 from django.db.models import Count, Q
+from .asignaciones import aplicar_visibilidad_por_asignaciones
 from .models import Deudor, ExpedienteJudicial, ActoProcesal, AlertaJudicial
 
 @login_required
