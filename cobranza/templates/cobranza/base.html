@@ -332,7 +332,19 @@
             });
         });
         
-        // Default to first one (Gestión) if none matched exactly
+        // Default behavior if no specific sub-link matched
+        if (!foundOpen && allDetails.length > 0) {
+            if (currentPath.startsWith('/judicial/')) {
+                allDetails.forEach(d => {
+                    if (d.textContent.includes('Gestión Judicial')) {
+                        d.setAttribute('open', '');
+                        foundOpen = true;
+                    }
+                });
+            }
+        }
+        
+        // Final fallback to Gestión
         if (!foundOpen && allDetails.length > 0) {
             allDetails[0].setAttribute('open', '');
         }
