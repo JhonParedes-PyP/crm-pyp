@@ -317,10 +317,19 @@ def subir_excel(request):
                             raw_fecha = str(row.get('Fecha Ult. Pago', '')).strip()
                             ultimo_dia_pago_val = safe_date(raw_fecha) if raw_fecha and raw_fecha not in ('', 'nan', 'None') else None
                             
-                            negociacion_str = str(row.get('Negociación', '')).strip()
-                            condicion_val = str(row.get('Situación del Proceso', str(row.get('Estado', '')))).strip()
-                            if negociacion_str and negociacion_str.lower() != 'nan':
-                                condicion_val = f"CONVENIO - {condicion_val}" if condicion_val else "CONVENIO"
+                            negociacion_str = str(row.get('Negociación', str(row.get('Negociacin', '')))).strip()
+                            
+                            # Jalar directamente de la columna Condición
+                            condicion_val = ''
+                            for k in row.keys():
+                                k_str = str(k).lower()
+                                if 'condici' in k_str or 'condición' in k_str:
+                                    condicion_val = str(row.get(k, '')).strip()
+                                    break
+                            
+                            if condicion_val.lower() == 'nan':
+                                condicion_val = ''
+
                             
                             telefono = str(row.get('Nº_Telefono', '')).strip()
                             telefono2 = str(row.get('TELEFONO', '')).strip()
@@ -493,7 +502,7 @@ def subir_excel(request):
                                 'aval_distrito': str(row.get('DISTRITO_AVAL', '')).strip(),
                                 'expediente': str(row.get('EXPEDIENTE', '')).strip(),
                                 'juzgado': str(row.get('JUZGADO', '')).strip(),
-                                'condicion': str(row.get('CONDICION', row.get('SITUACION', ''))).strip(),
+                                'condicion': str(row.get('Condición', row.get('CONDICION', row.get('Condicion', row.get('SITUACION', ''))))).strip(),
                                 'referencia': str(row.get('REFERENCIA', '')).strip(),
                                 'proceso': str(row.get('PROCESO_JUDICIAL', '')).strip(),
                                 'fec_demanda': safe_date(row.get('FEC_DEMANDA', '')),
