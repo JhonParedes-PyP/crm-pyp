@@ -33,6 +33,30 @@ def dashboard_judicial(request):
 
 @login_required
 def buscar_expediente(request):
+
+    from django.contrib import messages
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'crear_expediente':
+            doc_or_cuenta = request.POST.get('doc_or_cuenta', '').strip()
+            num_exp = request.POST.get('numero_expediente', '').strip()
+            materia = request.POST.get('materia', '').strip()
+            juzgado = request.POST.get('juzgado', '').strip()
+            
+            deudor = Deudor.objects.filter(Q(documento=doc_or_cuenta) | Q(cuenta=doc_or_cuenta)).first()
+            if deudor:
+                exp = ExpedienteJudicial.objects.create(
+                    deudor=deudor,
+                    numero_expediente=num_exp,
+                    materia=materia,
+                    juzgado=juzgado,
+                    estado_proceso='ACTIVO'
+                )
+                messages.success(request, 'Expediente creado correctamente.')
+                return redirect('detalle_expediente', expediente_id=exp.id)
+            else:
+                messages.error(request, 'No se encontr&oacute; un cliente con ese DNI o Cuenta.')
+                return redirect('buscar_expediente')
     query = request.GET.get('q', '')
     cartera_q = request.GET.get('cartera', '')
     agencia_q = request.GET.get('agencia', '')
@@ -98,6 +122,35 @@ def detalle_expediente(request, expediente_id):
                 fecha_vencimiento=request.POST.get('fecha_vencimiento'),
                 creado_por=request.user
             )
+        elif action == 'edit_expediente':
+            # Principal
+            expediente.numero_expediente = request.POST.get('numero_expediente', expediente.numero_expediente)
+            expediente.materia = request.POST.get('materia', expediente.materia)
+            expediente.juzgado = request.POST.get('juzgado', expediente.juzgado)
+            expediente.sede_judicial = request.POST.get('sede_judicial', expediente.sede_judicial)
+            expediente.distrito_judicial = request.POST.get('distrito_judicial', expediente.distrito_judicial)
+            expediente.condicion_recuperabilidad = request.POST.get('condicion_recuperabilidad', expediente.condicion_recuperabilidad)
+            expediente.probabilidad_recuperacion = request.POST.get('probabilidad_recuperacion', expediente.probabilidad_recuperacion)
+            expediente.detalle_bien = request.POST.get('detalle_bien', expediente.detalle_bien)
+            expediente.estado_proceso = request.POST.get('estado_proceso', expediente.estado_proceso)
+            
+            monto_str = request.POST.get('monto_demandado')
+            if monto_str:
+                try:
+                    expediente.monto_demandado = Decimal(monto_str.replace(',', ''))
+                except:
+                    pass
+            
+            # Cautelar
+            expediente.numero_cautelar = request.POST.get('numero_cautelar', expediente.numero_cautelar)
+            expediente.codigo_cautelar = request.POST.get('codigo_cautelar', expediente.codigo_cautelar)
+            expediente.tipo_medida_cautelar = request.POST.get('tipo_medida_cautelar', expediente.tipo_medida_cautelar)
+            expediente.estado_cautelar = request.POST.get('estado_cautelar', expediente.estado_cautelar)
+            
+            f_cau = request.POST.get('fecha_cautelar')
+            if f_cau: expediente.fecha_cautelar = f_cau
+            
+            expediente.save()
         elif action == 'complete_alerta':
             alerta_id = request.POST.get('alerta_id')
             alerta = AlertaJudicial.objects.filter(id=alerta_id, expediente=expediente).first()
