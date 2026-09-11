@@ -127,6 +127,20 @@
                     {% endif %}
                 </p>
                 {% endif %}
+                {% if c.cuota_pendiente or c.total_cuotas or c.monto_cuota_atrasada %}
+                <div style="margin-top: 5px; padding: 8px; background: #eef2f5; border-left: 3px solid #0056b3; border-radius: 4px; font-size: 11px;">
+                    <p style="margin: 0 0 3px 0; font-weight: bold; color: #0056b3;">Detalles de Convenio / Cuotas:</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                        {% if c.cuota_pendiente %}<div><strong>Cuota:</strong> {{ c.cuota_pendiente }} / {{ c.total_cuotas|default:"-" }}</div>{% endif %}
+                        {% if c.fecha_pago_cuota_pendiente %}<div><strong>Fec. Pago:</strong> {{ c.fecha_pago_cuota_pendiente|date:"d/m/Y" }}</div>{% endif %}
+                        {% if c.monto_cuota_atrasada %}<div><strong>Atrasada:</strong> S/ {{ c.monto_cuota_atrasada|floatformat:2|intcomma }}</div>{% endif %}
+                        {% if c.dias_atraso_cuota != None %}<div><strong>Días Atraso:</strong> <span style="color: {% if c.dias_atraso_cuota > 0 %}red{% else %}green{% endif %}; font-weight: bold;">{{ c.dias_atraso_cuota }}</span></div>{% endif %}
+                        {% if c.credito_al_dia %}<div><strong>¿Al día?:</strong> 
+                            <span style="color: {% if c.credito_al_dia == 'SI' %}green{% else %}red{% endif %}; font-weight: bold;">{{ c.credito_al_dia }}</span>
+                        </div>{% endif %}
+                    </div>
+                </div>
+                {% endif %}
                 {% if c.rango_dias_mora %}<p style="margin: 3px 0; font-size: 12px;"><strong>Mora:</strong> <span style="color: #dc3545; font-weight: bold;">{{ c.rango_dias_mora }}</span></p>{% endif %}
                 {% if c.nmes %}<p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Meses de mora:</strong> <span style="color: #dc3545; font-weight: bold;">{{ c.nmes }}</span></p>{% endif %}
                 {% if c.correlativo %}<p style="margin: 3px 0; font-size: 12px; color: #555;"><strong>Correlativo:</strong> <span style="font-weight: bold;">{{ c.correlativo }}</span></p>{% endif %}

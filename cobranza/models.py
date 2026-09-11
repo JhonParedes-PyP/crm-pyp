@@ -53,6 +53,13 @@ class Deudor(models.Model):
     num_doc_aval = models.CharField(max_length=20, null=True, blank=True)
     zona = models.CharField(max_length=100, null=True, blank=True)
     negociacion = models.TextField(null=True, blank=True)
+    # CAMPOS CONVENIO CAJA HUANCAYO
+    cuota_pendiente = models.CharField(max_length=50, null=True, blank=True)
+    total_cuotas = models.CharField(max_length=50, null=True, blank=True)
+    fecha_pago_cuota_pendiente = models.DateField(null=True, blank=True)
+    monto_cuota_atrasada = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    credito_al_dia = models.CharField(max_length=50, null=True, blank=True)
+    dias_atraso_cuota = models.IntegerField(null=True, blank=True)
 
     # CAMPOS APP MÓVIL (actualizables por gestores de campo)
     link_gps = models.CharField(max_length=500, null=True, blank=True)

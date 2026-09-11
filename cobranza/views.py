@@ -321,6 +321,22 @@ def subir_excel(request):
                             
                             # Jalar directamente de la columna Condición
                             condicion_val = ''
+                            
+                            # Nuevos campos de Convenio para Caja Huancayo
+                            raw_fecha_pend = str(row.get('Fecha Pago Cuota Pendiente', '')).strip()
+                            f_pend_val = safe_date(raw_fecha_pend) if raw_fecha_pend and raw_fecha_pend not in ('', 'nan', 'None') else None
+                            
+                            mca_str = str(row.get('Monto Cuota Atrasada', '0')).strip()
+                            try:
+                                mca_val = Decimal(mca_str.replace(',', ''))
+                            except:
+                                mca_val = Decimal('0')
+                                
+                            dias_atr_str = str(row.get('Días de Atraso de Cuota', str(row.get('Das de Atraso de Cuota', '0')))).strip()
+                            try:
+                                dias_atr_val = int(dias_atr_str)
+                            except:
+                                dias_atr_val = 0
                             for k in row.keys():
                                 k_str = str(k).lower()
                                 if 'condici' in k_str or 'condición' in k_str:
@@ -329,6 +345,22 @@ def subir_excel(request):
                             
                             if condicion_val.lower() == 'nan':
                                 condicion_val = ''
+                            
+                            # Nuevos campos de Convenio para Caja Huancayo
+                            raw_fecha_pend = str(row.get('Fecha Pago Cuota Pendiente', '')).strip()
+                            f_pend_val = safe_date(raw_fecha_pend) if raw_fecha_pend and raw_fecha_pend not in ('', 'nan', 'None') else None
+                            
+                            mca_str = str(row.get('Monto Cuota Atrasada', '0')).strip()
+                            try:
+                                mca_val = Decimal(mca_str.replace(',', ''))
+                            except:
+                                mca_val = Decimal('0')
+                                
+                            dias_atr_str = str(row.get('Días de Atraso de Cuota', str(row.get('Das de Atraso de Cuota', '0')))).strip()
+                            try:
+                                dias_atr_val = int(dias_atr_str)
+                            except:
+                                dias_atr_val = 0
 
                             
                             telefono = str(row.get('Nº_Telefono', '')).strip()
@@ -392,6 +424,12 @@ def subir_excel(request):
                                 'num_doc_aval': '',
                                 'zona': zona,
                                 'negociacion': negociacion_str,
+                                'cuota_pendiente': str(row.get('Cuota Pendiente', '')).strip(),
+                                'total_cuotas': str(row.get('Total Cuotas (seg. Cronograma)', '')).strip(),
+                                'fecha_pago_cuota_pendiente': f_pend_val,
+                                'monto_cuota_atrasada': mca_val,
+                                'credito_al_dia': str(row.get('¿Crédito al día?', str(row.get('Crdito al da?', str(row.get('Crédito al día', '')))))).strip(),
+                                'dias_atraso_cuota': dias_atr_val,
                                 'activo': True,
                             }
                             col_fecha = 'Fecha Ult. Pago'
@@ -460,6 +498,12 @@ def subir_excel(request):
                                 'num_doc_aval': str(row.get('NUM DOC AVAL', '')).strip(),
                                 'zona': str(row.get('REGION', '')).strip(),
                                 'negociacion': negociacion_str,
+                                'cuota_pendiente': str(row.get('Cuota Pendiente', '')).strip(),
+                                'total_cuotas': str(row.get('Total Cuotas (seg. Cronograma)', '')).strip(),
+                                'fecha_pago_cuota_pendiente': f_pend_val,
+                                'monto_cuota_atrasada': mca_val,
+                                'credito_al_dia': str(row.get('¿Crédito al día?', str(row.get('Crdito al da?', str(row.get('Crédito al día', '')))))).strip(),
+                                'dias_atraso_cuota': dias_atr_val,
                                 'activo': True,
                             }
                             col_fecha = 'FEC ULT PAGO ACTUAL'
