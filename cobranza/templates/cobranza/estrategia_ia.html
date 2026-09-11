@@ -130,7 +130,9 @@
             html2canvas:  { 
                 scale: 2,
                 useCORS: true,
-                windowWidth: 800 // Forzar el ancho del canvas para que no corte el contenido
+                windowWidth: 800, // Forzar el ancho del canvas para que no corte el contenido
+                scrollY: 0,
+                scrollX: 0
             },
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
             pagebreak:    { mode: ['css', 'legacy'] } // avoid-all a veces buggea
@@ -143,6 +145,7 @@
         element.style.left = '0';
         element.style.width = '790px'; // Ancho óptimo para A4 (210mm)
         element.style.background = 'white';
+        element.style.zIndex = '-9999';
         element.style.zIndex = '-9999';
         element.style.padding = '20px';
         element.style.boxSizing = 'border-box';
