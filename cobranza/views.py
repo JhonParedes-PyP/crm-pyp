@@ -1148,6 +1148,9 @@ def registrar_gestion(request, deudor_id):
     if filtros.get('orden'): params.append(f"orden={filtros['orden']}")
     if filtros.get('modo'): params.append(f"modo={filtros['modo']}")
     
+    if request.GET.get('auto_dialer'):
+        params.append('auto_dialer=1')
+    
     parametros_url = '&'.join(params) if params else ''
     
     todos_los_numeros = []
@@ -1529,6 +1532,9 @@ def eliminar_cliente(request, deudor_id):
         if filtros.get('mora'): params.append(f"rango_dias_mora={filtros['mora']}")
         if filtros.get('orden'): params.append(f"orden={filtros['orden']}")
         if filtros.get('modo'): params.append(f"modo={filtros['modo']}")
+    
+    if request.GET.get('auto_dialer'):
+        params.append('auto_dialer=1')
         
         if params:
             url = f"{url}?{'&'.join(params)}"
