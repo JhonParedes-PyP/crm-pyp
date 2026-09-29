@@ -1375,7 +1375,17 @@ def generar_cartas(request):
             
         try:
             # Crear documento final a partir de la plantilla para conservar estilos y márgenes
-            template_path = os.path.join(settings.BASE_DIR, 'plantilla_caja_huancayo_v2.docx')
+            plantilla_param = request.GET.get('plantilla', 'auto')
+            if plantilla_param == 'proempresa':
+                template_path = os.path.join(settings.BASE_DIR, 'plantilla_proempresa.docx')
+            elif plantilla_param == 'caja_huancayo':
+                template_path = os.path.join(settings.BASE_DIR, 'plantilla_caja_huancayo_v2.docx')
+            else:
+                # Auto
+                if clientes and clientes[0].cartera and 'PROEMPRESA' in clientes[0].cartera.upper():
+                    template_path = os.path.join(settings.BASE_DIR, 'plantilla_proempresa.docx')
+                else:
+                    template_path = os.path.join(settings.BASE_DIR, 'plantilla_caja_huancayo_v2.docx')
             doc_final = Document(template_path)
             
             # Limpiar contenido de doc_final para usarlo como hoja maestra
