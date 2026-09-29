@@ -1419,8 +1419,6 @@ def generar_cartas(request):
             composer = Composer(doc_final)
             
             # --- 2. GENERAR CARTAS ---
-            template_path = os.path.join(settings.BASE_DIR, 'plantilla_caja_huancayo_v2.docx')
-            
             for i, c in enumerate(clientes):
                 # Abrir la plantilla limpia para cada cliente
                 doc_temp = Document(template_path)
