@@ -86,7 +86,7 @@ def dashboard_gerente(request):
     
     convenios_base = Convenio.objects.select_related('deudor').annotate(
         ya_pago=Exists(gestiones_recientes_pago)
-    ).filter(ya_pago=False)
+    ).filter(ya_pago=False, deudor__activo=True)
 
     if not es_gerente_flag:
         from .views import aplicar_asignaciones_de_gestor
