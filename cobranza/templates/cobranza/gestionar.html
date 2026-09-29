@@ -193,6 +193,16 @@
                 {% if c.link_gps_aval %}<p style="margin: 2px 0;"><a href="{% if 'http' in c.link_gps_aval %}{{ c.link_gps_aval }}{% else %}https://www.google.com/maps?q={{ c.link_gps_aval|urlencode }}{% endif %}" target="_blank" style="color: #007bff; font-size: 11px; text-decoration: none;">📌 GPS Aval</a></p>{% endif %}
                 <p style="margin: 3px 0; color: #444;"><strong>Cónyuge Aval 1:</strong><br> {% if c.nom_conyuge_aval %}{{ c.nom_conyuge_aval }}{% else %}--{% endif %}</p>
             </div>
+            
+            <!-- BOTON IMPRIMIR CARTAS -->
+            <div style="margin-bottom: 15px;">
+                <a href="{% url 'generar_cartas' %}?descargar=1&cliente_dni={{ c.documento|urlencode }}" 
+                   style="display: block; width: 100%; text-align: center; background: #6c757d; color: white; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 13px; box-sizing: border-box; transition: background 0.2s;"
+                   onmouseover="this.style.background='#5a6268'"
+                   onmouseout="this.style.background='#6c757d'">
+                    📄 Imprimir Carta(s) de este Cliente
+                </a>
+            </div>
 
             {% if c.expediente or c.juzgado or c.condicion %}
             <h4 style="color: #666; font-size: 11px; text-transform: uppercase; margin-bottom: 5px;">⚖️ Datos Judiciales</h4>

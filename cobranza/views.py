@@ -1344,6 +1344,7 @@ def registrar_gestion(request, deudor_id):
 @login_required
 def generar_cartas(request):
     if request.GET.get('descargar') == '1':
+        cliente_dni = request.GET.get('cliente_dni')
         cartera = request.GET.get('cartera')
         agencia = request.GET.get('agencia')
         distritos = request.GET.getlist('distrito')
@@ -1351,8 +1352,11 @@ def generar_cartas(request):
         
         # Filtrar clientes
         qs = Deudor.objects.filter(activo=True)
-        if cartera:
-            qs = qs.filter(cartera=cartera)
+        if cliente_dni:
+            qs = qs.filter(documento=cliente_dni)
+        else:
+            if cartera:
+                qs = qs.filter(cartera=cartera)
         if agencia:
             qs = qs.filter(agencia=agencia)
         if distritos:
@@ -1382,31 +1386,34 @@ def generar_cartas(request):
             doc_final.add_paragraph()
             
             # --- 1. HOJA DE RUTA ---
-            p_titulo = doc_final.add_paragraph()
-            run_titulo = p_titulo.add_run('HOJA DE RUTA - NOTIFICACIONES')
-            run_titulo.bold = True
-            # Nombre de la ruta como titulo (opcional)
-            distrito_str = ", ".join(distritos) if distritos else 'TODOS'
-            distrito_filename = "Varios" if len(distritos) > 1 else (distritos[0] if distritos else 'General')
-            doc_final.add_paragraph(f"Cartera: {cartera or 'TODAS'} | Distrito: {distrito_str}")
-            doc_final.add_paragraph(f"Fecha de Generación: {datetime.date.today().strftime('%d/%m/%Y')} | Total a notificar: {len(clientes)}")
+            if cliente_dni:
+                distrito_filename = f"Cliente_{cliente_dni}"
+            else:
+    p_titulo = doc_final.add_paragraph()
+                run_titulo = p_titulo.add_run('HOJA DE RUTA - NOTIFICACIONES')
+                run_titulo.bold = True
+                # Nombre de la ruta como titulo (opcional)
+                distrito_str = ", ".join(distritos) if distritos else 'TODOS'
+                distrito_filename = "Varios" if len(distritos) > 1 else (distritos[0] if distritos else 'General')
+                doc_final.add_paragraph(f"Cartera: {cartera or 'TODAS'} | Distrito: {distrito_str}")
+                doc_final.add_paragraph(f"Fecha de Generación: {datetime.date.today().strftime('%d/%m/%Y')} | Total a notificar: {len(clientes)}")
             
-            # Crear tabla para los clientes, sin bordes por defecto (o estilo base)
-            table = doc_final.add_table(rows=1, cols=4, style='Normal Table')
-            hdr_cells = table.rows[0].cells
-            hdr_cells[0].text = 'N°'
-            hdr_cells[1].text = 'Cliente'
-            hdr_cells[2].text = 'Dirección'
-            hdr_cells[3].text = 'Entregado (Firma/Cargo)'
+                # Crear tabla para los clientes, sin bordes por defecto (o estilo base)
+                table = doc_final.add_table(rows=1, cols=4, style='Normal Table')
+                hdr_cells = table.rows[0].cells
+                hdr_cells[0].text = 'N°'
+                hdr_cells[1].text = 'Cliente'
+                hdr_cells[2].text = 'Dirección'
+                hdr_cells[3].text = 'Entregado (Firma/Cargo)'
             
-            for idx, c in enumerate(clientes, 1):
-                row_cells = table.add_row().cells
-                row_cells[0].text = str(idx)
-                row_cells[1].text = f"{c.nombre_completo}\nCta: {c.cuenta or 'S/N'}"
-                row_cells[2].text = c.dir_casa or ''
-                row_cells[3].text = "☐ Bajo Puerta  ☐ Familiar  ☐ Titular\nObs: _____________"
+                for idx, c in enumerate(clientes, 1):
+                    row_cells = table.add_row().cells
+                    row_cells[0].text = str(idx)
+                    row_cells[1].text = f"{c.nombre_completo}\nCta: {c.cuenta or 'S/N'}"
+                    row_cells[2].text = c.dir_casa or ''
+                    row_cells[3].text = "☐ Bajo Puerta  ☐ Familiar  ☐ Titular\nObs: _____________"
                 
-            doc_final.add_page_break()
+                doc_final.add_page_break()
             
             # Iniciar composer con el documento final (que tiene la hoja de ruta)
             composer = Composer(doc_final)
@@ -1882,7 +1889,8 @@ from django.http import HttpResponse
 
 @login_required
 def descargar_reporte_excel(request):
-    cartera = request.GET.get('cartera')
+    cliente_dni = request.GET.get('cliente_dni')
+        cartera = request.GET.get('cartera')
     agencia = request.GET.get('agencia')
     distritos = request.GET.getlist('distrito')
     estado_negociacion = request.GET.get('estado_negociacion')
