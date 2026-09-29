@@ -1389,7 +1389,7 @@ def generar_cartas(request):
             if cliente_dni:
                 distrito_filename = f"Cliente_{cliente_dni}"
             else:
-                p_titulo = doc_final.add_paragraph()
+    p_titulo = doc_final.add_paragraph()
                 run_titulo = p_titulo.add_run('HOJA DE RUTA - NOTIFICACIONES')
                 run_titulo.bold = True
                 # Nombre de la ruta como titulo (opcional)
@@ -1889,8 +1889,7 @@ from django.http import HttpResponse
 
 @login_required
 def descargar_reporte_excel(request):
-    cliente_dni = request.GET.get('cliente_dni')
-        cartera = request.GET.get('cartera')
+    cartera = request.GET.get('cartera')
     agencia = request.GET.get('agencia')
     distritos = request.GET.getlist('distrito')
     estado_negociacion = request.GET.get('estado_negociacion')
@@ -1994,5 +1993,4 @@ def descargar_reporte_excel(request):
     response = HttpResponse(zip_buffer, content_type='application/zip')
     response['Content-Disposition'] = f'attachment; filename="Reportes_Caja_Huancayo_{datetime.date.today().strftime("%Y%m%d")}.zip"'
     return response
-
 
