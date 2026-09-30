@@ -660,9 +660,12 @@ def obtener_queryset_bandeja(request, usuario, usar_sesion_fallback=False, forza
         rango_deuda = filtros_sesion.get('rango_deuda', '')
         orden = filtros_sesion.get('orden', '')
 
-    # Solo el gerente puede ver clientes inactivos
+    # Solo el gerente puede ver clientes inactivos si busca explícitamente
     if es_gerente(usuario) and not forzar_asignaciones:
-        deudores = Deudor.objects.all()
+        if q:
+            deudores = Deudor.objects.all()
+        else:
+            deudores = Deudor.objects.filter(activo=True)
     else:
         deudores = Deudor.objects.filter(activo=True)
 
@@ -1029,7 +1032,10 @@ def asignaciones_diarias(request):
 
         return redirect(f"{reverse('asignaciones_diarias')}?{redirect_params}")
 
-    deudores = Deudor.objects.all()
+    if q:
+        deudores = Deudor.objects.all()
+    else:
+        deudores = Deudor.objects.filter(activo=True)
     if q:
         deudores = deudores.filter(
             Q(documento__icontains=q) |
