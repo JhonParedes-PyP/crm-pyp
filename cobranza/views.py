@@ -1351,10 +1351,11 @@ def generar_cartas(request):
         estado_negociacion = request.GET.get('estado_negociacion')
         
         # Filtrar clientes
-        qs = Deudor.objects.filter(activo=True)
+        qs = Deudor.objects.all()
         if cliente_dni:
             qs = qs.filter(documento=cliente_dni)
         else:
+            qs = qs.filter(activo=True)
             if cartera:
                 qs = qs.filter(cartera=cartera)
         if agencia:
