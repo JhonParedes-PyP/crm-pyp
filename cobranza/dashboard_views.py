@@ -127,6 +127,16 @@ def dashboard_gerente(request):
                 # Fallback for others if any
                 recuperacion_carteras[c_upper] = recuperacion_carteras.get(c_upper, 0.0) + total
 
+    # Auto-wipe PROEMPRESA imp_recup at the start of every month
+    reset_marker = ds_os.path.join(settings.BASE_DIR, f'reset_proempresa_{hoy.year}_{hoy.month}.marker')
+    if not ds_os.path.exists(reset_marker):
+        Deudor.objects.filter(cartera__icontains='PROEMPRESA').update(imp_recup=0.0)
+        try:
+            with open(reset_marker, 'w') as f:
+                f.write('wiped')
+        except Exception:
+            pass
+
     # Sobrescribir PROEMPRESA con la suma de imp_recup (Monto Recuperado Oficial)
     proempresa_recup = Deudor.objects.filter(
         cartera__icontains='PROEMPRESA',
